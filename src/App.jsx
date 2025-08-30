@@ -22,6 +22,7 @@ import Apparitorat from "./pages/Apparitorat"
 import Paiements from "./pages/Paiements"
 import Notifications from "./pages/Notifications"
 import ProtectedRoute from "./components/Auth/ProtectedRoute"
+import { Col, Row } from "react-bootstrap"
 
 function App() {
   const { isAuthenticated } = useSelector((state) => state.auth)
@@ -29,11 +30,16 @@ function App() {
   return (
     <div className="App">
       {isAuthenticated ? (
-        <div className="d-flex">
-          <Sidebar />
-          <div
+        <Row className="" lg={12}>
+          <Col lg={2} style={{padding:0}}>
+            <Sidebar />
+          </Col>
+          <Col
+            lg={10}
+            style={{padding:0,
+            }}
             className="main-content"
-            style={{ marginLeft: "280px", width: "calc(100% - 280px)", minHeight: "100vh" }}
+            // style={{ marginLeft: "280px", width: "calc(100% - 280px)", minHeight: "100vh" }}
           >
             <Routes>
               <Route path="/" element={<Dashboard />} />
@@ -175,8 +181,8 @@ function App() {
                 }
               />
             </Routes>
-          </div>
-        </div>
+          </Col>
+        </Row>
       ) : (
         <>
           <Navbar />

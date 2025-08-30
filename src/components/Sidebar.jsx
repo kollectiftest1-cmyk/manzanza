@@ -1,5 +1,5 @@
 "use client"
-import { Nav, Button } from "react-bootstrap"
+import { Nav, Button, Col } from "react-bootstrap"
 import { LinkContainer } from "react-router-bootstrap"
 import { useSelector, useDispatch } from "react-redux"
 import { logout } from "../store/slices/authSlice"
@@ -138,16 +138,18 @@ const Sidebar = () => {
   }
 
   return (
-    <div
+    <Col
+      lg={12}
       className="sidebar shadow-sm"
       style={{
-        width: "280px",
-        height: "100vh",
-        position: "fixed",
-        left: 0,
-        top: 0,
-        zIndex: 1000,
-        background: "linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)",
+        // width: "100%",
+        // height: "90vh",
+        // position: "fixed",
+        // margin:'auto',
+        // left: 0,
+        // top: 0,
+        // zIndex: 1000,
+        // background: "linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)",
       }}
     >
       {/* Logo/Header */}
@@ -213,7 +215,7 @@ const Sidebar = () => {
           Déconnexion
         </Button>
       </div>
-    </div>
+    </Col>
   )
 }
 

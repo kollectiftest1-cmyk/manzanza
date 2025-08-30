@@ -13,7 +13,7 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
     .slice(0, 3)
 
   return (
-    <Container className="py-4" style={{ marginTop: "80px" }}>
+    <Container className="m-0 p-0" >
       {/* Welcome Section */}
       <Row className="mb-4">
         <Col>
