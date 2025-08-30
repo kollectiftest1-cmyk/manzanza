@@ -55,7 +55,7 @@ const Login = () => {
           <Card className="card-custom">
             <Card.Body className="p-5">
               <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary mb-2">Connexion ISIPA</h2>
+                <h2 className="fw-bold text-primary mb-2">Connexion NKEBI UNIV</h2>
                 <p className="text-muted">Accédez à votre espace universitaire</p>
               </div>
 
@@ -80,10 +80,11 @@ const Login = () => {
                     <option value="pdg">PDG/Conseil d'Administration</option>
                     <option value="bibliothecaire">Bibliothécaire</option>
                     <option value="rh">Ressources Humaines</option>
-                    <option value="comptable">Caisse/Comptabilité</option>
+                    <option value="caisse_comptabilite">Caisse/Comptabilité</option>
                     <option value="service_it">Service Informatique</option>
                     <option value="apparitorat">Apparitorat</option>
                     <option value="jury">Jury Mémoire/Défense</option>
+                    <option value="iadmin">iAdmin (Super Utilisateur)</option>
                   </Form.Select>
                 </Form.Group>
 
@@ -94,7 +95,7 @@ const Login = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="votre.email@isipa.ac.cd"
+                    placeholder="votre.email@NKEBI UNIV.ac.cd"
                     required
                   />
                 </Form.Group>

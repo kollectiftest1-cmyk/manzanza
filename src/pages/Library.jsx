@@ -122,7 +122,7 @@ const Library = () => {
     <Container fluid className="mt-4">
       <Row className="mb-4">
         <Col>
-          <h2>Bibliothèque ISIPA</h2>
+          <h2>Bibliothèque NKEBI UNIV</h2>
           <p className="text-muted">Catalogue des ressources académiques et gestion des emprunts</p>
         </Col>
       </Row>

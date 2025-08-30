@@ -2,8 +2,8 @@ import type React from "react"
 import "./globals.css"
 
 export const metadata = {
-  title: "ISIPA - Université",
-  description: "Application universitaire ISIPA",
+  title: "NKEBI UNIV - Université",
+  description: "Application universitaire NKEBI UNIV",
     generator: 'v0.app'
 }
 

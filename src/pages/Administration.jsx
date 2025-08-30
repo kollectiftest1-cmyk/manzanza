@@ -13,7 +13,7 @@ const Administration = () => {
     {
       id: 1,
       name: "Marie Kouassi",
-      email: "marie.k@isipa.edu",
+      email: "marie.k@NKEBI UNIV.edu",
       role: "etudiant",
       status: "actif",
       promotion: "1ère Licence Finance",
@@ -21,7 +21,7 @@ const Administration = () => {
     {
       id: 2,
       name: "Jean Koffi",
-      email: "jean.k@isipa.edu",
+      email: "jean.k@NKEBI UNIV.edu",
       role: "etudiant",
       status: "actif",
       promotion: "1ère Licence Finance",
@@ -29,7 +29,7 @@ const Administration = () => {
     {
       id: 3,
       name: "Prof. Martin Dubois",
-      email: "martin.d@isipa.edu",
+      email: "martin.d@NKEBI UNIV.edu",
       role: "enseignant",
       status: "actif",
       departement: "Finance",
@@ -37,7 +37,7 @@ const Administration = () => {
     {
       id: 4,
       name: "Dr. Adjoua Yao",
-      email: "adjoua.y@isipa.edu",
+      email: "adjoua.y@NKEBI UNIV.edu",
       role: "chef_departement",
       status: "actif",
       departement: "Finance",

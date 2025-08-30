@@ -157,7 +157,7 @@ const CourseDetail = () => {
             <Card.Body>
               <h6 className="fw-bold mb-3">Actions rapides</h6>
               <div className="d-grid gap-2">
-                <LinkContainer to={`/chat?course=${course.id}`}>
+                <LinkContainer to={{ pathname: "/chat", search: `?course=${course.id}` }}>
                   <Button variant="outline-primary">
                     <i className="fas fa-comments me-2"></i>
                     Rejoindre la discussion

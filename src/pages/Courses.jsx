@@ -61,7 +61,7 @@ const Courses = () => {
                     {course.students} étudiants
                   </div>
                   <div className="d-flex gap-2">
-                    <LinkContainer to={`/chat?course=${course.id}`}>
+                    <LinkContainer to={{ pathname: "/chat", search: `?course=${course.id}` }}>
                       <Button size="sm" variant="outline-primary">
                         <i className="fas fa-comments me-1"></i>
                         Discussion

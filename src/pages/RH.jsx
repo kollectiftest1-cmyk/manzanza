@@ -24,7 +24,7 @@ const RH = () => {
         statut: "Actif",
         dateEmbauche: "2020-09-01",
         salaire: 2500,
-        email: "j.dubois@isipa.cd",
+        email: "j.dubois@NKEBI UNIV.cd",
       },
       {
         id: 2,
@@ -35,7 +35,7 @@ const RH = () => {
         statut: "Actif",
         dateEmbauche: "2018-01-15",
         salaire: 3200,
-        email: "m.martin@isipa.cd",
+        email: "m.martin@NKEBI UNIV.cd",
       },
       {
         id: 3,
@@ -46,7 +46,7 @@ const RH = () => {
         statut: "Actif",
         dateEmbauche: "2022-03-10",
         salaire: 1800,
-        email: "p.leroy@isipa.cd",
+        email: "p.leroy@NKEBI UNIV.cd",
       },
     ])
 
@@ -434,7 +434,7 @@ const RH = () => {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Email</Form.Label>
-                  <Form.Control type="email" placeholder="email@isipa.cd" />
+                  <Form.Control type="email" placeholder="email@NKEBI UNIV.cd" />
                 </Form.Group>
               </Col>
               <Col md={6}>
