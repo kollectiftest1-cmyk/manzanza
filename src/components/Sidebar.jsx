@@ -180,11 +180,11 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation Menu */}
-      <Nav className="flex-column p-3">
+      <Nav className="flex-column p-0">
         {getMenuItems().map((item, index) => (
           <LinkContainer key={index} to={item.path}>
             <Nav.Link
-              className="sidebar-link d-flex align-items-center py-3 px-3 mb-1 text-white rounded"
+              className="sidebar-link d-flex align-items-center py-0 px-0 mb-1 text-white rounded"
               style={{
                 transition: "all 0.3s ease",
                 "&:hover": {
@@ -200,7 +200,7 @@ const Sidebar = () => {
       </Nav>
 
       {/* Logout Button */}
-      <div className="p-3 mt-auto" style={{ position: "absolute", bottom: "20px", left: "20px", right: "20px" }}>
+      <div className="p-0 mt-auto" style={{ }}>
         <Button
           variant="light"
           className="w-100 fw-semibold"

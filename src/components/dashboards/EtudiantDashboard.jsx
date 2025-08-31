@@ -13,7 +13,7 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
     .slice(0, 3)
 
   return (
-    <Container className="m-0 p-0" >
+    <Row className="m-0 p-0" >
       {/* Welcome Section */}
       <Row className="mb-4">
         <Col>
@@ -47,8 +47,8 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
         </Col>
       </Row>
 
+        {/* <Col lg={8}> */}
       <Row>
-        <Col lg={8}>
           {/* Student Stats */}
           <Row className="mb-4">
             <Col md={3}>
@@ -78,6 +78,8 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
           </Row>
 
           {/* Courses Progress */}
+          <Row>
+
           <Card className="card-custom mb-4">
             <Card.Header>
               <h5 className="fw-bold mb-0">Progression des Cours</h5>
@@ -106,9 +108,10 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
               ))}
             </Card.Body>
           </Card>
-        </Col>
+          </Row>
+        {/* </Col> */}
 
-        <Col lg={4}>
+        <Row >
           {/* Upcoming Assignments */}
           <Card className="card-custom mb-4">
             <Card.Header>
@@ -163,9 +166,9 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
               </ListGroup>
             </Card.Body>
           </Card>
-        </Col>
+        </Row>
       </Row>
-    </Container>
+    </Row>
   )
 }
 
