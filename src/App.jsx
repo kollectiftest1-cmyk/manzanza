@@ -30,165 +30,182 @@ function App() {
   return (
     <div className="App">
       {isAuthenticated ? (
-        <Row className="" lg={12}>
-          <Col lg={2} style={{padding:0}}>
-            <Sidebar />
-          </Col>
-          <Col
-            lg={10}
-            style={{padding:0,
-            }}
-            className="main-content"
-            // style={{ marginLeft: "280px", width: "calc(100% - 280px)", minHeight: "100vh" }}
-          >
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/courses"
-                element={
-                  <ProtectedRoute>
-                    <Courses />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/courses/:id"
-                element={
-                  <ProtectedRoute>
-                    <CourseDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/auditoires"
-                element={
-                  <ProtectedRoute>
-                    <Auditoires />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/auditoires/:id"
-                element={
-                  <ProtectedRoute>
-                    <AuditoireDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/tptd"
-                element={
-                  <ProtectedRoute>
-                    <TPTD />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/quiz/:id"
-                element={
-                  <ProtectedRoute>
-                    <Quiz />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/chat"
-                element={
-                  <ProtectedRoute>
-                    <Chat />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/rh"
-                element={
-                  <ProtectedRoute>
-                    <RH />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/comptabilite"
-                element={
-                  <ProtectedRoute>
-                    <Comptabilite />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/service-it"
-                element={
-                  <ProtectedRoute>
-                    <ServiceIT />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/apparitorat"
-                element={
-                  <ProtectedRoute>
-                    <Apparitorat />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/paiements"
-                element={
-                  <ProtectedRoute>
-                    <Paiements />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <ProtectedRoute>
-                    <Notifications />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/administration"
-                element={
-                  <ProtectedRoute>
-                    <Administration />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/library"
-                element={
-                  <ProtectedRoute>
-                    <Library />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </Col>
-        </Row>
+        <div className="container-fluid p-0">
+          <Row  className="row g-0">
+            <Col lg={2} className="col-auto">
+              <Sidebar />
+            </Col>
+            <Col lg={10} className="col">
+              <div
+                className="main-content"
+                style={{
+                  height: "100vh",
+                  overflowY: "auto",
+                  overflowX: "auto",
+                  backgroundColor: "#f8f9fa",
+                }}
+              >
+                <div className="p-4">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/courses"
+                      element={
+                        <ProtectedRoute>
+                          <Courses />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/courses/:id"
+                      element={
+                        <ProtectedRoute>
+                          <CourseDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/auditoires"
+                      element={
+                        <ProtectedRoute>
+                          <Auditoires />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/auditoires/:id"
+                      element={
+                        <ProtectedRoute>
+                          <AuditoireDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/tptd"
+                      element={
+                        <ProtectedRoute>
+                          <TPTD />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/quiz"
+                      element={
+                        <ProtectedRoute>
+                          <Quiz />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/quiz/:id"
+                      element={
+                        <ProtectedRoute>
+                          <Quiz />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/chat"
+                      element={
+                        <ProtectedRoute>
+                          <Chat />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/rh"
+                      element={
+                        <ProtectedRoute>
+                          <RH />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/comptabilite"
+                      element={
+                        <ProtectedRoute>
+                          <Comptabilite />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/service-it"
+                      element={
+                        <ProtectedRoute>
+                          <ServiceIT />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/apparitorat"
+                      element={
+                        <ProtectedRoute>
+                          <Apparitorat />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/paiements"
+                      element={
+                        <ProtectedRoute>
+                          <Paiements />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/notifications"
+                      element={
+                        <ProtectedRoute>
+                          <Notifications />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute>
+                          <Profile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/administration"
+                      element={
+                        <ProtectedRoute>
+                          <Administration />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/library"
+                      element={
+                        <ProtectedRoute>
+                          <Library />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </div>
+              </div>
+            </Col>
+          </Row>
+        </div>
       ) : (
         <>
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="*" element={<Login />} />
           </Routes>
         </>
       )}

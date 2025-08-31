@@ -36,7 +36,7 @@ const IAdminDashboard = ({ user, courses, notifications }) => {
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <h2 className="text-primary fw-bold">Tableau de Bord iAdmin</h2>
-              <p className="text-muted mb-0">Contrôle total du système NKEBI UNIV</p>
+              <p className="text-muted mb-0">Contrôle total du système ISIPA</p>
             </div>
             <div className="d-flex gap-2">
               <Button variant="outline-primary" size="sm">

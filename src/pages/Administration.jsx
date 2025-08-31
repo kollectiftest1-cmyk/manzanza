@@ -13,7 +13,7 @@ const Administration = () => {
     {
       id: 1,
       name: "Marie Kouassi",
-      email: "marie.k@NKEBI UNIV.edu",
+      email: "marie.k@isipa.edu",
       role: "etudiant",
       status: "actif",
       promotion: "1ère Licence Finance",
@@ -21,7 +21,7 @@ const Administration = () => {
     {
       id: 2,
       name: "Jean Koffi",
-      email: "jean.k@NKEBI UNIV.edu",
+      email: "jean.k@isipa.edu",
       role: "etudiant",
       status: "actif",
       promotion: "1ère Licence Finance",
@@ -29,7 +29,7 @@ const Administration = () => {
     {
       id: 3,
       name: "Prof. Martin Dubois",
-      email: "martin.d@NKEBI UNIV.edu",
+      email: "martin.d@isipa.edu",
       role: "enseignant",
       status: "actif",
       departement: "Finance",
@@ -37,10 +37,10 @@ const Administration = () => {
     {
       id: 4,
       name: "Dr. Adjoua Yao",
-      email: "adjoua.y@NKEBI UNIV.edu",
-      role: "chef_departement",
+      email: "adjoua.y@isipa.edu",
+      role: "chef_section",
       status: "actif",
-      departement: "Finance",
+      section: "Sciences Économiques",
     },
   ])
 
@@ -81,6 +81,17 @@ const Administration = () => {
       enseignant: { variant: "success", text: "Enseignant" },
       chef_departement: { variant: "warning", text: "Chef Dép." },
       admin: { variant: "danger", text: "Admin" },
+      assistant: { variant: "secondary", text: "Assistant" },
+      chef_section: { variant: "info", text: "Chef Sect." },
+      bibliothecaire: { variant: "light", text: "Bibliothécaire" },
+      apparitorat: { variant: "dark", text: "Apparitorat" },
+      service_it: { variant: "primary", text: "Service IT" },
+      caisse_comptabilite: { variant: "success", text: "Caisse/Comptabilité" },
+      sga: { variant: "warning", text: "SGA" },
+      sgad: { variant: "danger", text: "SGAD" },
+      pdg: { variant: "secondary", text: "PDG" },
+      directeur_general: { variant: "info", text: "Directeur Général" },
+      iadmin: { variant: "light", text: "iAdmin" },
     }
     const config = roleConfig[role] || { variant: "secondary", text: "Utilisateur" }
     return <Badge bg={config.variant}>{config.text}</Badge>
@@ -90,7 +101,7 @@ const Administration = () => {
     return <Badge bg={status === "actif" ? "success" : "danger"}>{status}</Badge>
   }
 
-  if (user?.role !== "admin" && user?.role !== "chef_departement") {
+  if (!["iadmin", "pdg", "directeur_general", "sga", "sgad", "chef_section"].includes(user?.role)) {
     return (
       <Container className="mt-4">
         <Alert variant="danger">
@@ -103,10 +114,14 @@ const Administration = () => {
 
   return (
     <Container fluid className="mt-4">
-      <Row className="mb-4">
+      <Row className="mb-4 dashboard-card">
         <Col>
           <h2>Administration</h2>
-          <p className="text-muted">Gestion des utilisateurs, cours et paramètres système</p>
+          <p className="text-muted">
+            {user?.role === "chef_section"
+              ? "Gestion des départements et personnel de section"
+              : "Gestion des utilisateurs, cours et paramètres système"}
+          </p>
         </Col>
       </Row>
 
@@ -164,7 +179,7 @@ const Administration = () => {
                     <th>Email</th>
                     <th>Rôle</th>
                     <th>Statut</th>
-                    <th>Promotion/Département</th>
+                    <th>Promotion/Département/Section</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -175,7 +190,7 @@ const Administration = () => {
                       <td>{user.email}</td>
                       <td>{getRoleBadge(user.role)}</td>
                       <td>{getStatusBadge(user.status)}</td>
-                      <td>{user.promotion || user.departement}</td>
+                      <td>{user.promotion || user.departement || user.section}</td>
                       <td>
                         <Button
                           variant="outline-primary"
@@ -277,8 +292,18 @@ const Administration = () => {
                   <Form.Select defaultValue={selectedUser?.role}>
                     <option value="etudiant">Étudiant</option>
                     <option value="enseignant">Enseignant</option>
+                    <option value="assistant">Assistant</option>
                     <option value="chef_departement">Chef de Département</option>
-                    <option value="admin">Administrateur</option>
+                    <option value="chef_section">Chef de Section</option>
+                    <option value="bibliothecaire">Bibliothécaire</option>
+                    <option value="apparitorat">Apparitorat</option>
+                    <option value="service_it">Service IT</option>
+                    <option value="caisse_comptabilite">Caisse/Comptabilité</option>
+                    <option value="sga">SGA</option>
+                    <option value="sgad">SGAD</option>
+                    <option value="pdg">PDG</option>
+                    <option value="directeur_general">Directeur Général</option>
+                    <option value="iadmin">iAdmin</option>
                   </Form.Select>
                 </Form.Group>
               </Col>

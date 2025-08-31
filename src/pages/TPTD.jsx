@@ -84,8 +84,8 @@ const TPTD = () => {
   const isEnseignant = user?.role === "Enseignant" || user?.role === "Titulaire"
 
   return (
-    <Container fluid className="py-4">
-      <Row className="mb-4">
+    <Container fluid className="py-0">
+      <Row className="mb-4 dashboard-card">
         <Col>
           <h2 className="text-primary">
             <i className="fas fa-tasks me-2"></i>

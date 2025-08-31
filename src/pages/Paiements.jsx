@@ -127,8 +127,8 @@ const Paiements = () => {
   const totalRestant = totalFrais - totalPaye
 
   return (
-    <Container fluid className="py-4">
-      <Row>
+    <Container fluid className="py-0">
+      <Row className="dashboard-card">
         <Col>
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h2 className="text-primary">Gestion des Paiements</h2>

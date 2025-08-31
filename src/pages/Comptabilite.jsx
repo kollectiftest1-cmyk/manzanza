@@ -111,7 +111,7 @@ const Comptabilite = () => {
 
   return (
     <Container fluid className="mt-4">
-      <Row className="mb-4">
+      <Row className="mb-4 dashboard-card">
         <Col>
           <h2>Comptabilité & Caisse</h2>
           <p className="text-muted">Gestion financière et suivi des paiements</p>

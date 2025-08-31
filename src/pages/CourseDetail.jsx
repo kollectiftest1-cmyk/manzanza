@@ -26,9 +26,9 @@ const CourseDetail = () => {
   ]
 
   return (
-    <Container className="py-4" style={{ marginTop: "80px" }}>
+    <Container className="py-0" style={{}}>
       {/* Course Header */}
-      <div className="course-card mb-4">
+      <div className="course-card mb-4 ">
         <div className="course-header">
           <div className="course-title">{course.name}</div>
           <div className="course-info">

@@ -65,8 +65,8 @@ const Auditoires = () => {
   const canCreateAuditoire = user?.role === "SGA" || user?.role === "Directeur" || user?.role === "Chef_Departement"
 
   return (
-    <Container fluid className="py-4">
-      <Row className="mb-4">
+    <Container fluid className="py-0">
+      <Row className="mb-4 dashboard-card">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <h2 className="text-primary">

@@ -1,5 +1,5 @@
 "use client"
-import { Nav, Button, Col } from "react-bootstrap"
+import { Nav, Button } from "react-bootstrap"
 import { LinkContainer } from "react-router-bootstrap"
 import { useSelector, useDispatch } from "react-redux"
 import { logout } from "../store/slices/authSlice"
@@ -138,84 +138,112 @@ const Sidebar = () => {
   }
 
   return (
-    <Col
-      lg={12}
-      className="sidebar shadow-sm"
+    <div
+      className="sidebar shadow-lg"
       style={{
-        // width: "100%",
-        // height: "90vh",
+        width: "100%",
+        height: "100vh",
         // position: "fixed",
-        // margin:'auto',
         // left: 0,
         // top: 0,
         // zIndex: 1000,
-        // background: "linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)",
+        background: "linear-gradient(90deg,#43B5D7 0%,#3F97E3 100%)",
+        borderRight: "1px solid rgba(255,255,255,0.1)",
+        padding :0,
+        // borderRadius:"20px",
+        borderTopRightRadius:"20px",
+        borderBottomRightRadius:"20px"
       }}
     >
       {/* Logo/Header */}
-      <div className="p-4 border-bottom border-light border-opacity-25">
-        <h4 className="text-white fw-bold mb-0">NKEBI UNIV</h4>
-        <small className="text-white text-opacity-75">Université</small>
+      <div className="p-4 border-bottom" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+        <h4 className="text-white fw-bold mb-0">
+          <i className="fas fa-graduation-cap me-0"></i>
+          ISIPA
+        </h4>
+        <small className="text-white-50">Système Universitaire</small>
       </div>
 
       {/* User Info */}
-      <div className="p-3 border-bottom border-light border-opacity-25">
+      <div className="p-3 border-bottom" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
         <div className="d-flex align-items-center">
           <div
             className="avatar-circle me-3 d-flex align-items-center justify-content-center"
             style={{
-              width: "40px",
-              height: "40px",
-              backgroundColor: "rgba(255,255,255,0.2)",
+              width: "45px",
+              height: "45px",
+              backgroundColor: "rgba(255,255,255,0.15)",
               borderRadius: "50%",
+              border: "2px solid rgba(255,255,255,0.2)",
             }}
           >
             <i className="fas fa-user text-white"></i>
           </div>
           <div>
             <div className="fw-semibold text-white">{user?.name}</div>
-            <small className="text-white text-opacity-75">{user?.role?.replace("_", " ").toUpperCase()}</small>
+            <small className="text-white-50">{user?.role?.replace("_", " ").toUpperCase()}</small>
           </div>
         </div>
       </div>
 
       {/* Navigation Menu */}
-      <Nav className="flex-column p-0">
-        {getMenuItems().map((item, index) => (
-          <LinkContainer key={index} to={item.path}>
-            <Nav.Link
-              className="sidebar-link d-flex align-items-center py-0 px-0 mb-1 text-white rounded"
-              style={{
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  backgroundColor: "rgba(255,255,255,0.1)",
-                },
-              }}
-            >
-              <i className={`${item.icon} me-3`} style={{ width: "20px" }}></i>
-              {item.label}
-            </Nav.Link>
-          </LinkContainer>
-        ))}
-      </Nav>
-
-      {/* Logout Button */}
-      <div className="p-0 mt-auto" style={{ }}>
+      <div style={{ height: "calc(100vh - 200px)", overflowY: "auto" }}>
+        <Nav className="flex-column p-3 ">
+          {getMenuItems().map((item, index) => (
+            <LinkContainer key={index} to={item.path}>
+              <Nav.Link
+                className="sidebar-link d-flex align-items-center py-1 px-1 mb-2 text-white rounded"
+                style={{
+                  transition: "all 0.3s ease",
+                  fontSize: "0.95rem",
+                  fontWeight: "500",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "rgba(255,255,255,0.15)"
+                  e.target.style.transform = "translateX(5px)"
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "transparent"
+                  e.target.style.transform = "translateX(0)"
+                }}
+              >
+                <i className={`${item.icon} me-3`} style={{ width: "20px", fontSize: "1.1rem" }}></i>
+                {item.label}
+              </Nav.Link>
+            </LinkContainer>
+          ))}
+        </Nav>
         <Button
-          variant="light"
-          className="w-100 fw-semibold"
+          variant="outline-light"
+          className=" fw-semibold"
           onClick={handleLogout}
           style={{
-            backgroundColor: "rgba(255,255,255,0.9)",
-            border: "none",
-            color: "#44A08D",
+            backgroundColor: "rgba(255,255,255,0.1)",
+            border: "1px solid rgba(255,255,255,0.3)",
+            color: "white",
+            transition: "all 0.3s ease",
+            width:"95%",
+            alignSelf:'end',
+            // margin:"auto"
+            marginLeft:5
+
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = "rgba(255,255,255,0.2)"
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = "rgba(255,255,255,0.1)"
           }}
         >
           <i className="fas fa-sign-out-alt me-2"></i>
           Déconnexion
         </Button>
       </div>
-    </Col>
+
+      {/* Logout Button */}
+  
+        
+    </div>
   )
 }
 

@@ -55,7 +55,7 @@ const Login = () => {
           <Card className="card-custom">
             <Card.Body className="p-5">
               <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary mb-2">Connexion NKEBI UNIV</h2>
+                <h2 className="fw-bold text-primary mb-2">Connexion ISIPA</h2>
                 <p className="text-muted">Accédez à votre espace universitaire</p>
               </div>
 
@@ -95,7 +95,7 @@ const Login = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="votre.email@NKEBI UNIV.ac.cd"
+                    placeholder="votre.email@isipa.ac.cd"
                     required
                   />
                 </Form.Group>

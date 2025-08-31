@@ -13,7 +13,7 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
     .slice(0, 3)
 
   return (
-    <Row className="m-0 p-0" >
+    <Container className="py-0" style={{  }}>
       {/* Welcome Section */}
       <Row className="mb-4">
         <Col>
@@ -47,8 +47,8 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
         </Col>
       </Row>
 
-        {/* <Col lg={8}> */}
       <Row>
+        <Col lg={12}>
           {/* Student Stats */}
           <Row className="mb-4">
             <Col md={3}>
@@ -78,8 +78,6 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
           </Row>
 
           {/* Courses Progress */}
-          <Row>
-
           <Card className="card-custom mb-4">
             <Card.Header>
               <h5 className="fw-bold mb-0">Progression des Cours</h5>
@@ -108,11 +106,12 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
               ))}
             </Card.Body>
           </Card>
-          </Row>
-        {/* </Col> */}
+        </Col>
 
-        <Row >
+      </Row>
+        <Row lg={12}>
           {/* Upcoming Assignments */}
+          <Col lg={6}>
           <Card className="card-custom mb-4">
             <Card.Header>
               <h6 className="fw-bold mb-0">Prochains TP/TD</h6>
@@ -134,8 +133,10 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
               ))}
             </Card.Body>
           </Card>
+          </Col>
 
           {/* Quick Actions */}
+          <Col lg={6}>
           <Card className="card-custom mb-4">
             <Card.Header>
               <h6 className="fw-bold mb-0">Actions Rapides</h6>
@@ -166,9 +167,9 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
               </ListGroup>
             </Card.Body>
           </Card>
-        </Row>
-      </Row>
-    </Row>
+          </Col>
+          </Row>
+    </Container>
   )
 }
 

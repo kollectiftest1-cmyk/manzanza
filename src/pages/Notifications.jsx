@@ -131,8 +131,8 @@ const Notifications = () => {
   const nombreNonLues = notifications.filter((notif) => !notif.lu).length
 
   return (
-    <Container fluid className="py-4">
-      <Row>
+    <Container fluid className="py-0">
+      <Row className="dashboard-card">
         <Col>
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>

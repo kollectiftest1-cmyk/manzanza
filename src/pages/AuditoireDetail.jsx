@@ -71,9 +71,9 @@ const AuditoireDetail = () => {
   }
 
   return (
-    <Container fluid className="py-4">
+    <Container fluid className="py-0">
       {/* En-tête */}
-      <Row className="mb-4">
+      <Row className="mb-4 dashboard-card">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <div>

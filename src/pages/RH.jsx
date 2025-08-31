@@ -24,7 +24,7 @@ const RH = () => {
         statut: "Actif",
         dateEmbauche: "2020-09-01",
         salaire: 2500,
-        email: "j.dubois@NKEBI UNIV.cd",
+        email: "j.dubois@isipa.cd",
       },
       {
         id: 2,
@@ -35,7 +35,7 @@ const RH = () => {
         statut: "Actif",
         dateEmbauche: "2018-01-15",
         salaire: 3200,
-        email: "m.martin@NKEBI UNIV.cd",
+        email: "m.martin@isipa.cd",
       },
       {
         id: 3,
@@ -46,7 +46,7 @@ const RH = () => {
         statut: "Actif",
         dateEmbauche: "2022-03-10",
         salaire: 1800,
-        email: "p.leroy@NKEBI UNIV.cd",
+        email: "p.leroy@isipa.cd",
       },
     ])
 
@@ -110,7 +110,7 @@ const RH = () => {
   }
 
   return (
-    <Container fluid className="py-4">
+    <Container fluid className="py-0">
       <Row className="mb-4">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
@@ -434,7 +434,7 @@ const RH = () => {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Email</Form.Label>
-                  <Form.Control type="email" placeholder="email@NKEBI UNIV.cd" />
+                  <Form.Control type="email" placeholder="email@isipa.cd" />
                 </Form.Group>
               </Col>
               <Col md={6}>
