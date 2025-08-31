@@ -159,7 +159,7 @@ const Sidebar = () => {
       <div className="p-4 border-bottom" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
         <h4 className="text-white fw-bold mb-0">
           <i className="fas fa-graduation-cap me-0"></i>
-          ISIPA
+          DASH
         </h4>
         <small className="text-white-50">Système Universitaire</small>
       </div>

@@ -12,7 +12,7 @@ const Home = () => {
         <Container>
           <Row className="align-items-center min-vh-100">
             <Col lg={6} className="hero-content">
-              <h1 className="hero-title">Simplifiez la gestion de votre université avec ISIPA</h1>
+              <h1 className="hero-title">Simplifiez la gestion de votre université avec DASH</h1>
               <p className="hero-subtitle">
                 Une application tout-en-un qui est rapide, intuitive et complète pour la gestion académique et
                 administrative.
@@ -40,7 +40,7 @@ const Home = () => {
             </Col>
             <Col lg={6} className="text-center">
               <div className="hero-image">
-                <img src="/modern-university-dashboard-interface.png" alt="Interface ISIPA" className="img-fluid rounded shadow-lg" />
+                <img src="/modern-university-dashboard-interface.png" alt="Interface DASH" className="img-fluid rounded shadow-lg" />
               </div>
             </Col>
           </Row>
@@ -53,7 +53,7 @@ const Home = () => {
           <Row className="text-center mb-5">
             <Col>
               <h2 className="display-5 fw-bold text-primary mb-3">
-                ISIPA offre une gamme complète de services pour les gestionnaires d'université, enseignants, parents et
+                DASH offre une gamme complète de services pour les gestionnaires d'université, enseignants, parents et
                 étudiants.
               </h2>
             </Col>
@@ -124,7 +124,7 @@ const Home = () => {
                 Accédez à votre compte de n'importe où, avec ou sans connectivité Internet.
               </h2>
               <p className="lead mb-4">
-                Découvrez ISIPA, une application qui fonctionne parfaitement sur ordinateurs, tablettes ou téléphones,
+                Découvrez DASH, une application qui fonctionne parfaitement sur ordinateurs, tablettes ou téléphones,
                 offrant une expérience utilisateur optimale en ligne et hors ligne.
               </p>
               <div className="d-flex gap-3">

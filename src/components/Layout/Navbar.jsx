@@ -24,7 +24,7 @@ const Navbar = () => {
         <LinkContainer to="/">
           <BootstrapNavbar.Brand className="navbar-brand-custom">
             <i className="fas fa-graduation-cap me-2"></i>
-            ISIPA
+            DASH
           </BootstrapNavbar.Brand>
         </LinkContainer>
 

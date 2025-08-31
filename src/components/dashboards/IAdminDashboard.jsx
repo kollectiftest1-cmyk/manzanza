@@ -31,12 +31,12 @@ const IAdminDashboard = ({ user, courses, notifications }) => {
   return (
     <Container fluid className="p-4">
       {/* Header */}
-      <Row className="mb-4">
+      <Row className="mb-4 dashboard-card">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <h2 className="text-primary fw-bold">Tableau de Bord iAdmin</h2>
-              <p className="text-muted mb-0">Contrôle total du système ISIPA</p>
+              <p className="text-muted mb-0">Contrôle total du système DASH</p>
             </div>
             <div className="d-flex gap-2">
               <Button variant="outline-primary" size="sm">

@@ -11,7 +11,7 @@ const AdminDashboard = ({ user, courses, notifications }) => {
   const isPDG = user?.role === "pdg"
 
   return (
-    <Container className="py-4" style={{ marginTop: "80px" }}>
+    <Container className="py-0" style={{  }}>
       <Row className="mb-4">
         <Col>
           <div className="dashboard-card">

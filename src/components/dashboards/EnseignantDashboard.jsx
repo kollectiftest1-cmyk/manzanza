@@ -7,7 +7,7 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
   const totalStudents = myCourses.reduce((acc, course) => acc + (course.enrolledStudents || 0), 0)
 
   return (
-    <Container className="py-4" style={{ marginTop: "80px" }}>
+    <Container className="py-0" style={{  }}>
       <Row className="mb-4">
         <Col>
           <div className="dashboard-card">
@@ -40,8 +40,8 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
         </Col>
       </Row>
 
-      <Row>
-        <Col lg={8}>
+      {/* <Row> */}
+        {/* <Col lg={12}> */}
           {/* Teacher Stats */}
           <Row className="mb-4">
             <Col md={3}>
@@ -70,7 +70,11 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
             </Col>
           </Row>
 
+          {/* </Col> */}
+          {/* </Row> */}
           {/* My Courses */}
+          <Row>
+            <Col lg={12}>
           <Card className="card-custom mb-4">
             <Card.Header>
               <h5 className="fw-bold mb-0">Mes Cours</h5>
@@ -114,8 +118,10 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
             </Card.Body>
           </Card>
         </Col>
+        </Row>
 
-        <Col lg={4}>
+        <Row>
+        <Col lg={6}>
           {/* Quick Actions */}
           <Card className="card-custom mb-4">
             <Card.Header>
@@ -154,7 +160,8 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
               </ListGroup>
             </Card.Body>
           </Card>
-
+          </Col>
+          <Col>
           {/* Pending Tasks */}
           <Card className="card-custom">
             <Card.Header>

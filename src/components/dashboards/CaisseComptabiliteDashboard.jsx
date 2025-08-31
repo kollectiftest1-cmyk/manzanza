@@ -49,8 +49,8 @@ const CaisseComptabiliteDashboard = () => {
   ]
 
   return (
-    <Container fluid className="py-4" style={{ marginLeft: "280px", paddingRight: "20px" }}>
-      <Row className="mb-4">
+    <Container fluid className="py-0" style={{ }}>
+      <Row className="mb-4 dashboard-card">
         <Col>
           <h2 className="text-primary fw-bold">Tableau de Bord - Caisse & Comptabilité</h2>
           <p className="text-muted">Gestion Financière et Comptable</p>

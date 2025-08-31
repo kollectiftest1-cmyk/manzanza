@@ -237,7 +237,7 @@ const Courses = () => {
             <tbody>
               <tr>
                 <td>Marie Kouassi</td>
-                <td>marie.k@isipa.edu</td>
+                <td>marie.k@DASH.edu</td>
                 <td>
                   <ProgressBar now={75} variant="success" style={{ height: "6px" }} />
                 </td>
@@ -252,7 +252,7 @@ const Courses = () => {
               </tr>
               <tr>
                 <td>Jean Koffi</td>
-                <td>jean.k@isipa.edu</td>
+                <td>jean.k@DASH.edu</td>
                 <td>
                   <ProgressBar now={60} variant="warning" style={{ height: "6px" }} />
                 </td>

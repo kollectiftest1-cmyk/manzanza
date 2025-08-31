@@ -8,7 +8,7 @@ const SGADashboard = ({ user, courses, notifications }) => {
   const pendingInscriptions = 45
 
   return (
-    <Container className="py-4" style={{ marginTop: "80px" }}>
+    <Container className="py-0" style={{  }}>
       <Row className="mb-4">
         <Col>
           <div className="dashboard-card">

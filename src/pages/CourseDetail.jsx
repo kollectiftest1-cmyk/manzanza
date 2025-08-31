@@ -11,7 +11,7 @@ const CourseDetail = () => {
 
   if (!course) {
     return (
-      <Container className="py-4" style={{ marginTop: "80px" }}>
+      <Container className="py-0" style={{  }}>
         <div className="text-center">
           <h4>Cours non trouvé</h4>
         </div>
