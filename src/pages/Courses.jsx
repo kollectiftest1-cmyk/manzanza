@@ -68,8 +68,8 @@ const Courses = () => {
         {courses.map((course) => (
           <Col lg={6} key={course.id} className="mb-4">
             <div className="course-card shadow-sm border rounded p-4">
-              <div className="course-header mb-3">
-                <div className="d-flex justify-content-between align-items-start">
+              <div className="course-header mb-3" style={{borderRadius: "10px"}}>
+                <div className="d-flex justify-content-between align-items-start ">
                   <div>
                     <h5 className="fw-bold mb-1">{course.name}</h5>
                     <div className="text-muted small">

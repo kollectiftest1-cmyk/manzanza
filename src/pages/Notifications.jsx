@@ -212,6 +212,8 @@ const Notifications = () => {
       </Row>
 
       {/* Liste des notifications */}
+      <Card>
+      <Card.Body>
       <Row>
         <Col>
           <Card className="border-0 shadow-sm">
@@ -224,8 +226,8 @@ const Notifications = () => {
                 ) : (
                   notificationsFiltrees.map((notification) => (
                     <ListGroup.Item
-                      key={notification.id}
-                      className={`d-flex justify-content-between align-items-start ${!notification.lu ? "bg-light" : ""}`}
+                    key={notification.id}
+                    className={`d-flex justify-content-between align-items-start ${!notification.lu ? "bg-light" : ""}`}
                     >
                       <div className="flex-grow-1">
                         <div className="d-flex align-items-center mb-2">
@@ -280,6 +282,8 @@ const Notifications = () => {
           </Card>
         </Col>
       </Row>
+      </Card.Body>
+    </Card>
 
       {/* Modal détail notification */}
       <Modal show={showModal} onHide={() => setShowModal(false)}>

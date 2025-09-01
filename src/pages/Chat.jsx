@@ -18,9 +18,12 @@ const Chat = () => {
     { id: "mathematiques-financieres", name: "Mathématiques Financières", participants: 32 },
     { id: "droit-commercial", name: "Droit Commercial", participants: 28 },
     { id: "general", name: "Discussion Générale", participants: 67 },
+    { id: "genedddral", name: "Discussion Générale", participants: 67 },
+    { id: "genefral", name: "Discussion Générale", participants: 67 },
+    { id: "genedzral", name: "Discussion Générale", participants: 67 },
   ]
 
-  // Mock messages
+  // Messages mock
   useEffect(() => {
     const mockMessages = [
       {
@@ -68,7 +71,7 @@ const Chat = () => {
     setMessages(mockMessages.filter((msg) => msg.channel === selectedChannel))
   }, [selectedChannel])
 
-  // Mock online users
+  // Users mock
   useEffect(() => {
     setOnlineUsers([
       { name: "Prof. Martin Dubois", role: "titulaire", status: "online" },
@@ -93,7 +96,7 @@ const Chat = () => {
     if (newMessage.trim()) {
       const message = {
         id: Date.now(),
-        user: user?.name || "Utilisateur",
+        user: user?.name || "Moi",
         role: user?.role || "etudiant",
         message: newMessage,
         timestamp: new Date(),
@@ -110,9 +113,8 @@ const Chat = () => {
       chef_departement: { variant: "success", text: "Chef Dép." },
       ia: { variant: "info", text: "IA" },
       etudiant: { variant: "secondary", text: "Étudiant" },
-      assistant: { variant: "warning", text: "Assistant" },
     }
-    const config = roleConfig[role] || { variant: "secondary", text: "Utilisateur" }
+    const config = roleConfig[role] || { variant: "dark", text: "Utilisateur" }
     return (
       <Badge bg={config.variant} className="ms-2">
         {config.text}
@@ -121,59 +123,50 @@ const Chat = () => {
   }
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
   }
 
-  const getStatusIcon = (status) => {
-    return status === "online" ? "🟢" : status === "away" ? "🟡" : "🔴"
-  }
+  const getStatusIcon = (status) => (status === "online" ? "🟢" : status === "away" ? "🟡" : "🔴")
 
   return (
-    <Container fluid className="mt-4">
-      <Row>
-        {/* Sidebar - Channels */}
-        <Col md={3}>
-          <Card className="shadow">
-            <Card.Header>
-              <h6 className="mb-0">Canaux de Discussion</h6>
+    <Container fluid className="mt-3">
+      <Row style={{height: "90vh"}}>
+        {/* Sidebar */}
+        <Col md={3} style={{height: "100%"}}>
+          <Card className="shadow-sm border-0 rounded-3" style={{height: "55%", overflowY: "scroll"}}>
+            <Card.Header className="bg-primary text-white rounded-top-3">
+              <h6 className="mb-0">Canaux</h6>
             </Card.Header>
             <Card.Body className="p-0">
               {channels.map((channel) => (
                 <div
                   key={channel.id}
-                  className={`p-3 border-bottom cursor-pointer ${selectedChannel === channel.id ? "bg-primary text-white" : ""}`}
+                  className={`p-3 border-bottom ${
+                    selectedChannel === channel.id ? "bg-light text-primary fw-bold" : "text-dark"
+                  }`}
                   onClick={() => setSelectedChannel(channel.id)}
                   style={{ cursor: "pointer" }}
                 >
                   <div className="d-flex justify-content-between">
                     <span># {channel.name}</span>
-                    <Badge
-                      bg={selectedChannel === channel.id ? "light" : "primary"}
-                      text={selectedChannel === channel.id ? "dark" : "white"}
-                    >
-                      {channel.participants}
-                    </Badge>
+                    <Badge bg="secondary">{channel.participants}</Badge>
                   </div>
                 </div>
               ))}
             </Card.Body>
           </Card>
 
-          {/* Online Users */}
-          <Card className="shadow mt-3">
-            <Card.Header>
-              <h6 className="mb-0">En Ligne ({onlineUsers.length})</h6>
+          <Card className="shadow-sm border-0 mt-3 rounded-3 " style={{height: "45%"}}>
+            <Card.Header className="bg-light rounded-top-3">
+              <h6 className="mb-0">En ligne ({onlineUsers.length})</h6>
             </Card.Header>
             <Card.Body>
-              {onlineUsers.map((user, index) => (
-                <div key={index} className="d-flex align-items-center mb-2">
-                  <span className="me-2">{getStatusIcon(user.status)}</span>
+              {onlineUsers.map((u, i) => (
+                <div key={i} className="d-flex align-items-center mb-2">
+                  <span className="me-2">{getStatusIcon(u.status)}</span>
                   <div className="flex-grow-1">
-                    <small className="d-block">{user.name}</small>
-                    {getRoleBadge(user.role)}
+                    <small className="fw-bold">{u.name}</small>
+                    {getRoleBadge(u.role)}
                   </div>
                 </div>
               ))}
@@ -181,48 +174,50 @@ const Chat = () => {
           </Card>
         </Col>
 
-        {/* Main Chat */}
+        {/* Chat */}
         <Col md={9}>
-          <Card className="shadow" style={{ height: "70vh" }}>
-            <Card.Header className="d-flex justify-content-between align-items-center">
+          <Card className="shadow-sm border-0 rounded-3" style={{ height: "75vh" }}>
+            <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
               <div>
-                <h5 className="mb-0"># {channels.find((c) => c.id === selectedChannel)?.name}</h5>
+                <h6 className="mb-0 text-primary"># {channels.find((c) => c.id === selectedChannel)?.name}</h6>
                 <small className="text-muted">
                   {channels.find((c) => c.id === selectedChannel)?.participants} participants
                 </small>
               </div>
               <Dropdown>
-                <Dropdown.Toggle variant="outline-secondary" size="sm">
-                  Options
-                </Dropdown.Toggle>
+                <Dropdown.Toggle variant="light" size="sm">⚙️</Dropdown.Toggle>
                 <Dropdown.Menu>
                   <Dropdown.Item>📌 Messages épinglés</Dropdown.Item>
                   <Dropdown.Item>🔍 Rechercher</Dropdown.Item>
                   <Dropdown.Item>📁 Fichiers partagés</Dropdown.Item>
-                  <Dropdown.Divider />
-                  <Dropdown.Item>⚙️ Paramètres du canal</Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
             </Card.Header>
 
             {/* Messages */}
-            <Card.Body className="overflow-auto" style={{ maxHeight: "50vh" }}>
+            <Card.Body className="overflow-auto px-3" style={{ maxHeight: "60vh" }}>
               {messages.length === 0 ? (
-                <Alert variant="info" className="text-center">
-                  Aucun message dans ce canal. Soyez le premier à écrire ! 👋
-                </Alert>
+                <Alert variant="info" className="text-center">Aucun message. Soyez le premier 👋</Alert>
               ) : (
-                messages.map((message) => (
-                  <div key={message.id} className="mb-3">
-                    <div className="d-flex align-items-start">
-                      <div className="flex-grow-1">
-                        <div className="d-flex align-items-center mb-1">
-                          <strong className="me-2">{message.user}</strong>
-                          {getRoleBadge(message.role)}
-                          <small className="text-muted ms-2">{formatTime(message.timestamp)}</small>
-                        </div>
-                        <div className="message-content">{message.message}</div>
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`d-flex mb-3 ${msg.user === (user?.name || "Moi") ? "justify-content-end" : "justify-content-start"}`}
+                  >
+                    <div
+                      className={`p-2 rounded-3 shadow-sm ${
+                        msg.user === (user?.name || "Moi")
+                          ? "bg-primary text-white"
+                          : "bg-light text-dark"
+                      }`}
+                      style={{ maxWidth: "70%" }}
+                    >
+                      <div className="d-flex align-items-center mb-1">
+                        <small className="fw-bold">{msg.user}</small>
+                        {getRoleBadge(msg.role)}
+                        <small className="ms-2 text-muted">{formatTime(msg.timestamp)}</small>
                       </div>
+                      <div>{msg.message}</div>
                     </div>
                   </div>
                 ))
@@ -230,8 +225,8 @@ const Chat = () => {
               <div ref={messagesEndRef} />
             </Card.Body>
 
-            {/* Message Input */}
-            <Card.Footer>
+            {/* Input */}
+            <Card.Footer className="bg-light">
               <Form onSubmit={handleSendMessage}>
                 <div className="d-flex">
                   <Form.Control
@@ -239,14 +234,13 @@ const Chat = () => {
                     placeholder={`Écrire dans # ${channels.find((c) => c.id === selectedChannel)?.name}...`}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    className="me-2"
+                    className="me-2 rounded-pill"
                   />
-                  <Button type="submit" variant="primary" disabled={!newMessage.trim()}>
+                  <Button type="submit" variant="primary" className="rounded-pill px-4" disabled={!newMessage.trim()}>
                     Envoyer
                   </Button>
                 </div>
               </Form>
-              <small className="text-muted mt-1 d-block">💡 Utilisez @nom pour mentionner quelqu'un</small>
             </Card.Footer>
           </Card>
         </Col>
