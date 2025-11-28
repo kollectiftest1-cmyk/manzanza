@@ -1,16 +1,28 @@
 import { Container, Row, Col, Card, Button, ProgressBar, Badge, ListGroup } from "react-bootstrap"
 import { LinkContainer } from "react-router-bootstrap"
+import { useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchAssignments } from "../../store/slices/assignmentsSlice"
 
 const EtudiantDashboard = ({ user, courses, notifications }) => {
-  const upcomingAssignments = courses
-    .flatMap(
-      (course) =>
-        course.assignments?.map((assignment) => ({
-          ...assignment,
-          courseName: course.name,
-        })) || [],
-    )
+  const dispatch = useDispatch()
+  const { assignments } = useSelector((state) => state.assignments)
+
+  useEffect(() => {
+    dispatch(fetchAssignments({ status: 'pending' }))
+  }, [dispatch])
+
+  const upcomingAssignments = (assignments || [])
+    .filter(a => a.status === 'published' && new Date(a.due_date) > new Date())
     .slice(0, 3)
+
+  // Calculate average grade from courses (simplified - should come from backend)
+  const averageGrade = courses.length > 0
+    ? Math.round(courses.reduce((sum, c) => sum + (c.average_grade || 0), 0) / courses.length) || 0
+    : 0
+
+  // Calculate attendance rate (should come from backend)
+  const attendanceRate = user?.attendance_rate || 0
 
   return (
     <Container className="py-0" style={{  }}>
@@ -65,13 +77,13 @@ const EtudiantDashboard = ({ user, courses, notifications }) => {
             </Col>
             <Col md={3}>
               <div className="stat-card">
-                <div className="stat-number">85%</div>
+                <div className="stat-number">{averageGrade}%</div>
                 <div className="stat-label">Moyenne Générale</div>
               </div>
             </Col>
             <Col md={3}>
               <div className="stat-card">
-                <div className="stat-number">92%</div>
+                <div className="stat-number">{attendanceRate}%</div>
                 <div className="stat-label">Présence</div>
               </div>
             </Col>

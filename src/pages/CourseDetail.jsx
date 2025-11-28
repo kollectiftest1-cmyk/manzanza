@@ -1,48 +1,53 @@
 "use client"
-import { Container, Row, Col, Card, Button, Badge, Tabs, Tab, ListGroup } from "react-bootstrap"
-import { useParams } from "react-router-dom"
-import { useSelector } from "react-redux"
-import { LinkContainer } from "react-router-bootstrap"
+import { useState, useEffect } from "react"
+import { Container, Row, Col, Card, Button, Badge, Tabs, Tab, ListGroup, Spinner, Alert } from "react-bootstrap"
+import { useParams, Link } from "react-router-dom"
+import { getCourseDetail } from "../services/courseService"
 
 const CourseDetail = () => {
   const { id } = useParams()
-  const { courses } = useSelector((state) => state.courses)
-  const course = courses.find((c) => c.id === Number.parseInt(id))
+  const [course, setCourse] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  if (!course) {
-    return (
-      <Container className="py-0" style={{  }}>
-        <div className="text-center">
-          <h4>Cours non trouvé</h4>
-        </div>
-      </Container>
-    )
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        setLoading(true)
+        const res = await getCourseDetail(id)
+        setCourse(res.data)
+      } catch (err) {
+        setError("Impossible de charger les détails du cours.")
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCourse()
+  }, [id])
+
+  if (loading) {
+    return <Container className="py-4 text-center"><Spinner animation="border" variant="primary" /></Container>
   }
 
-  const materials = [
-    { id: 1, title: "Introduction à la Comptabilité", type: "PDF", size: "2.5 MB" },
-    { id: 2, title: "Cours Magistral - Semaine 1", type: "Vidéo", size: "45 min" },
-    { id: 3, title: "Exercices Pratiques", type: "PDF", size: "1.2 MB" },
-  ]
+  if (error) {
+    return <Container className="py-4"><Alert variant="danger">{error}</Alert></Container>
+  }
+
+  if (!course) {
+    return <Container className="py-4"><Alert variant="warning">Cours non trouvé.</Alert></Container>
+  }
 
   return (
-    <Container className="py-0" style={{}}>
+    <Container fluid className="py-0">
       {/* Course Header */}
-      <div className="course-card mb-4 ">
-        <div className="course-header">
-          <div className="course-title">{course.name}</div>
-          <div className="course-info">
-            <i className="fas fa-user me-2"></i>
-            {course.teacher}
-            <span className="ms-3">
-              <i className="fas fa-credit-card me-2"></i>
-              {course.credits} crédits
-            </span>
-            <span className="ms-3">
-              <i className="fas fa-users me-2"></i>
-              {course.students} étudiants
-            </span>
-          </div>
+      <div className="course-card mb-4 p-4 rounded shadow-sm">
+        <h2 className="fw-bold text-primary">{course.name} ({course.code})</h2>
+        <div className="text-muted">
+          <span className="me-3"><i className="fas fa-user-tie me-2"></i>{course.titulaire_name}</span>
+          <span className="me-3"><i className="fas fa-university me-2"></i>{course.auditoire_name}</span>
+          <span className="me-3"><i className="fas fa-credit-card me-2"></i>{course.credits} crédits</span>
+          <span className="me-3"><i className="fas fa-users me-2"></i>{course.students_count} étudiants</span>
         </div>
       </div>
 
@@ -53,124 +58,50 @@ const CourseDetail = () => {
               <Card className="card-custom">
                 <Card.Body>
                   <h5 className="fw-bold mb-3">Description du cours</h5>
-                  <p className="text-muted mb-4">{course.description}</p>
-
-                  <h6 className="fw-bold mb-3">Objectifs d'apprentissage</h6>
-                  <ul className="text-muted">
-                    <li>Comprendre les principes fondamentaux de la comptabilité</li>
-                    <li>Maîtriser les techniques d'enregistrement comptable</li>
-                    <li>Savoir établir un bilan et un compte de résultat</li>
-                    <li>Analyser les documents comptables</li>
-                  </ul>
+                  <p className="text-muted">{course.description || "Aucune description disponible."}</p>
                 </Card.Body>
               </Card>
             </Tab>
 
-            <Tab eventKey="materials" title="Matériel pédagogique">
+            <Tab eventKey="materials" title="Matériel Pédagogique">
               <Card className="card-custom">
                 <Card.Body>
-                  <h5 className="fw-bold mb-3">Documents et ressources</h5>
+                  <h5 className="fw-bold mb-3">Documents et Ressources</h5>
                   <ListGroup variant="flush">
-                    {materials.map((material) => (
+                    {(course.materials || []).map((material) => (
                       <ListGroup.Item key={material.id} className="d-flex justify-content-between align-items-center">
                         <div>
                           <div className="fw-semibold">{material.title}</div>
-                          <small className="text-muted">
-                            <i className={`fas ${material.type === "PDF" ? "fa-file-pdf" : "fa-video"} me-1`}></i>
-                            {material.type} - {material.size}
+                          <small className="text-muted text-capitalize">
+                            <i className="fas fa-file me-2"></i>{material.material_type}
                           </small>
                         </div>
-                        <Button size="sm" variant="outline-primary">
-                          <i className="fas fa-download me-1"></i>
-                          Télécharger
+                        <Button size="sm" variant="outline-primary" href={material.file || material.link} target="_blank">
+                          <i className="fas fa-download me-1"></i>Ouvrir
                         </Button>
                       </ListGroup.Item>
                     ))}
+                    {course.materials?.length === 0 && <p className="text-muted text-center">Aucun matériel disponible.</p>}
                   </ListGroup>
                 </Card.Body>
               </Card>
             </Tab>
 
-            <Tab eventKey="assignments" title="Devoirs">
-              <Card className="card-custom">
-                <Card.Body>
-                  <h5 className="fw-bold mb-3">Travaux pratiques et Quiz</h5>
-                  {course.assignments.map((assignment) => (
-                    <div key={assignment.id} className="quiz-card">
-                      <Row className="align-items-center">
-                        <Col md={8}>
-                          <h6 className="fw-bold mb-1">{assignment.title}</h6>
-                          <small className="text-muted">Échéance: {assignment.dueDate}</small>
-                        </Col>
-                        <Col md={4} className="text-end">
-                          <Badge bg={assignment.type === "Quiz" ? "warning" : "info"} className="me-2">
-                            {assignment.type}
-                          </Badge>
-                          {assignment.type === "Quiz" ? (
-                            <LinkContainer to={`/quiz/${assignment.id}`}>
-                              <Button size="sm" className="btn-primary-custom">
-                                Commencer
-                              </Button>
-                            </LinkContainer>
-                          ) : (
-                            <Button size="sm" variant="outline-primary">
-                              Soumettre
-                            </Button>
-                          )}
-                        </Col>
-                      </Row>
-                    </div>
-                  ))}
-                </Card.Body>
-              </Card>
-            </Tab>
+            {/* Placeholder for future features */}
+            <Tab eventKey="assignments" title="Devoirs"><p className="text-muted text-center">La section des devoirs sera bientôt disponible.</p></Tab>
+            <Tab eventKey="grades" title="Notes"><p className="text-muted text-center">La section des notes sera bientôt disponible.</p></Tab>
           </Tabs>
         </Col>
 
         <Col lg={4}>
-          {/* Course Stats */}
           <Card className="card-custom mb-4">
             <Card.Body>
-              <h6 className="fw-bold mb-3">Statistiques du cours</h6>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between mb-1">
-                  <small>Progression</small>
-                  <small className="fw-bold">{course.progress}%</small>
-                </div>
-                <div className="progress" style={{ height: "8px" }}>
-                  <div className="progress-bar bg-info" style={{ width: `${course.progress}%` }}></div>
-                </div>
-              </div>
-              <div className="mb-3">
-                <small className="text-muted">Dernière activité</small>
-                <div className="fw-semibold">Il y a 2 jours</div>
-              </div>
-              <div className="mb-3">
-                <small className="text-muted">Prochaine échéance</small>
-                <div className="fw-semibold">15 Février 2024</div>
-              </div>
-            </Card.Body>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="card-custom">
-            <Card.Body>
-              <h6 className="fw-bold mb-3">Actions rapides</h6>
+              <h6 className="fw-bold mb-3">Actions Rapides</h6>
               <div className="d-grid gap-2">
-                <LinkContainer to={{ pathname: "/chat", search: `?course=${course.id}` }}>
-                  <Button variant="outline-primary">
-                    <i className="fas fa-comments me-2"></i>
-                    Rejoindre la discussion
-                  </Button>
-                </LinkContainer>
-                <Button variant="outline-success">
-                  <i className="fas fa-calendar me-2"></i>
-                  Voir le planning
+                <Button as={Link} to={`/chat?course=${course.id}`} variant="outline-primary">
+                  <i className="fas fa-comments me-2"></i>Rejoindre la discussion
                 </Button>
-                <Button variant="outline-info">
-                  <i className="fas fa-chart-bar me-2"></i>
-                  Mes notes
-                </Button>
+                <Button variant="outline-info" disabled><i className="fas fa-chart-bar me-2"></i>Mes notes</Button>
               </div>
             </Card.Body>
           </Card>

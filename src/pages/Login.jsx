@@ -4,13 +4,12 @@ import { useState } from "react"
 import { Container, Row, Col, Card, Form, Button, Alert } from "react-bootstrap"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { loginStart, loginSuccess, loginFailure } from "../store/slices/authSlice"
+import { login } from "../store/slices/authSlice"
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    userType: "etudiant",
   })
 
   const dispatch = useDispatch()
@@ -26,25 +25,18 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    dispatch(loginStart())
 
     try {
-      // Simulation d'une authentification
-      setTimeout(() => {
-        const mockUser = {
-          id: 1,
-          name: formData.userType === "etudiant" ? "Jean Dupont" : "Prof. Martin Dubois",
-          email: formData.email,
-          role: formData.userType,
-          auditoire: formData.userType === "etudiant" ? "1ère Licence Finance" : null,
-          avatar: null,
-        }
+      const result = await dispatch(login({
+        email: formData.email,
+        password: formData.password
+      })).unwrap()
 
-        dispatch(loginSuccess(mockUser))
-        navigate("/dashboard")
-      }, 1000)
+      // Connexion réussie, rediriger vers le dashboard
+      navigate("/dashboard")
     } catch (error) {
-      dispatch(loginFailure("Erreur de connexion"))
+      // L'erreur est déjà gérée dans le slice
+      console.error("Erreur de connexion:", error)
     }
   }
 
@@ -55,7 +47,7 @@ const Login = () => {
           <Card className="card-custom">
             <Card.Body className="p-5">
               <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary mb-2">Connexion DASH</h2>
+                <h2 className="fw-bold text-primary mb-2">Connexion Syntax GU</h2>
                 <p className="text-muted">Accédez à votre espace universitaire</p>
               </div>
 
@@ -67,35 +59,13 @@ const Login = () => {
 
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Type d'utilisateur</Form.Label>
-                  <Form.Select name="userType" value={formData.userType} onChange={handleChange} required>
-                    <option value="etudiant">Étudiant</option>
-                    <option value="enseignant">Enseignant</option>
-                    <option value="assistant">Assistant</option>
-                    <option value="chef_departement">Chef de Département</option>
-                    <option value="chef_section">Chef de Section</option>
-                    <option value="sga">SGA (Secrétariat Général Académique)</option>
-                    <option value="sgad">SGAD (Administration & Finances)</option>
-                    <option value="directeur_general">Directeur Général</option>
-                    <option value="pdg">PDG/Conseil d'Administration</option>
-                    <option value="bibliothecaire">Bibliothécaire</option>
-                    <option value="rh">Ressources Humaines</option>
-                    <option value="caisse_comptabilite">Caisse/Comptabilité</option>
-                    <option value="service_it">Service Informatique</option>
-                    <option value="apparitorat">Apparitorat</option>
-                    <option value="jury">Jury Mémoire/Défense</option>
-                    <option value="iadmin">iAdmin (Super Utilisateur)</option>
-                  </Form.Select>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
                   <Form.Label>Email</Form.Label>
                   <Form.Control
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="votre.email@DASH.ac.cd"
+                    placeholder="votre.email@syntaxgu.ac.cd"
                     required
                   />
                 </Form.Group>

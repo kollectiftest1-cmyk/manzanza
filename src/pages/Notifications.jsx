@@ -2,112 +2,65 @@
 
 import { useState, useEffect } from "react"
 import { Container, Row, Col, Card, Button, Badge, Form, Modal, ListGroup } from "react-bootstrap"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
+import { fetchNotifications, markAsRead, markAllAsRead, deleteNotification } from "../store/slices/notificationsSlice"
 
 const Notifications = () => {
+  const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
-  const [notifications, setNotifications] = useState([])
+  const { notifications, loading, error } = useSelector((state) => state.notifications)
   const [filtreType, setFiltreType] = useState("toutes")
   const [filtreStatut, setFiltreStatut] = useState("toutes")
   const [showModal, setShowModal] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState(null)
 
   useEffect(() => {
-    // Simuler le chargement des notifications
-    setNotifications([
-      {
-        id: 1,
-        titre: "Nouveau cours disponible",
-        message: "Le cours de Comptabilité Générale est maintenant disponible dans votre auditoire.",
-        type: "cours",
-        priorite: "normale",
-        date: "2024-01-15T10:30:00",
-        lu: false,
-        expediteur: "Système",
-      },
-      {
-        id: 2,
-        titre: "Rappel: TP à rendre",
-        message: "N'oubliez pas de rendre votre TP d'Économie avant le 20 janvier 2024.",
-        type: "tp",
-        priorite: "haute",
-        date: "2024-01-14T14:20:00",
-        lu: false,
-        expediteur: "Prof. Martin",
-      },
-      {
-        id: 3,
-        titre: "Quiz programmé",
-        message: "Un quiz de révision est programmé pour demain à 9h00.",
-        type: "quiz",
-        priorite: "normale",
-        date: "2024-01-13T16:45:00",
-        lu: true,
-        expediteur: "Prof. Dubois",
-      },
-      {
-        id: 4,
-        titre: "Paiement confirmé",
-        message: "Votre paiement de 200,000 FCFA a été confirmé.",
-        type: "paiement",
-        priorite: "normale",
-        date: "2024-01-12T11:15:00",
-        lu: true,
-        expediteur: "Service Comptabilité",
-      },
-      {
-        id: 5,
-        titre: "Maintenance système",
-        message: "Une maintenance est prévue ce weekend. Les services seront indisponibles.",
-        type: "systeme",
-        priorite: "haute",
-        date: "2024-01-11T09:00:00",
-        lu: false,
-        expediteur: "Service IT",
-      },
-    ])
-  }, [])
+    dispatch(fetchNotifications())
+  }, [dispatch])
 
-  const marquerCommeLu = (id) => {
-    setNotifications(notifications.map((notif) => (notif.id === id ? { ...notif, lu: true } : notif)))
+  const marquerCommeLu = async (id) => {
+    try {
+      await dispatch(markAsRead(id)).unwrap()
+    } catch (error) {
+      console.error('Erreur lors du marquage comme lu:', error)
+    }
   }
 
-  const supprimerNotification = (id) => {
-    setNotifications(notifications.filter((notif) => notif.id !== id))
+  const supprimerNotification = async (id) => {
+    try {
+      await dispatch(deleteNotification(id)).unwrap()
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error)
+    }
   }
 
-  const marquerToutCommeLu = () => {
-    setNotifications(notifications.map((notif) => ({ ...notif, lu: true })))
+  const marquerToutCommeLu = async () => {
+    try {
+      await dispatch(markAllAsRead()).unwrap()
+    } catch (error) {
+      console.error('Erreur lors du marquage:', error)
+    }
   }
 
   const getTypeColor = (type) => {
-    switch (type) {
-      case "cours":
-        return "primary"
-      case "tp":
-        return "warning"
-      case "quiz":
-        return "info"
-      case "paiement":
-        return "success"
-      case "systeme":
-        return "danger"
-      default:
-        return "secondary"
+    const typeMap = {
+      'course': 'primary',
+      'assignment': 'warning',
+      'quiz': 'info',
+      'payment': 'success',
+      'system': 'danger',
+      'announcement': 'info'
     }
+    return typeMap[type] || 'secondary'
   }
 
-  const getPrioriteColor = (priorite) => {
-    switch (priorite) {
-      case "haute":
-        return "danger"
-      case "normale":
-        return "primary"
-      case "basse":
-        return "secondary"
-      default:
-        return "secondary"
+  const getPrioriteColor = (priority) => {
+    const priorityMap = {
+      'high': 'danger',
+      'medium': 'primary',
+      'low': 'secondary'
     }
+    return priorityMap[priority] || 'primary'
   }
 
   const formatDate = (dateString) => {
@@ -130,6 +83,16 @@ const Notifications = () => {
 
   const nombreNonLues = notifications.filter((notif) => !notif.lu).length
 
+  if (loading && notifications.length === 0) {
+    return (
+      <Container fluid className="py-0 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </div>
+      </Container>
+    )
+  }
+
   return (
     <Container fluid className="py-0">
       <Row className="dashboard-card">
@@ -141,7 +104,7 @@ const Notifications = () => {
                 {nombreNonLues} notification{nombreNonLues !== 1 ? "s" : ""} non lue{nombreNonLues !== 1 ? "s" : ""}
               </p>
             </div>
-            <Button variant="outline-primary" onClick={marquerToutCommeLu}>
+            <Button variant="outline-primary" onClick={marquerToutCommeLu} disabled={loading}>
               Tout marquer comme lu
             </Button>
           </div>
@@ -191,11 +154,12 @@ const Notifications = () => {
             <Form.Label>Filtrer par type</Form.Label>
             <Form.Select value={filtreType} onChange={(e) => setFiltreType(e.target.value)}>
               <option value="toutes">Toutes les notifications</option>
-              <option value="cours">Cours</option>
-              <option value="tp">TP/TD</option>
+              <option value="course">Cours</option>
+              <option value="assignment">TP/TD</option>
               <option value="quiz">Quiz</option>
-              <option value="paiement">Paiements</option>
-              <option value="systeme">Système</option>
+              <option value="payment">Paiements</option>
+              <option value="system">Système</option>
+              <option value="announcement">Annonces</option>
             </Form.Select>
           </Form.Group>
         </Col>
@@ -294,20 +258,18 @@ const Notifications = () => {
           {selectedNotification && (
             <>
               <div className="mb-3">
-                <h5>{selectedNotification.titre}</h5>
+                <h5>{selectedNotification.title}</h5>
                 <div className="mb-2">
-                  <Badge bg={getTypeColor(selectedNotification.type)} className="me-2">
-                    {selectedNotification.type}
+                  <Badge bg={getTypeColor(selectedNotification.notification_type)} className="me-2">
+                    {selectedNotification.notification_type}
                   </Badge>
-                  <Badge bg={getPrioriteColor(selectedNotification.priorite)}>{selectedNotification.priorite}</Badge>
+                  <Badge bg={getPrioriteColor(selectedNotification.priority)}>{selectedNotification.priority}</Badge>
                 </div>
               </div>
               <p>{selectedNotification.message}</p>
               <hr />
               <small className="text-muted">
-                <strong>Expéditeur:</strong> {selectedNotification.expediteur}
-                <br />
-                <strong>Date:</strong> {formatDate(selectedNotification.date)}
+                <strong>Date:</strong> {formatDate(selectedNotification.created_at)}
               </small>
             </>
           )}

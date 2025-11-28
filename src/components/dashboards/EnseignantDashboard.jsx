@@ -1,10 +1,29 @@
 import { Container, Row, Col, Card, Button, Badge, ListGroup, Table } from "react-bootstrap"
 import { LinkContainer } from "react-router-bootstrap"
+import { useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchAssignments } from "../../store/slices/assignmentsSlice"
+import { fetchAuditoires } from "../../store/slices/auditoiresSlice"
 
 const EnseignantDashboard = ({ user, courses, notifications }) => {
-  const myCourses = courses.filter((course) => course.teacherId === user?.id)
-  const pendingGrades = myCourses.reduce((acc, course) => acc + (course.pendingGrades || 0), 0)
-  const totalStudents = myCourses.reduce((acc, course) => acc + (course.enrolledStudents || 0), 0)
+  const dispatch = useDispatch()
+  const { assignments } = useSelector((state) => state.assignments)
+  const { auditoires } = useSelector((state) => state.auditoires)
+
+  useEffect(() => {
+    dispatch(fetchAssignments())
+    dispatch(fetchAuditoires())
+  }, [dispatch])
+
+  const myCourses = courses.filter((course) => course.created_by === user?.id || course.teacher === user?.id)
+  const myAssignments = (assignments || []).filter(a => a.created_by === user?.id)
+  const pendingGrades = myAssignments.filter(a => a.status === 'published').length
+  const totalStudents = myCourses.reduce((acc, course) => acc + (course.enrolled_students || 0), 0)
+
+  // Get auditoires where this teacher teaches
+  const myAuditoires = (auditoires || []).filter(aud =>
+    myCourses.some(course => course.auditoire === aud.id)
+  )
 
   return (
     <Container className="py-0" style={{  }}>
@@ -64,7 +83,7 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
             </Col>
             <Col md={3}>
               <div className="stat-card">
-                <div className="stat-number">12</div>
+                <div className="stat-number">{myAssignments.length}</div>
                 <div className="stat-label">TP/TD Créés</div>
               </div>
             </Col>

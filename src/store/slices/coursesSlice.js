@@ -1,47 +1,81 @@
-import { createSlice } from "@reduxjs/toolkit"
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
+import { coursesAPI } from "../../services/api"
+
+// Async thunks pour les appels API
+export const fetchCourses = createAsyncThunk(
+  "courses/fetchCourses",
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await coursesAPI.getAll(params)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement des cours")
+    }
+  }
+)
+
+export const fetchMyCourses = createAsyncThunk(
+  "courses/fetchMyCourses",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await coursesAPI.getMyCourses()
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement de vos cours")
+    }
+  }
+)
+
+export const fetchCourseById = createAsyncThunk(
+  "courses/fetchCourseById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await coursesAPI.getById(id)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement du cours")
+    }
+  }
+)
+
+export const enrollCourse = createAsyncThunk(
+  "courses/enrollCourse",
+  async (courseId, { rejectWithValue }) => {
+    try {
+      const response = await coursesAPI.enroll(courseId)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors de l'inscription au cours")
+    }
+  }
+)
+
+export const createCourse = createAsyncThunk(
+  "courses/createCourse",
+  async (courseData, { rejectWithValue }) => {
+    try {
+      const response = await coursesAPI.create(courseData)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors de la création du cours")
+    }
+  }
+)
+
+export const updateCourse = createAsyncThunk(
+  "courses/updateCourse",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const response = await coursesAPI.update(id, data)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors de la mise à jour du cours")
+    }
+  }
+)
 
 const initialState = {
-  courses: [
-    {
-      id: 1,
-      name: "Comptabilité Générale",
-      credits: 6,
-      teacher: "Prof. Martin Dubois",
-      auditoire: "1ère Licence Finance",
-      description: "Introduction aux principes fondamentaux de la comptabilité",
-      students: 45,
-      progress: 65,
-      assignments: [
-        { id: 1, title: "TP1 - Bilan comptable", dueDate: "2024-02-15", type: "TP" },
-        { id: 2, title: "Quiz - Principes de base", dueDate: "2024-02-10", type: "Quiz" },
-      ],
-    },
-    {
-      id: 2,
-      name: "Économie",
-      credits: 4,
-      teacher: "Prof. Sarah Johnson",
-      auditoire: "1ère Licence Finance",
-      description: "Microéconomie et macroéconomie appliquées",
-      students: 42,
-      progress: 40,
-      assignments: [
-        { id: 3, title: "TD1 - Offre et demande", dueDate: "2024-02-20", type: "TD" },
-        { id: 4, title: "Quiz - Marchés financiers", dueDate: "2024-02-12", type: "Quiz" },
-      ],
-    },
-    {
-      id: 3,
-      name: "Mathématiques Financières",
-      credits: 5,
-      teacher: "Prof. Jean-Pierre Moreau",
-      auditoire: "1ère Licence Finance",
-      description: "Calculs financiers et statistiques appliquées",
-      students: 38,
-      progress: 75,
-      assignments: [{ id: 5, title: "TP2 - Calcul d'intérêts", dueDate: "2024-02-18", type: "TP" }],
-    },
-  ],
+  courses: [],
   selectedCourse: null,
   loading: false,
   error: null,
@@ -57,23 +91,106 @@ const coursesSlice = createSlice({
     selectCourse: (state, action) => {
       state.selectedCourse = state.courses.find((course) => course.id === action.payload)
     },
-    addCourse: (state, action) => {
-      state.courses.push(action.payload)
+    clearSelectedCourse: (state) => {
+      state.selectedCourse = null
     },
-    updateCourse: (state, action) => {
-      const index = state.courses.findIndex((course) => course.id === action.payload.id)
-      if (index !== -1) {
-        state.courses[index] = { ...state.courses[index], ...action.payload }
-      }
+    clearError: (state) => {
+      state.error = null
     },
-    setLoading: (state, action) => {
-      state.loading = action.payload
-    },
-    setError: (state, action) => {
-      state.error = action.payload
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // Fetch all courses
+      .addCase(fetchCourses.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchCourses.fulfilled, (state, action) => {
+        state.loading = false
+        state.courses = action.payload.results || action.payload
+        state.error = null
+      })
+      .addCase(fetchCourses.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // Fetch my courses
+      .addCase(fetchMyCourses.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchMyCourses.fulfilled, (state, action) => {
+        state.loading = false
+        state.courses = action.payload
+        state.error = null
+      })
+      .addCase(fetchMyCourses.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // Fetch course by ID
+      .addCase(fetchCourseById.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchCourseById.fulfilled, (state, action) => {
+        state.loading = false
+        state.selectedCourse = action.payload
+        state.error = null
+      })
+      .addCase(fetchCourseById.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // Enroll in course
+      .addCase(enrollCourse.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(enrollCourse.fulfilled, (state, action) => {
+        state.loading = false
+        state.error = null
+      })
+      .addCase(enrollCourse.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // Create course
+      .addCase(createCourse.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(createCourse.fulfilled, (state, action) => {
+        state.loading = false
+        state.courses.push(action.payload)
+        state.error = null
+      })
+      .addCase(createCourse.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // Update course
+      .addCase(updateCourse.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(updateCourse.fulfilled, (state, action) => {
+        state.loading = false
+        const index = state.courses.findIndex((course) => course.id === action.payload.id)
+        if (index !== -1) {
+          state.courses[index] = action.payload
+        }
+        if (state.selectedCourse?.id === action.payload.id) {
+          state.selectedCourse = action.payload
+        }
+        state.error = null
+      })
+      .addCase(updateCourse.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
   },
 })
 
-export const { setCourses, selectCourse, addCourse, updateCourse, setLoading, setError } = coursesSlice.actions
+export const { setCourses, selectCourse, clearSelectedCourse, clearError } = coursesSlice.actions
 export default coursesSlice.reducer

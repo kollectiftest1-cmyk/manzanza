@@ -1,22 +1,40 @@
 import { Container, Row, Col, Card, Button, Table, ProgressBar } from "react-bootstrap"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
+import { useEffect } from "react"
+import { fetchAuditoires } from "../../store/slices/auditoiresSlice"
+import { fetchCourses } from "../../store/slices/coursesSlice"
 
 const ChefDepartementDashboard = () => {
+  const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
+  const { auditoires } = useSelector((state) => state.auditoires)
+  const { courses } = useSelector((state) => state.courses)
+
+  useEffect(() => {
+    dispatch(fetchAuditoires())
+    dispatch(fetchCourses())
+  }, [dispatch])
+
+  // Calculate real statistics from backend data
+  const departementAuditoires = auditoires || []
+  const departementCourses = courses || []
 
   const departementStats = {
-    totalSections: 4,
-    totalEtudiants: 890,
-    totalEnseignants: 45,
-    coursActifs: 32,
+    totalSections: departementAuditoires.length,
+    totalEtudiants: departementAuditoires.reduce((sum, aud) => sum + (aud.students_count || 0), 0),
+    totalEnseignants: new Set(departementCourses.map(c => c.created_by)).size,
+    coursActifs: departementCourses.filter(c => c.is_active).length,
   }
 
-  const sections = [
-    { id: 1, nom: "Finance", chef: "Dr. Martin", etudiants: 245, enseignants: 12, performance: 85 },
-    { id: 2, nom: "Comptabilité", chef: "Prof. Dubois", etudiants: 220, enseignants: 11, performance: 88 },
-    { id: 3, nom: "Économie", chef: "Dr. Bernard", etudiants: 210, enseignants: 10, performance: 82 },
-    { id: 4, nom: "Gestion", chef: "Prof. Leroy", etudiants: 215, enseignants: 12, performance: 90 },
-  ]
+  const sections = departementAuditoires.map(aud => ({
+    id: aud.id,
+    nom: aud.name,
+    level: aud.level,
+    program: aud.program,
+    etudiants: aud.students_count || 0,
+    cours: aud.courses_count || 0,
+    performance: Math.round(Math.random() * 20 + 75) // Mock performance - should come from grades API
+  }))
 
   return (
     <Container fluid className="py-0" style={{ }}>

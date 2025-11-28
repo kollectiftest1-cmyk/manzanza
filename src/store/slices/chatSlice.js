@@ -1,59 +1,157 @@
-import { createSlice } from "@reduxjs/toolkit"
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
+import { chatAPI } from "../../services/api"
+
+// Async thunks pour les appels API
+export const fetchChannels = createAsyncThunk(
+  "chat/fetchChannels",
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.getChannels(params)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement des canaux")
+    }
+  }
+)
+
+export const fetchMessages = createAsyncThunk(
+  "chat/fetchMessages",
+  async (channelId, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.getMessages(channelId)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement des messages")
+    }
+  }
+)
+
+export const sendMessage = createAsyncThunk(
+  "chat/sendMessage",
+  async ({ channelId, content }, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.sendMessage(channelId, { content })
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors de l'envoi du message")
+    }
+  }
+)
+
+export const createChannel = createAsyncThunk(
+  "chat/createChannel",
+  async (channelData, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.createChannel(channelData)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors de la création du canal")
+    }
+  }
+)
+
+export const addReaction = createAsyncThunk(
+  "chat/addReaction",
+  async ({ messageId, emoji }, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.addReaction(messageId, { emoji })
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Erreur lors de l'ajout de la réaction")
+    }
+  }
+)
 
 const initialState = {
-  messages: [
-    {
-      id: 1,
-      sender: "Prof. Martin Dubois",
-      content: "Bonjour à tous, n'oubliez pas le TP de comptabilité pour vendredi !",
-      timestamp: "2024-02-08 10:30",
-      courseId: 1,
-      type: "received",
-    },
-    {
-      id: 2,
-      sender: "Vous",
-      content: "Merci professeur, j'ai une question sur l'exercice 3.",
-      timestamp: "2024-02-08 10:35",
-      courseId: 1,
-      type: "sent",
-    },
-    {
-      id: 3,
-      sender: "IA Assistant",
-      content: "Je peux vous aider avec les questions de comptabilité. Quelle est votre question ?",
-      timestamp: "2024-02-08 10:36",
-      courseId: 1,
-      type: "received",
-      isAI: true,
-    },
-  ],
-  activeChat: null,
+  channels: [],
+  activeChannel: null,
+  messages: [],
   loading: false,
+  error: null,
 }
 
 const chatSlice = createSlice({
   name: "chat",
   initialState,
   reducers: {
-    addMessage: (state, action) => {
-      state.messages.push({
-        ...action.payload,
-        id: Date.now(),
-        timestamp: new Date().toLocaleString("fr-FR"),
+    setActiveChannel: (state, action) => {
+      state.activeChannel = action.payload
+    },
+    clearMessages: (state) => {
+      state.messages = []
+    },
+    clearError: (state) => {
+      state.error = null
+    },
+    // Pour WebSocket - ajout de message en temps réel
+    addMessageRealtime: (state, action) => {
+      state.messages.push(action.payload)
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // Fetch channels
+      .addCase(fetchChannels.pending, (state) => {
+        state.loading = true
+        state.error = null
       })
-    },
-    setActiveChat: (state, action) => {
-      state.activeChat = action.payload
-    },
-    setMessages: (state, action) => {
-      state.messages = action.payload
-    },
-    setLoading: (state, action) => {
-      state.loading = action.payload
-    },
+      .addCase(fetchChannels.fulfilled, (state, action) => {
+        state.loading = false
+        state.channels = action.payload.results || action.payload
+        state.error = null
+      })
+      .addCase(fetchChannels.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // Fetch messages
+      .addCase(fetchMessages.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchMessages.fulfilled, (state, action) => {
+        state.loading = false
+        state.messages = action.payload.results || action.payload
+        state.error = null
+      })
+      .addCase(fetchMessages.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // Send message
+      .addCase(sendMessage.pending, (state) => {
+        state.error = null
+      })
+      .addCase(sendMessage.fulfilled, (state, action) => {
+        state.messages.push(action.payload)
+        state.error = null
+      })
+      .addCase(sendMessage.rejected, (state, action) => {
+        state.error = action.payload
+      })
+      // Create channel
+      .addCase(createChannel.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(createChannel.fulfilled, (state, action) => {
+        state.loading = false
+        state.channels.push(action.payload)
+        state.error = null
+      })
+      .addCase(createChannel.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // Add reaction
+      .addCase(addReaction.fulfilled, (state, action) => {
+        const message = state.messages.find((m) => m.id === action.payload.message_id)
+        if (message) {
+          message.reactions = action.payload.reactions
+        }
+      })
   },
 })
 
-export const { addMessage, setActiveChat, setMessages, setLoading } = chatSlice.actions
+export const { setActiveChannel, clearMessages, clearError, addMessageRealtime } = chatSlice.actions
 export default chatSlice.reducer

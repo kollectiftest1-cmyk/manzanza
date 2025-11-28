@@ -1,204 +1,170 @@
 "use client"
 
-import { useState } from "react"
-import { Container, Row, Col, Card, Table, Button, Badge, Form, Modal, Alert } from "react-bootstrap"
+import { useState, useEffect, useCallback } from "react"
+import { Container, Row, Col, Card, Table, Button, Badge, Form, Modal, Alert, Spinner, Pagination, InputGroup } from "react-bootstrap"
 import { useSelector } from "react-redux"
+import { Link } from "react-router-dom"
+import { getUsers, createUser, deleteUser } from "../services/userService"
+import { getAuditoires } from "../services/auditoireService"
+import { getSections } from "../services/sectionService"
+import { getFilieres } from "../services/filiereService"
+import debounce from "lodash.debounce"
 
 const Administration = () => {
-  const { user } = useSelector((state) => state.auth)
+  const { user: currentUser } = useSelector((state) => state.auth)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Data and Filters
+  const [users, setUsers] = useState({ results: [], count: 0, next: null, previous: null })
+  const [auditoires, setAuditoires] = useState([])
+  const [sections, setSections] = useState([])
+  const [filieres, setFilieres] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [filters, setFilters] = useState({ search: '', role: '' })
+
+  // Modal and Form State
   const [showUserModal, setShowUserModal] = useState(false)
-  const [showCourseModal, setShowCourseModal] = useState(false)
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: "Marie Kouassi",
-      email: "marie.k@DASH.edu",
-      role: "etudiant",
-      status: "actif",
-      promotion: "1ère Licence Finance",
-    },
-    {
-      id: 2,
-      name: "Jean Koffi",
-      email: "jean.k@DASH.edu",
-      role: "etudiant",
-      status: "actif",
-      promotion: "1ère Licence Finance",
-    },
-    {
-      id: 3,
-      name: "Prof. Martin Dubois",
-      email: "martin.d@DASH.edu",
-      role: "enseignant",
-      status: "actif",
-      departement: "Finance",
-    },
-    {
-      id: 4,
-      name: "Dr. Adjoua Yao",
-      email: "adjoua.y@DASH.edu",
-      role: "chef_section",
-      status: "actif",
-      section: "Sciences Économiques",
-    },
-  ])
+  const [newUser, setNewUser] = useState({ role: 'etudiant' })
 
-  const [courses, setCourses] = useState([
-    {
-      id: 1,
-      name: "Comptabilité Générale",
-      code: "COMP101",
-      credits: 4,
-      enseignant: "Prof. Martin Dubois",
-      etudiants: 45,
-    },
-    { id: 2, name: "Économie", code: "ECO101", credits: 3, enseignant: "Dr. Sarah Bamba", etudiants: 38 },
-    {
-      id: 3,
-      name: "Mathématiques Financières",
-      code: "MATH201",
-      credits: 5,
-      enseignant: "Prof. Koné Amadou",
-      etudiants: 32,
-    },
-  ])
+  const fetchUsers = useCallback(debounce(async (page, currentFilters) => {
+    setLoading(true)
+    try {
+      const params = { page, ...currentFilters }
+      const usersRes = await getUsers(params)
+      setUsers(usersRes.data)
+    } catch (err) {
+      setError("Erreur lors du chargement des utilisateurs.")
+    } finally {
+      setLoading(false)
+    }
+  }, 300), [])
 
-  const handleEditUser = (user) => {
-    setSelectedUser(user)
-    setShowUserModal(true)
+  useEffect(() => {
+    fetchUsers(currentPage, filters)
+  }, [currentPage, filters, fetchUsers])
+
+  useEffect(() => {
+    // Fetch non-user data only once
+    const fetchRelatedData = async () => {
+      try {
+        const [auditoiresRes, sectionsRes, filieresRes] = await Promise.all([
+          getAuditoires(),
+          getSections(),
+          getFilieres(),
+        ])
+        setAuditoires(auditoiresRes.data.results || auditoiresRes.data)
+        setSections(sectionsRes.data.results || sectionsRes.data)
+        setFilieres(filieresRes.data.results || filieresRes.data)
+      } catch (err) {
+        setError("Erreur lors du chargement des données annexes.")
+      }
+    }
+    fetchRelatedData()
+  }, [])
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target
+    setFilters(prev => ({ ...prev, [name]: value }))
+    setCurrentPage(1) // Reset to first page on filter change
   }
 
-  const handleDeleteUser = (userId) => {
+  const handleCreateUser = async (e) => {
+    e.preventDefault()
+    try {
+      await createUser(newUser)
+      setShowUserModal(false)
+      setNewUser({ role: 'etudiant' })
+      fetchUsers(1, filters) // Refetch the first page
+    } catch (err) {
+      alert(`Erreur: ${err.response?.data?.detail || err.message || 'Impossible de créer l\'utilisateur.'}`)
+    }
+  }
+  
+  const handleDeleteUser = async (userId) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
-      setUsers(users.filter((u) => u.id !== userId))
+      try {
+        await deleteUser(userId)
+        // Refetch the current page
+        fetchUsers(currentPage, filters)
+      } catch (err) {
+        alert(`Erreur: ${err.message || 'Impossible de supprimer l\'utilisateur.'}`)
+      }
     }
   }
 
-  const getRoleBadge = (role) => {
-    const roleConfig = {
-      etudiant: { variant: "primary", text: "Étudiant" },
-      enseignant: { variant: "success", text: "Enseignant" },
-      chef_departement: { variant: "warning", text: "Chef Dép." },
-      admin: { variant: "danger", text: "Admin" },
-      assistant: { variant: "secondary", text: "Assistant" },
-      chef_section: { variant: "info", text: "Chef Sect." },
-      bibliothecaire: { variant: "light", text: "Bibliothécaire" },
-      apparitorat: { variant: "dark", text: "Apparitorat" },
-      service_it: { variant: "primary", text: "Service IT" },
-      caisse_comptabilite: { variant: "success", text: "Caisse/Comptabilité" },
-      sga: { variant: "warning", text: "SGA" },
-      sgad: { variant: "danger", text: "SGAD" },
-      pdg: { variant: "secondary", text: "PDG" },
-      directeur_general: { variant: "info", text: "Directeur Général" },
-      iadmin: { variant: "light", text: "iAdmin" },
+  const renderAssignmentFields = () => {
+    switch (newUser.role) {
+      case 'etudiant':
+        return <Form.Group className="mb-3"><Form.Label>Auditoire</Form.Label><Form.Select name="auditoire" onChange={handleFormChange}><option value="">Choisir...</option>{auditoires.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}</Form.Select></Form.Group>
+      case 'chef_section':
+        return <Form.Group className="mb-3"><Form.Label>Section</Form.Label><Form.Select name="section" onChange={handleFormChange}><option value="">Choisir...</option>{sections.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}</Form.Select></Form.Group>
+      case 'chef_departement':
+        return <Form.Group className="mb-3"><Form.Label>Filière (Département)</Form.Label><Form.Select name="filiere" onChange={handleFormChange}><option value="">Choisir...</option>{filieres.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}</Form.Select></Form.Group>
+      default:
+        return null
     }
-    const config = roleConfig[role] || { variant: "secondary", text: "Utilisateur" }
-    return <Badge bg={config.variant}>{config.text}</Badge>
   }
 
-  const getStatusBadge = (status) => {
-    return <Badge bg={status === "actif" ? "success" : "danger"}>{status}</Badge>
+  const handleFormChange = (e) => {
+    setNewUser({ ...newUser, [e.target.name]: e.target.value })
   }
 
-  if (!["iadmin", "pdg", "directeur_general", "sga", "sgad", "chef_section"].includes(user?.role)) {
-    return (
-      <Container className="mt-4">
-        <Alert variant="danger">
-          <h4>Accès Refusé</h4>
-          <p>Vous n'avez pas les permissions nécessaires pour accéder à cette page.</p>
-        </Alert>
-      </Container>
-    )
-  }
+  const totalPages = Math.ceil(users.count / 10)
+
+  if (loading && users.results.length === 0) return <div className="text-center"><Spinner animation="border" /></div>
+  if (error && users.results.length === 0) return <Alert variant="danger">{error}</Alert>
 
   return (
     <Container fluid className="mt-4">
-      <Row className="mb-4 dashboard-card">
-        <Col>
-          <h2>Administration</h2>
-          <p className="text-muted">
-            {user?.role === "chef_section"
-              ? "Gestion des départements et personnel de section"
-              : "Gestion des utilisateurs, cours et paramètres système"}
-          </p>
-        </Col>
-      </Row>
-
-      {/* Statistics Cards */}
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="shadow text-center">
-            <Card.Body>
-              <h3 className="text-primary">{users.filter((u) => u.role === "etudiant").length}</h3>
-              <p className="mb-0">Étudiants</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="shadow text-center">
-            <Card.Body>
-              <h3 className="text-success">{users.filter((u) => u.role === "enseignant").length}</h3>
-              <p className="mb-0">Enseignants</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="shadow text-center">
-            <Card.Body>
-              <h3 className="text-info">{courses.length}</h3>
-              <p className="mb-0">Cours</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="shadow text-center">
-            <Card.Body>
-              <h3 className="text-warning">5</h3>
-              <p className="mb-0">Auditoires</p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Users Management */}
       <Row className="mb-4">
         <Col>
-          <Card className="shadow">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Gestion des Utilisateurs</h5>
-              <Button variant="primary" onClick={() => setShowUserModal(true)}>
-                + Nouvel Utilisateur
-              </Button>
+          <Card>
+            <Card.Header>
+              <Row className="align-items-center">
+                <Col md={4}>
+                  <h5 className="mb-0">Gestion des Utilisateurs ({users.count})</h5>
+                </Col>
+                <Col md={8} className="d-flex justify-content-end align-items-center gap-2">
+                  <InputGroup style={{ maxWidth: '300px' }}>
+                    <InputGroup.Text><i className="fas fa-search"></i></InputGroup.Text>
+                    <Form.Control
+                      type="search"
+                      name="search"
+                      placeholder="Rechercher par nom, email..."
+                      value={filters.search}
+                      onChange={handleFilterChange}
+                    />
+                  </InputGroup>
+                  <Form.Select name="role" value={filters.role} onChange={handleFilterChange} style={{ maxWidth: '200px' }}>
+                    <option value="">Tous les rôles</option>
+                    <option value="etudiant">Étudiant</option>
+                    <option value="enseignant">Enseignant</option>
+                    <option value="assistant">Assistant</option>
+                    <option value="chef_departement">Chef de Département</option>
+                    <option value="chef_section">Chef de Section</option>
+                    <option value="sga">SGA</option>
+                    <option value="iadmin">IAdmin</option>
+                  </Form.Select>
+                  <Button variant="primary" onClick={() => setShowUserModal(true)}>+ Nouvel Utilisateur</Button>
+                </Col>
+              </Row>
             </Card.Header>
             <Card.Body>
+              {loading && <div className="text-center my-2"><Spinner animation="border" size="sm" /></div>}
+              {error && !loading && <Alert variant="warning">{error}</Alert>}
               <Table responsive hover>
-                <thead>
-                  <tr>
-                    <th>Nom</th>
-                    <th>Email</th>
-                    <th>Rôle</th>
-                    <th>Statut</th>
-                    <th>Promotion/Département/Section</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Affectation</th><th>Actions</th></tr></thead>
                 <tbody>
-                  {users.map((user) => (
+                  {users.results.map((user) => (
                     <tr key={user.id}>
                       <td>{user.name}</td>
                       <td>{user.email}</td>
-                      <td>{getRoleBadge(user.role)}</td>
-                      <td>{getStatusBadge(user.status)}</td>
-                      <td>{user.promotion || user.departement || user.section}</td>
+                      <td><Badge bg="info">{user.role_display}</Badge></td>
+                      <td>{user.auditoire_name || user.section_name || user.filiere_name || 'N/A'}</td>
                       <td>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          className="me-2"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          Modifier
+                        <Button as={Link} to={`/profile/${user.id}`} variant="outline-primary" size="sm" className="me-2">
+                          <i className="fas fa-eye me-1"></i>Voir
                         </Button>
                         <Button variant="outline-danger" size="sm" onClick={() => handleDeleteUser(user.id)}>
                           Supprimer
@@ -209,123 +175,44 @@ const Administration = () => {
                 </tbody>
               </Table>
             </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Courses Management */}
-      <Row>
-        <Col>
-          <Card className="shadow">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Gestion des Cours</h5>
-              <Button variant="success" onClick={() => setShowCourseModal(true)}>
-                + Nouveau Cours
-              </Button>
-            </Card.Header>
-            <Card.Body>
-              <Table responsive hover>
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Nom du Cours</th>
-                    <th>Crédits</th>
-                    <th>Enseignant</th>
-                    <th>Étudiants</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courses.map((course) => (
-                    <tr key={course.id}>
-                      <td>
-                        <Badge bg="info">{course.code}</Badge>
-                      </td>
-                      <td>{course.name}</td>
-                      <td>{course.credits}</td>
-                      <td>{course.enseignant}</td>
-                      <td>
-                        <Badge bg="primary">{course.etudiants}</Badge>
-                      </td>
-                      <td>
-                        <Button variant="outline-primary" size="sm" className="me-2">
-                          Modifier
-                        </Button>
-                        <Button variant="outline-danger" size="sm">
-                          Supprimer
-                        </Button>
-                      </td>
-                    </tr>
+            {totalPages > 1 && (
+              <Card.Footer className="d-flex justify-content-center">
+                <Pagination>
+                  <Pagination.First onClick={() => setCurrentPage(1)} disabled={currentPage === 1} />
+                  <Pagination.Prev onClick={() => setCurrentPage(p => p - 1)} disabled={!users.previous} />
+                  {[...Array(totalPages).keys()].map(page => (
+                    <Pagination.Item key={page + 1} active={page + 1 === currentPage} onClick={() => setCurrentPage(page + 1)}>
+                      {page + 1}
+                    </Pagination.Item>
                   ))}
-                </tbody>
-              </Table>
-            </Card.Body>
+                  <Pagination.Next onClick={() => setCurrentPage(p => p + 1)} disabled={!users.next} />
+                  <Pagination.Last onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} />
+                </Pagination>
+              </Card.Footer>
+            )}
           </Card>
         </Col>
       </Row>
 
-      {/* User Modal */}
       <Modal show={showUserModal} onHide={() => setShowUserModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{selectedUser ? "Modifier Utilisateur" : "Nouvel Utilisateur"}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
+        <Form onSubmit={handleCreateUser}>
+          <Modal.Header closeButton><Modal.Title>Nouvel Utilisateur</Modal.Title></Modal.Header>
+          <Modal.Body>
             <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Nom Complet</Form.Label>
-                  <Form.Control type="text" defaultValue={selectedUser?.name} />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control type="email" defaultValue={selectedUser?.email} />
-                </Form.Group>
-              </Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Prénom</Form.Label><Form.Control name="first_name" onChange={handleFormChange} required /></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Nom</Form.Label><Form.Control name="last_name" onChange={handleFormChange} required /></Form.Group></Col>
             </Row>
             <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Rôle</Form.Label>
-                  <Form.Select defaultValue={selectedUser?.role}>
-                    <option value="etudiant">Étudiant</option>
-                    <option value="enseignant">Enseignant</option>
-                    <option value="assistant">Assistant</option>
-                    <option value="chef_departement">Chef de Département</option>
-                    <option value="chef_section">Chef de Section</option>
-                    <option value="bibliothecaire">Bibliothécaire</option>
-                    <option value="apparitorat">Apparitorat</option>
-                    <option value="service_it">Service IT</option>
-                    <option value="caisse_comptabilite">Caisse/Comptabilité</option>
-                    <option value="sga">SGA</option>
-                    <option value="sgad">SGAD</option>
-                    <option value="pdg">PDG</option>
-                    <option value="directeur_general">Directeur Général</option>
-                    <option value="iadmin">iAdmin</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Statut</Form.Label>
-                  <Form.Select defaultValue={selectedUser?.status}>
-                    <option value="actif">Actif</option>
-                    <option value="inactif">Inactif</option>
-                    <option value="suspendu">Suspendu</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Email</Form.Label><Form.Control type="email" name="email" onChange={handleFormChange} required /></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Mot de passe</Form.Label><Form.Control type="password" name="password" onChange={handleFormChange} required /></Form.Group></Col>
             </Row>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowUserModal(false)}>
-            Annuler
-          </Button>
-          <Button variant="primary">{selectedUser ? "Mettre à jour" : "Créer"}</Button>
-        </Modal.Footer>
+            <Form.Group className="mb-3"><Form.Label>Rôle</Form.Label><Form.Select name="role" onChange={handleFormChange} required><option value="etudiant">Étudiant</option><option value="enseignant">Enseignant</option><option value="assistant">Assistant</option><option value="chef_departement">Chef de Département</option><option value="chef_section">Chef de Section</option><option value="bibliothecaire">Bibliothécaire</option><option value="sga">SGA</option></Form.Select></Form.Group>
+            <hr />
+            <h6 className="text-muted">Affectation (selon le rôle)</h6>
+            {renderAssignmentFields()}
+          </Modal.Body>
+          <Modal.Footer><Button variant="secondary" onClick={() => setShowUserModal(false)}>Annuler</Button><Button type="submit" variant="primary">Créer</Button></Modal.Footer>
+        </Form>
       </Modal>
     </Container>
   )

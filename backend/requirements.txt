@@ -1,0 +1,41 @@
+# Django & Django REST Framework
+Django==4.2.9
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+
+# CORS Headers
+django-cors-headers==4.3.1
+
+# Database
+psycopg2-binary==2.9.9
+
+# Environment variables
+python-decouple==3.8
+
+# Image handling
+Pillow==10.2.0
+
+# Filtering
+django-filter==23.5
+
+# Markdown support
+markdown==3.5.2
+
+# API Documentation
+drf-yasg==1.21.7
+
+# Password validation
+argon2-cffi==23.1.0
+
+# Timezone support
+pytz==2024.1
+
+# Excel export
+openpyxl==3.1.2
+xlsxwriter==3.1.9
+
+# PDF generation
+reportlab==4.0.9
+
+# Utilities
+python-dateutil==2.8.2

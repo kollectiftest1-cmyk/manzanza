@@ -121,3 +121,65 @@
     @apply bg-background text-foreground;
   }
 }
+
+.card-premium {
+  border: none !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  transition: transform .25s ease, box-shadow .25s ease;
+  background: #ffffff;
+}
+
+.card-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 35px rgba(0,0,0,0.12);
+}
+
+.card-header-premium {
+  padding: 18px !important;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #fff;
+  background: linear-gradient(135deg, #4e73df, #224abe);
+}
+
+.card-header-green {
+  background: linear-gradient(135deg, #1cc88a, #13855c);
+}
+
+.card-header-yellow {
+  background: linear-gradient(135deg, #f6c23e, #dda20a);
+  color: #000 !important;
+}
+
+.card-header-blue {
+  background: linear-gradient(135deg, #36b9cc, #258d9a);
+}
+
+.list-item-premium {
+  padding: 14px 20px !important;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.list-item-label {
+  font-weight: 600;
+  color: #1b1b1b;
+}
+
+.list-item-value {
+  color: #555;
+}
+
+.section-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #224abe;
+}
+
+.back-btn {
+  border-radius: 50px !important;
+  font-weight: 600 !important;
+  padding: 8px 22px !important;
+}

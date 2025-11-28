@@ -4,52 +4,36 @@ import { useState, useEffect } from "react"
 import { Container, Row, Col, Card, Button, Form, Alert, ProgressBar, Badge } from "react-bootstrap"
 import { useParams, useNavigate } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
+import { fetchQuizById, setAnswer, submitQuizAttempt, resetQuiz } from "../store/slices/quizSlice"
 
 const Quiz = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
+  const { currentQuiz, currentAttempt, userAnswers, score, loading, error } = useSelector((state) => state.quiz)
 
-  const [quiz, setQuiz] = useState(null)
   const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [answers, setAnswers] = useState({})
-  const [timeLeft, setTimeLeft] = useState(1800) // 30 minutes
+  const [timeLeft, setTimeLeft] = useState(null)
   const [submitted, setSubmitted] = useState(false)
-  const [score, setScore] = useState(null)
 
-  // Mock quiz data
+  // Charger le quiz depuis l'API
   useEffect(() => {
-    const mockQuiz = {
-      id: id,
-      title: "Quiz Comptabilité Générale - Chapitre 1",
-      course: "Comptabilité Générale",
-      duration: 30,
-      totalQuestions: 10,
-      questions: [
-        {
-          id: 1,
-          question: "Qu'est-ce que le bilan comptable ?",
-          type: "multiple",
-          options: [
-            "Un document qui présente la situation financière à un moment donné",
-            "Un document qui présente les résultats sur une période",
-            "Un document fiscal obligatoire",
-            "Un document de gestion interne",
-          ],
-          correct: 0,
-        },
-        {
-          id: 2,
-          question: "Quels sont les deux côtés du bilan ?",
-          type: "multiple",
-          options: ["Recettes et Dépenses", "Actif et Passif", "Charges et Produits", "Débit et Crédit"],
-          correct: 1,
-        },
-      ],
+    if (id) {
+      dispatch(fetchQuizById(id))
     }
-    setQuiz(mockQuiz)
-  }, [id])
+
+    return () => {
+      dispatch(resetQuiz())
+    }
+  }, [id, dispatch])
+
+  // Initialiser le timer quand le quiz est chargé
+  useEffect(() => {
+    if (currentQuiz && timeLeft === null) {
+      setTimeLeft(currentQuiz.duration * 60) // Convertir minutes en secondes
+    }
+  }, [currentQuiz, timeLeft])
 
   // Timer
   useEffect(() => {
@@ -62,24 +46,24 @@ const Quiz = () => {
   }, [timeLeft, submitted])
 
   const handleAnswerChange = (questionId, answer) => {
-    setAnswers({
-      ...answers,
-      [questionId]: answer,
-    })
+    dispatch(setAnswer({ questionId, answer }))
   }
 
-  const handleSubmit = () => {
-    // Calculate score
-    let correctAnswers = 0
-    quiz.questions.forEach((q) => {
-      if (answers[q.id] === q.correct) {
-        correctAnswers++
-      }
-    })
+  const handleSubmit = async () => {
+    if (!currentQuiz) return
 
-    const finalScore = (correctAnswers / quiz.questions.length) * 100
-    setScore(finalScore)
-    setSubmitted(true)
+    try {
+      // Préparer les réponses pour l'API
+      const answers = Object.entries(userAnswers).map(([questionId, selectedOption]) => ({
+        question: parseInt(questionId),
+        selected_option: selectedOption,
+      }))
+
+      await dispatch(submitQuizAttempt({ quizId: currentQuiz.id, answers })).unwrap()
+      setSubmitted(true)
+    } catch (error) {
+      console.error("Erreur lors de la soumission:", error)
+    }
   }
 
   const formatTime = (seconds) => {
@@ -88,7 +72,7 @@ const Quiz = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  if (!quiz) {
+  if (loading || !currentQuiz) {
     return (
       <Container className="mt-4">
         <div className="text-center">
@@ -96,6 +80,20 @@ const Quiz = () => {
             <span className="visually-hidden">Chargement...</span>
           </div>
         </div>
+      </Container>
+    )
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+          <Button variant="outline-danger" onClick={() => navigate("/courses")}>
+            Retour aux cours
+          </Button>
+        </Alert>
       </Container>
     )
   }
@@ -111,12 +109,19 @@ const Quiz = () => {
               </Card.Header>
               <Card.Body className="text-center">
                 <h2 className="mb-4">Votre Score</h2>
-                <div className="display-1 text-primary mb-4">{score.toFixed(1)}%</div>
-                <Alert variant={score >= 60 ? "success" : "danger"}>
-                  {score >= 60
+                <div className="display-1 text-primary mb-4">{score?.toFixed(1) || 0}%</div>
+                <Alert variant={(score || 0) >= 60 ? "success" : "danger"}>
+                  {(score || 0) >= 60
                     ? "Félicitations ! Vous avez réussi le quiz."
                     : "Vous devez obtenir au moins 60% pour réussir."}
                 </Alert>
+                {currentAttempt && (
+                  <div className="mb-3">
+                    <p className="text-muted">
+                      Tentative {currentAttempt.attempt_number} / {currentQuiz.max_attempts || "∞"}
+                    </p>
+                  </div>
+                )}
                 <div className="d-grid gap-2">
                   <Button variant="primary" onClick={() => navigate("/courses")}>
                     Retour aux Cours
@@ -135,7 +140,7 @@ const Quiz = () => {
     )
   }
 
-  const currentQ = quiz.questions[currentQuestion]
+  const currentQ = currentQuiz.questions[currentQuestion]
 
   return (
     <Container className="mt-4">
@@ -144,12 +149,14 @@ const Quiz = () => {
           <Card className="shadow">
             <Card.Header className="d-flex justify-content-between align-items-center">
               <div>
-                <h5 className="mb-0">{quiz.title}</h5>
-                <small className="text-muted">{quiz.course}</small>
+                <h5 className="mb-0">{currentQuiz.title}</h5>
+                <small className="text-muted">{currentQuiz.course?.name || "Quiz"}</small>
               </div>
-              <Badge bg="warning" className="fs-6">
-                ⏰ {formatTime(timeLeft)}
-              </Badge>
+              {timeLeft !== null && (
+                <Badge bg="warning" className="fs-6">
+                  ⏰ {formatTime(timeLeft)}
+                </Badge>
+              )}
             </Card.Header>
             <Card.Body>
               <div className="mb-3">
@@ -188,18 +195,18 @@ const Quiz = () => {
                   ← Précédent
                 </Button>
 
-                {currentQuestion === quiz.questions.length - 1 ? (
+                {currentQuestion === currentQuiz.questions.length - 1 ? (
                   <Button
                     variant="success"
                     onClick={handleSubmit}
-                    disabled={!answers[currentQ.id] && answers[currentQ.id] !== 0}
+                    disabled={userAnswers[currentQ.id] === undefined}
                   >
                     Terminer le Quiz
                   </Button>
                 ) : (
                   <Button
                     variant="primary"
-                    disabled={!answers[currentQ.id] && answers[currentQ.id] !== 0}
+                    disabled={userAnswers[currentQ.id] === undefined}
                     onClick={() => setCurrentQuestion(currentQuestion + 1)}
                   >
                     Suivant →
@@ -243,14 +250,19 @@ const Quiz = () => {
             </Card.Header>
             <Card.Body>
               <p>
-                <strong>Durée :</strong> {quiz.duration} minutes
+                <strong>Durée :</strong> {currentQuiz.duration} minutes
               </p>
               <p>
-                <strong>Questions :</strong> {quiz.totalQuestions}
+                <strong>Questions :</strong> {currentQuiz.questions.length}
               </p>
               <p>
-                <strong>Note de passage :</strong> 60%
+                <strong>Note de passage :</strong> {currentQuiz.passing_score || 60}%
               </p>
+              {currentQuiz.max_attempts && (
+                <p>
+                  <strong>Tentatives max :</strong> {currentQuiz.max_attempts}
+                </p>
+              )}
               <Alert variant="info" className="small">
                 💡 Vous pouvez naviguer entre les questions et modifier vos réponses avant de soumettre.
               </Alert>

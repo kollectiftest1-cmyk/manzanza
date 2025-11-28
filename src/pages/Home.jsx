@@ -1,6 +1,7 @@
 import { Container, Row, Col, Button, Card } from "react-bootstrap"
 import { LinkContainer } from "react-router-bootstrap"
 import { useSelector } from "react-redux"
+import { Link } from "react-router-dom"
 
 const Home = () => {
   const { isAuthenticated } = useSelector((state) => state.auth)
@@ -22,9 +23,14 @@ const Home = () => {
                   <>
                     <LinkContainer to="/login">
                       <Button size="lg" className="btn-primary-custom">
-                        Commencer maintenant
+                        Se Connecter
                       </Button>
                     </LinkContainer>
+                    <Link to="/inscription">
+                      <Button size="lg" variant="success">
+                        S'inscrire
+                      </Button>
+                    </Link>
                     <Button size="lg" variant="outline-light" className="btn-outline-custom">
                       Demander une démo
                     </Button>

@@ -1,249 +1,123 @@
 "use client"
-import { Nav, Button } from "react-bootstrap"
-import { LinkContainer } from "react-router-bootstrap"
-import { useSelector, useDispatch } from "react-redux"
-import { logout } from "../store/slices/authSlice"
+
+import { Nav } from "react-bootstrap"
+import { Link, useLocation } from "react-router-dom"
+import { useSelector } from "react-redux"
+import { checkPermission } from "../utils/permissions"
 
 const Sidebar = () => {
+  const location = useLocation()
   const { user } = useSelector((state) => state.auth)
-  const dispatch = useDispatch()
 
-  const handleLogout = () => {
-    dispatch(logout())
-  }
+  const navGroups = [
+    {
+      title: "Principal",
+      items: [
+        { path: "/dashboard", icon: "fa-home", text: "Tableau de Bord", requiredRoles: [] },
+        {
+          path: "/courses",
+          icon: "fa-book",
+          text: ["etudiant", "enseignant", "assistant"].includes(user?.role)
+            ? "Mes Cours"
+            : "Les cours",
+          requiredRoles: ["etudiant", "enseignant", "assistant", "sga", "chef_departement", "chef_section", "iadmin"],
+        }
+      ],
+    },
+    {
+      title: "Académique",
+      items: [
+        { path: "/auditoires", icon: "fa-school", text: "Gestion Academ", requiredRoles: ["sga", "iadmin","chef_section"] },
+        { path: "/gestion-inscriptions", icon: "fa-user-plus", text: "Inscriptions", requiredRoles: ["sga", "iadmin"] },
+        { path: "/tptd", icon: "fa-file-alt", text: "TP/TD", requiredRoles: ["etudiant", "enseignant",'chef_section'] },
+        { path: "/quiz", icon: "fa-question-circle", text: "Quiz", requiredRoles: ["etudiant", "enseignant","chef_section"] },
+      ],
+    },
+    {
+      title: "Services",
+      items: [
+        { path: "/chat", icon: "fa-comments", text: "Chat", requiredRoles: [] },
+        { path: "/library", icon: "fa-book-reader", text: "Bibliothèque", requiredRoles: [] },
+        { path: "/paiements", icon: "fa-dollar-sign", text: "Paiements", requiredRoles: ["etudiant"] },
+      ],
+    },
+    {
+      title: "Administration",
+      items: [
+        { path: "/administration", icon: "fa-users-cog", text: "Utilisateurs", requiredRoles: ["sga", "iadmin"] },
+        { path: "/rh", icon: "fa-users", text: "Ressources Humaines", requiredRoles: ["sgad", "iadmin"] },
+        { path: "/comptabilite", icon: "fa-calculator", text: "Comptabilité", requiredRoles: ["caisse", "sgad", "iadmin"] },
+        { path: "/apparitorat", icon: "fa-user-check", text: "Apparitorat", requiredRoles: ["appariteur", "sga", "iadmin"] },
+        { path: "/service-it", icon: "fa-laptop-code", text: "Service IT", requiredRoles: ["service_it", "iadmin"] },
+      ],
+    },
+  ]
 
-  // Menu items based on user role
-  const getMenuItems = () => {
-    const baseItems = [
-      { path: "/dashboard", icon: "fas fa-tachometer-alt", label: "Tableau de bord" },
-      { path: "/profile", icon: "fas fa-user", label: "Profil" },
-      { path: "/notifications", icon: "fas fa-bell", label: "Notifications" },
-    ]
-
-    switch (user?.role) {
-      case "etudiant":
-        return [
-          ...baseItems,
-          { path: "/courses", icon: "fas fa-book", label: "Mes Cours" },
-          { path: "/auditoires", icon: "fas fa-users", label: "Auditoires" },
-          { path: "/quiz", icon: "fas fa-question-circle", label: "Quiz" },
-          { path: "/tptd", icon: "fas fa-tasks", label: "TP/TD" },
-          { path: "/library", icon: "fas fa-book-open", label: "Bibliothèque" },
-          { path: "/paiements", icon: "fas fa-credit-card", label: "Paiements" },
-        ]
-
-      case "enseignant":
-      case "assistant":
-        return [
-          ...baseItems,
-          { path: "/courses", icon: "fas fa-chalkboard-teacher", label: "Mes Cours" },
-          { path: "/auditoires", icon: "fas fa-users", label: "Auditoires" },
-          { path: "/quiz", icon: "fas fa-question-circle", label: "Gestion Quiz" },
-          { path: "/tptd", icon: "fas fa-tasks", label: "TP/TD" },
-          { path: "/library", icon: "fas fa-book-open", label: "Bibliothèque" },
-        ]
-
-      case "sga":
-        return [
-          ...baseItems,
-          { path: "/courses", icon: "fas fa-graduation-cap", label: "Gestion Académique" },
-          { path: "/auditoires", icon: "fas fa-users", label: "Auditoires" },
-          { path: "/administration", icon: "fas fa-cogs", label: "Administration" },
-          { path: "/rh", icon: "fas fa-user-tie", label: "Ressources Humaines" },
-        ]
-
-      case "sgad":
-        return [
-          ...baseItems,
-          { path: "/comptabilite", icon: "fas fa-calculator", label: "Comptabilité" },
-          { path: "/paiements", icon: "fas fa-credit-card", label: "Paiements" },
-          { path: "/administration", icon: "fas fa-cogs", label: "Administration" },
-          { path: "/rh", icon: "fas fa-user-tie", label: "RH" },
-        ]
-
-      case "pdg":
-      case "directeur_general":
-        return [
-          ...baseItems,
-          { path: "/administration", icon: "fas fa-building", label: "Administration" },
-          { path: "/comptabilite", icon: "fas fa-chart-line", label: "Finances" },
-          { path: "/rh", icon: "fas fa-users-cog", label: "RH" },
-          { path: "/courses", icon: "fas fa-graduation-cap", label: "Académique" },
-        ]
-
-      case "chef_section":
-        return [
-          ...baseItems,
-          { path: "/courses", icon: "fas fa-chalkboard-teacher", label: "Cours" },
-          { path: "/auditoires", icon: "fas fa-users", label: "Auditoires" },
-          { path: "/administration", icon: "fas fa-cogs", label: "Gestion Départements" },
-          { path: "/rh", icon: "fas fa-user-tie", label: "Personnel" },
-        ]
-
-      case "chef_departement":
-        return [
-          ...baseItems,
-          { path: "/courses", icon: "fas fa-chalkboard-teacher", label: "Cours Département" },
-          { path: "/auditoires", icon: "fas fa-users", label: "Auditoires" },
-          { path: "/tptd", icon: "fas fa-tasks", label: "TP/TD" },
-        ]
-
-      case "bibliothecaire":
-        return [
-          ...baseItems,
-          { path: "/library", icon: "fas fa-book-open", label: "Bibliothèque" },
-          { path: "/courses", icon: "fas fa-book", label: "Ressources Cours" },
-        ]
-
-      case "apparitorat":
-        return [
-          ...baseItems,
-          { path: "/apparitorat", icon: "fas fa-clipboard-list", label: "Apparitorat" },
-          { path: "/auditoires", icon: "fas fa-door-open", label: "Salles" },
-        ]
-
-      case "service_it":
-        return [
-          ...baseItems,
-          { path: "/service-it", icon: "fas fa-laptop-code", label: "Service IT" },
-          { path: "/administration", icon: "fas fa-cogs", label: "Administration" },
-        ]
-
-      case "caisse_comptabilite":
-        return [
-          ...baseItems,
-          { path: "/comptabilite", icon: "fas fa-calculator", label: "Comptabilité" },
-          { path: "/paiements", icon: "fas fa-money-bill-wave", label: "Caisse" },
-        ]
-
-      case "iadmin":
-        return [
-          ...baseItems,
-          { path: "/courses", icon: "fas fa-graduation-cap", label: "Gestion Académique" },
-          { path: "/auditoires", icon: "fas fa-users", label: "Auditoires" },
-          { path: "/administration", icon: "fas fa-building", label: "Administration" },
-          { path: "/comptabilite", icon: "fas fa-chart-line", label: "Finances" },
-          { path: "/rh", icon: "fas fa-users-cog", label: "RH" },
-          { path: "/service-it", icon: "fas fa-laptop-code", label: "Service IT" },
-          { path: "/library", icon: "fas fa-book-open", label: "Bibliothèque" },
-          { path: "/apparitorat", icon: "fas fa-clipboard-list", label: "Apparitorat" },
-          { path: "/paiements", icon: "fas fa-credit-card", label: "Paiements" },
-          { path: "/tptd", icon: "fas fa-tasks", label: "TP/TD" },
-          { path: "/quiz", icon: "fas fa-question-circle", label: "Quiz" },
-        ]
-
-      default:
-        return baseItems
+  const renderNavGroup = (group) => {
+    const accessibleItems = group.items.filter(item => checkPermission(user?.role, item.requiredRoles))
+    if (accessibleItems.length === 0) {
+      return null
     }
+
+    return (
+      <div key={group.title} className="nav-group mb-2">
+        <h6 className="sidebar-heading px-3 mt-3 mb-1 text-muted text-uppercase" style={{ fontSize: '0.75rem' }}>{group.title}</h6>
+        {accessibleItems.map(item => (
+          <Nav.Item key={item.path}>
+            <Nav.Link as={Link} to={item.path} className={location.pathname.startsWith(item.path) ? "active" : ""}>
+              <i className={`fas ${item.icon} fa-fw me-2`}></i>
+              {item.text}
+            </Nav.Link>
+          </Nav.Item>
+        ))}
+      </div>
+    )
   }
 
   return (
-    <div
-      className="sidebar shadow-lg"
-      style={{
-        width: "100%",
-        height: "100vh",
-        // position: "fixed",
-        // left: 0,
-        // top: 0,
-        // zIndex: 1000,
-        background: "linear-gradient(90deg,#43B5D7 0%,#3F97E3 100%)",
-        borderRight: "1px solid rgba(255,255,255,0.1)",
-        padding :0,
-        // borderRadius:"20px",
-        borderTopRightRadius:"20px",
-        borderBottomRightRadius:"20px"
-      }}
-    >
-      {/* Logo/Header */}
-      <div className="p-4 border-bottom" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
-        <h4 className="text-white fw-bold mb-0">
-          <i className="fas fa-graduation-cap me-0"></i>
-          DASH
-        </h4>
-        <small className="text-white-50">Système Universitaire</small>
-      </div>
-
-      {/* User Info */}
-      <div className="p-3 border-bottom" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
-        <div className="d-flex align-items-center">
-          <div
-            className="avatar-circle me-3 d-flex align-items-center justify-content-center"
-            style={{
-              width: "45px",
-              height: "45px",
-              backgroundColor: "rgba(255,255,255,0.15)",
-              borderRadius: "50%",
-              border: "2px solid rgba(255,255,255,0.2)",
-            }}
-          >
-            <i className="fas fa-user text-white"></i>
-          </div>
-          <div>
-            <div className="fw-semibold text-white">{user?.name}</div>
-            <small className="text-white-50">{user?.role?.replace("_", " ").toUpperCase()}</small>
-          </div>
+    <>
+      <style type="text/css">
+        {`
+          .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+          }
+          .sidebar .sidebar-header {
+            border-bottom: 1px solid #e3e6f0;
+          }
+          .sidebar .nav-link {
+            padding: 0.75rem 1.5rem;
+            color: #5a5c69;
+            font-weight: 500;
+            border-radius: 0.35rem;
+            margin: 0 0.5rem;
+            transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+          }
+          .sidebar .nav-link:hover {
+            background-color: #f8f9fa;
+            color: #4e73df;
+          }
+          .sidebar .nav-link.active {
+            background-color: #4e73df;
+            color: #fff;
+            font-weight: 700;
+          }
+          .sidebar .nav-link .fa-fw {
+            width: 1.25em;
+          }
+        `}
+      </style>
+      <div className="sidebar border-end bg-light">
+        <div className="sidebar-header p-3 text-center">
+          <h4 className="text-primary fw-bold">Syntax GU</h4>
         </div>
-      </div>
-
-      {/* Navigation Menu */}
-      <div style={{ height: "calc(100vh - 200px)", overflowY: "auto" }}>
-        <Nav className="flex-column p-3 ">
-          {getMenuItems().map((item, index) => (
-            <LinkContainer key={index} to={item.path}>
-              <Nav.Link
-                className="sidebar-link d-flex align-items-center py-1 px-1 mb-2 text-white rounded"
-                style={{
-                  transition: "all 0.3s ease",
-                  fontSize: "0.95rem",
-                  fontWeight: "500",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "rgba(255,255,255,0.15)"
-                  e.target.style.transform = "translateX(5px)"
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "transparent"
-                  e.target.style.transform = "translateX(0)"
-                }}
-              >
-                <i className={`${item.icon} me-3`} style={{ width: "20px", fontSize: "1.1rem" }}></i>
-                {item.label}
-              </Nav.Link>
-            </LinkContainer>
-          ))}
+        <Nav className="flex-column p-2">
+          {navGroups.map(renderNavGroup)}
         </Nav>
-        <Button
-          variant="outline-light"
-          className=" fw-semibold"
-          onClick={handleLogout}
-          style={{
-            backgroundColor: "rgba(255,255,255,0.1)",
-            border: "1px solid rgba(255,255,255,0.3)",
-            color: "white",
-            transition: "all 0.3s ease",
-            width:"95%",
-            alignSelf:'end',
-            // margin:"auto"
-            marginLeft:5
-
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = "rgba(255,255,255,0.2)"
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = "rgba(255,255,255,0.1)"
-          }}
-        >
-          <i className="fas fa-sign-out-alt me-2"></i>
-          Déconnexion
-        </Button>
       </div>
-
-      {/* Logout Button */}
-  
-        
-    </div>
+    </>
   )
 }
 

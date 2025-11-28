@@ -2,116 +2,57 @@
 
 import { useState, useEffect } from "react"
 import { Container, Row, Col, Card, Button, Table, Badge, Form, Modal, Alert, ProgressBar } from "react-bootstrap"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
+import { fetchMyFees, fetchPayments, createPayment } from "../store/slices/paymentsSlice"
 
 const Paiements = () => {
+  const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
-  const [paiements, setPaiements] = useState([])
-  const [frais, setFrais] = useState([])
+  const { myFees, payments, loading, error } = useSelector((state) => state.payments)
   const [showModal, setShowModal] = useState(false)
   const [selectedFrais, setSelectedFrais] = useState(null)
   const [montantPaye, setMontantPaye] = useState("")
-  const [methodePaiement, setMethodePaiement] = useState("especes")
+  const [methodePaiement, setMethodePaiement] = useState("cash")
 
   useEffect(() => {
-    // Simuler le chargement des données
-    setFrais([
-      {
-        id: 1,
-        type: "Frais de scolarité",
-        montant: 500000,
-        montantPaye: 300000,
-        dateEcheance: "2024-02-15",
-        statut: "partiel",
-      },
-      {
-        id: 2,
-        type: "Frais de laboratoire",
-        montant: 50000,
-        montantPaye: 0,
-        dateEcheance: "2024-01-30",
-        statut: "impaye",
-      },
-      {
-        id: 3,
-        type: "Frais de bibliothèque",
-        montant: 25000,
-        montantPaye: 25000,
-        dateEcheance: "2024-01-15",
-        statut: "paye",
-      },
-    ])
-
-    setPaiements([
-      {
-        id: 1,
-        type: "Frais de scolarité",
-        montant: 200000,
-        date: "2024-01-10",
-        methode: "Virement bancaire",
-        reference: "PAY001",
-        statut: "confirme",
-      },
-      {
-        id: 2,
-        type: "Frais de scolarité",
-        montant: 100000,
-        date: "2024-01-05",
-        methode: "Espèces",
-        reference: "PAY002",
-        statut: "confirme",
-      },
-    ])
-  }, [])
-
-  const handlePaiement = (e) => {
-    e.preventDefault()
-    const nouveauPaiement = {
-      id: paiements.length + 1,
-      type: selectedFrais.type,
-      montant: Number.parseInt(montantPaye),
-      date: new Date().toISOString().split("T")[0],
-      methode: methodePaiement,
-      reference: `PAY${String(paiements.length + 1).padStart(3, "0")}`,
-      statut: "en-attente",
+    if (user?.role === "etudiant") {
+      dispatch(fetchMyFees())
     }
+    dispatch(fetchPayments())
+  }, [dispatch, user])
 
-    setPaiements([...paiements, nouveauPaiement])
-
-    // Mettre à jour les frais
-    const fraisUpdated = frais.map((f) => {
-      if (f.id === selectedFrais.id) {
-        const nouveauMontantPaye = f.montantPaye + Number.parseInt(montantPaye)
-        return {
-          ...f,
-          montantPaye: nouveauMontantPaye,
-          statut: nouveauMontantPaye >= f.montant ? "paye" : "partiel",
-        }
+  const handlePaiement = async (e) => {
+    e.preventDefault()
+    try {
+      const paymentData = {
+        student_fee: selectedFrais.id,
+        amount: parseFloat(montantPaye),
+        payment_method: methodePaiement,
       }
-      return f
-    })
-    setFrais(fraisUpdated)
-
-    setShowModal(false)
-    setMontantPaye("")
-    setSelectedFrais(null)
+      await dispatch(createPayment(paymentData)).unwrap()
+      setShowModal(false)
+      setMontantPaye("")
+      setSelectedFrais(null)
+      // Recharger les données
+      if (user?.role === "etudiant") {
+        dispatch(fetchMyFees())
+      }
+      dispatch(fetchPayments())
+    } catch (error) {
+      console.error("Erreur lors du paiement:", error)
+    }
   }
 
   const getStatutColor = (statut) => {
-    switch (statut) {
-      case "paye":
-        return "success"
-      case "partiel":
-        return "warning"
-      case "impaye":
-        return "danger"
-      case "confirme":
-        return "success"
-      case "en-attente":
-        return "warning"
-      default:
-        return "secondary"
+    const statusMap = {
+      'paid': 'success',
+      'partial': 'warning',
+      'unpaid': 'danger',
+      'pending': 'warning',
+      'confirmed': 'success',
+      'rejected': 'danger'
     }
+    return statusMap[statut] || 'secondary'
   }
 
   const formatMontant = (montant) => {
@@ -119,12 +60,22 @@ const Paiements = () => {
   }
 
   const calculerPourcentage = (paye, total) => {
-    return Math.round((paye / total) * 100)
+    return total > 0 ? Math.round((paye / total) * 100) : 0
   }
 
-  const totalFrais = frais.reduce((sum, f) => sum + f.montant, 0)
-  const totalPaye = frais.reduce((sum, f) => sum + f.montantPaye, 0)
+  const totalFrais = (myFees || []).reduce((sum, f) => sum + (f.amount || 0), 0)
+  const totalPaye = (myFees || []).reduce((sum, f) => sum + (f.paid_amount || 0), 0)
   const totalRestant = totalFrais - totalPaye
+
+  if (loading && myFees.length === 0) {
+    return (
+      <Container fluid className="py-0 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </div>
+      </Container>
+    )
+  }
 
   return (
     <Container fluid className="py-0">
@@ -181,35 +132,35 @@ const Paiements = () => {
               <h5 className="mb-0">Frais à Payer</h5>
             </Card.Header>
             <Card.Body>
-              {frais.map((frais) => (
-                <Card key={frais.id} className="mb-3 border">
+              {(myFees || []).map((fee) => (
+                <Card key={fee.id} className="mb-3 border">
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <div>
-                        <h6 className="text-primary">{frais.type}</h6>
-                        <p className="text-muted mb-1">Échéance: {frais.dateEcheance}</p>
+                        <h6 className="text-primary">{fee.fee_type_name || fee.fee_type}</h6>
+                        <p className="text-muted mb-1">Échéance: {fee.due_date ? new Date(fee.due_date).toLocaleDateString('fr-FR') : 'N/A'}</p>
                       </div>
-                      <Badge bg={getStatutColor(frais.statut)}>{frais.statut}</Badge>
+                      <Badge bg={getStatutColor(fee.status)}>{fee.status === "paid" ? "Payé" : fee.status === "partial" ? "Partiel" : "Impayé"}</Badge>
                     </div>
 
                     <div className="mb-2">
                       <div className="d-flex justify-content-between">
-                        <span>Payé: {formatMontant(frais.montantPaye)}</span>
-                        <span>Total: {formatMontant(frais.montant)}</span>
+                        <span>Payé: {formatMontant(fee.paid_amount)}</span>
+                        <span>Total: {formatMontant(fee.amount)}</span>
                       </div>
                       <ProgressBar
-                        now={calculerPourcentage(frais.montantPaye, frais.montant)}
-                        variant={frais.statut === "paye" ? "success" : "warning"}
+                        now={calculerPourcentage(fee.paid_amount, fee.amount)}
+                        variant={fee.status === "paid" ? "success" : "warning"}
                         className="mt-1"
                       />
                     </div>
 
-                    {frais.statut !== "paye" && (
+                    {fee.status !== "paid" && (
                       <Button
                         size="sm"
                         variant="primary"
                         onClick={() => {
-                          setSelectedFrais(frais)
+                          setSelectedFrais(fee)
                           setShowModal(true)
                         }}
                       >
@@ -242,15 +193,15 @@ const Paiements = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {paiements.map((paiement) => (
-                    <tr key={paiement.id}>
-                      <td>{paiement.reference}</td>
-                      <td>{paiement.type}</td>
-                      <td>{formatMontant(paiement.montant)}</td>
-                      <td>{paiement.date}</td>
-                      <td>{paiement.methode}</td>
+                  {(payments || []).map((payment) => (
+                    <tr key={payment.id}>
+                      <td>{payment.reference || `#${payment.id}`}</td>
+                      <td>{payment.fee_type_name || 'N/A'}</td>
+                      <td>{formatMontant(payment.amount)}</td>
+                      <td>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('fr-FR') : 'N/A'}</td>
+                      <td>{payment.payment_method === 'cash' ? 'Espèces' : payment.payment_method === 'bank_transfer' ? 'Virement' : payment.payment_method}</td>
                       <td>
-                        <Badge bg={getStatutColor(paiement.statut)}>{paiement.statut}</Badge>
+                        <Badge bg={getStatutColor(payment.status)}>{payment.status === "confirmed" ? "Confirmé" : payment.status === "pending" ? "En attente" : "Rejeté"}</Badge>
                       </td>
                     </tr>
                   ))}
@@ -271,13 +222,13 @@ const Paiements = () => {
             {selectedFrais && (
               <>
                 <Alert variant="info">
-                  <strong>{selectedFrais.type}</strong>
+                  <strong>{selectedFrais.fee_type_name || selectedFrais.fee_type}</strong>
                   <br />
-                  Montant total: {formatMontant(selectedFrais.montant)}
+                  Montant total: {formatMontant(selectedFrais.amount)}
                   <br />
-                  Déjà payé: {formatMontant(selectedFrais.montantPaye)}
+                  Déjà payé: {formatMontant(selectedFrais.paid_amount)}
                   <br />
-                  Restant: {formatMontant(selectedFrais.montant - selectedFrais.montantPaye)}
+                  Restant: {formatMontant(selectedFrais.amount - selectedFrais.paid_amount)}
                 </Alert>
 
                 <Form.Group className="mb-3">
@@ -286,7 +237,7 @@ const Paiements = () => {
                     type="number"
                     value={montantPaye}
                     onChange={(e) => setMontantPaye(e.target.value)}
-                    max={selectedFrais.montant - selectedFrais.montantPaye}
+                    max={selectedFrais.amount - selectedFrais.paid_amount}
                     required
                   />
                 </Form.Group>
@@ -294,10 +245,10 @@ const Paiements = () => {
                 <Form.Group className="mb-3">
                   <Form.Label>Méthode de paiement</Form.Label>
                   <Form.Select value={methodePaiement} onChange={(e) => setMethodePaiement(e.target.value)}>
-                    <option value="especes">Espèces</option>
-                    <option value="virement">Virement bancaire</option>
-                    <option value="cheque">Chèque</option>
-                    <option value="mobile">Paiement mobile</option>
+                    <option value="cash">Espèces</option>
+                    <option value="bank_transfer">Virement bancaire</option>
+                    <option value="card">Carte bancaire</option>
+                    <option value="mobile_money">Mobile Money</option>
                   </Form.Select>
                 </Form.Group>
               </>
