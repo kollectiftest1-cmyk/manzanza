@@ -3,7 +3,29 @@ Course serializers
 """
 from rest_framework import serializers
 from .models import Course, CourseEnrollment, CourseMaterial
+from apps.auditoires.models import Section, Filiere, Auditoire
 
+# Custom Serializers for simplified representation
+class SimpleFiliereSerializer(serializers.ModelSerializer):
+    chef_filiere = serializers.CharField(source='chef_filiere.get_full_name', read_only=True)
+
+    class Meta:
+        model = Filiere
+        fields = ['id', 'nom', 'chef_filiere']
+
+class SimpleSectionSerializer(serializers.ModelSerializer):
+    chef_section = serializers.CharField(source='chef_section.get_full_name', read_only=True)
+
+    class Meta:
+        model = Section
+        fields = ['id', 'nom', 'chef_section']
+
+class SimpleAuditoireSerializer(serializers.ModelSerializer):
+    titulaire = serializers.CharField(source='titulaire.get_full_name', read_only=True)
+
+    class Meta:
+        model = Auditoire
+        fields = ['id', 'nom', 'titulaire']
 
 class CourseMaterialSerializer(serializers.ModelSerializer):
     """CourseMaterial Serializer"""
@@ -39,17 +61,26 @@ class CourseSerializer(serializers.ModelSerializer):
     """Course Serializer"""
 
     titulaire_name = serializers.CharField(source='titulaire.name', read_only=True, allow_null=True)
-    auditoire_name = serializers.CharField(source='auditoire.nom', read_only=True, allow_null=True)
     students_count = serializers.IntegerField(read_only=True, default=0)
     progress_percentage = serializers.FloatField(read_only=True, default=0)
     materials = CourseMaterialSerializer(many=True, read_only=True)
+    
+    # Use the custom simple serializers for read-only representation
+    filiere = SimpleFiliereSerializer(source='filieres', many=True, read_only=True)
+    section = SimpleSectionSerializer(source='sections', many=True, read_only=True)
+    auditoire = SimpleAuditoireSerializer(source='auditoires', many=True, read_only=True)
+
+    # Field for write operations
+    auditoire_ids = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Auditoire.objects.all(), source='auditoires', write_only=True
+    )
 
     class Meta:
         model = Course
         fields = [
             'id', 'name', 'code', 'description', 'credits',
             'titulaire', 'titulaire_name', 'assistants',
-            'auditoire', 'auditoire_name',
+            'section', 'filiere', 'auditoire', 'auditoire_ids',
             'syllabus', 'resources', 'is_active',
             'semester', 'annee_academique',
             'students_count', 'progress_percentage',
@@ -57,26 +88,48 @@ class CourseSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'code', 'created_at', 'updated_at', 'students_count', 
-            'progress_percentage', 'titulaire_name', 'auditoire_name'
+            'progress_percentage', 'titulaire_name', 'section', 'filiere', 'auditoire'
         ]
         extra_kwargs = {
             'titulaire': {'required': True, 'allow_null': False},
-            'auditoire': {'required': True, 'allow_null': False},
         }
+
+    def create(self, validated_data):
+        auditoires = validated_data.pop('auditoires', [])
+        course = Course.objects.create(**validated_data)
+        self._process_auditoires(course, auditoires)
+        return course
+
+    def update(self, instance, validated_data):
+        auditoires = validated_data.pop('auditoires', [])
+        instance = super().update(instance, validated_data)
+        self._process_auditoires(instance, auditoires)
+        return instance
+
+    def _process_auditoires(self, course, auditoires):
+        course.auditoires.set(auditoires)
+        
+        filieres = set()
+        sections = set()
+        
+        for auditoire in auditoires:
+            if auditoire.filiere:
+                filieres.add(auditoire.filiere)
+                if auditoire.filiere.section:
+                    sections.add(auditoire.filiere.section)
+        
+        course.filieres.set(list(filieres))
+        course.sections.set(list(sections))
 
 
 class CourseDetailSerializer(CourseSerializer):
     """Detailed Course Serializer with enrollments"""
-    # Removed the problematic module-level import: from apps.users.serializers import UserSerializer
-
     enrollments = CourseEnrollmentSerializer(many=True, read_only=True)
-    # Use SerializerMethodField for titulaire to handle circular import
     titulaire = serializers.SerializerMethodField()
 
     class Meta(CourseSerializer.Meta):
         fields = CourseSerializer.Meta.fields + ['enrollments']
 
     def get_titulaire(self, obj):
-        # Import UserSerializer locally within the method to break the circular dependency
         from apps.users.serializers import UserSerializer
         return UserSerializer(obj.titulaire).data

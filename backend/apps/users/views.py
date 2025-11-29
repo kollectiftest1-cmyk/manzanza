@@ -1,21 +1,25 @@
 """
 User views
 """
+import logging
 from rest_framework import viewsets, status, generics, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny, OR # Import OR
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import RefreshToken
-from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet
+from django_filters import CharFilter
 from django.contrib.auth import authenticate, get_user_model
+from django.db.models import Q
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     ChangePasswordSerializer, LoginSerializer, UserProfileSerializer
 )
-from .permissions import IsOwnerOrAdmin, IsAdminUser, CanViewUsers # Import CanViewUsers
+from .permissions import IsOwnerOrAdmin, IsAdminUser, CanViewUsers
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -31,7 +35,6 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.select_related(
         'auditoire', 'section', 'filiere'
     ).prefetch_related(
-        'auditoire__courses',
         'courses_held'
     ).all().order_by('-date_joined')
     permission_classes = [IsAuthenticated]
@@ -60,14 +63,12 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return [AllowAny()]
         elif self.action == 'list':
-            # Allow IsAdminUser or CanViewUsers for listing users
             return [OR(IsAdminUser(), CanViewUsers())]
         elif self.action == 'destroy':
             return [IsAdminUser()]
         elif self.action in ['update', 'partial_update']:
             return [IsOwnerOrAdmin()]
         elif self.action == 'retrieve':
-            # Allow IsOwnerOrAdmin or CanViewUsers for retrieving a user
             return [OR(IsOwnerOrAdmin(), CanViewUsers())]
         return super().get_permissions()
 
@@ -132,10 +133,7 @@ class LoginView(generics.GenericAPIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # Re-fetch the user with related fields to ensure they are loaded for the serializer
         user = User.objects.select_related('auditoire', 'section', 'filiere').get(pk=user.pk)
-
-        # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
 
         return Response({
@@ -162,18 +160,54 @@ class LogoutView(generics.GenericAPIView):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class StudentFilter(FilterSet):
+    """Custom filter for students."""
+    section = CharFilter(method='filter_by_section')
+    filiere = CharFilter(method='filter_by_filiere')
+
+    class Meta:
+        model = User
+        fields = ['auditoire', 'section', 'filiere']
+
+    def filter_by_section(self, queryset, name, value):
+        logger.info(f"--- Filtering students by section ID: {value} ---")
+        logger.info(f"Initial student count: {queryset.count()}")
+        logger.info(f"Initial student count:")
+
+        filtered_qs = queryset.filter(
+            Q(auditoire__filiere__section__id=value) |
+            Q(filiere__section__id=value) |
+            Q(section__id=value)
+        ).distinct()
+
+        logger.info(f"Final student count after filter: {filtered_qs.count()}")
+        logger.info("--- End of section filter ---")
+        return filtered_qs
+
+    def filter_by_filiere(self, queryset, name, value):
+        logger.info(f"--- Filtering students by filiere ID: {value} ---")
+        logger.info(f"Initial student count: {queryset.count()}")
+
+        filtered_qs = queryset.filter(
+            Q(auditoire__filiere__id=value) |
+            Q(filiere__id=value)
+        ).distinct()
+
+        logger.info(f"Final student count after filter: {filtered_qs.count()}")
+        logger.info("--- End of filiere filter ---")
+        return filtered_qs
+
+
 class StudentListView(generics.ListAPIView):
     """
     API view to list students with filtering options.
-    Filters: auditoire, filiere (via auditoire), section (via auditoire)
     """
-    queryset = User.objects.select_related('auditoire', 'filiere', 'section').filter(role='etudiant').order_by('last_name', 'first_name')
+    queryset = User.objects.select_related('auditoire__filiere__section', 'filiere__section', 'section').filter(role='etudiant').order_by('last_name', 'first_name')
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, CanViewUsers]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    # Corrected filterset_fields for students
-    filterset_fields = ['auditoire', 'auditoire__filiere', 'auditoire__filiere__section']
+    filterset_class = StudentFilter
     search_fields = ['first_name', 'last_name', 'email', 'matricule']
     ordering_fields = ['last_name', 'first_name', 'matricule']
 
@@ -181,20 +215,17 @@ class StudentListView(generics.ListAPIView):
 class TeacherListView(generics.ListAPIView):
     """
     API view to list teachers and assistants with filtering options.
-    Filters: filiere (via courses taught), section (via courses taught)
     """
-    # Select related for efficiency and distinct to avoid duplicates if a teacher teaches multiple courses in the same filiere/section
     queryset = User.objects.select_related('filiere', 'section').filter(role__in=['enseignant', 'assistant']).order_by('last_name', 'first_name').distinct()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, CanViewUsers]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    # Updated filterset_fields to filter by filiere/section of courses taught
     filterset_fields = [
-        'filiere', # Keep direct filiere filter for primary affiliation if needed
-        'section', # Keep direct section filter for primary affiliation if needed
-        'courses_held__auditoire__filiere', # Filter by filiere of courses taught
-        'courses_held__auditoire__filiere__section', # Filter by section of courses taught
+        'filiere',
+        'section',
+        'courses_held__filieres',
+        'courses_held__sections',
     ]
     search_fields = ['first_name', 'last_name', 'email']
     ordering_fields = ['last_name', 'first_name']

@@ -4,6 +4,7 @@ Course models
 from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
+from apps.auditoires.models import Section, Filiere, Auditoire
 
 class Course(models.Model):
     """Course Model"""
@@ -18,8 +19,9 @@ class Course(models.Model):
                                null=True, related_name='courses_held', verbose_name='Enseignant Titulaire')
     assistants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='courses_assisted',
                                        blank=True, verbose_name='Assistants')
-    auditoire = models.ForeignKey('auditoires.Auditoire', on_delete=models.SET_NULL,
-                                  null=True, blank=True, related_name='courses', verbose_name='Auditoire')
+    sections = models.ManyToManyField(Section, related_name='courses', blank=True, verbose_name='Sections')
+    filieres = models.ManyToManyField(Filiere, related_name='courses', blank=True, verbose_name='Filières')
+    auditoires = models.ManyToManyField(Auditoire, related_name='courses', blank=True, verbose_name='Auditoires')
 
     # Course content
     syllabus = models.FileField(upload_to='syllabi/', blank=True, null=True, verbose_name='Syllabus')

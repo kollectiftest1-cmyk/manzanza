@@ -73,7 +73,7 @@ class AuditoireViewSet(viewsets.ModelViewSet):
     queryset = Auditoire.objects.select_related('filiere__section', 'filiere').annotate(
         # Renamed annotations to avoid conflict with model properties
         etudiants_count=Count('students', filter=Q(students__status='actif')),
-        cours_count=Count('courses', filter=Q(courses__is_active=True))
+        cours_count=Count('filiere__courses', filter=Q(filiere__courses__is_active=True))
     ).all().order_by('-created_at') # Added ordering for consistency, can be adjusted
     serializer_class = AuditoireSerializer
     permission_classes = [IsAuthenticated]
@@ -109,6 +109,6 @@ class AuditoireViewSet(viewsets.ModelViewSet):
         """Get all courses for this auditoire"""
         auditoire = self.get_object()
         from apps.courses.serializers import CourseSerializer
-        courses = auditoire.courses.filter(is_active=True)
+        courses = auditoire.filiere.courses.filter(is_active=True)
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data)

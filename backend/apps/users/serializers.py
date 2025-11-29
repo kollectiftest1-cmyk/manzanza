@@ -4,30 +4,38 @@ User serializers
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db.models import Avg, Count, Sum
+from django.core.exceptions import ObjectDoesNotExist
 from apps.auditoires.models import Auditoire, Section, Filiere
 from apps.quiz.models import QuizAttempt
 from apps.assignments.models import Submission
-from apps.courses.models import CourseEnrollment
+from apps.courses.models import Course, CourseEnrollment
 
 User = get_user_model()
+
+class SimpleSectionSerializer(serializers.ModelSerializer):
+    """Minimal serializer for Section."""
+    class Meta:
+        model = Section
+        fields = ['id', 'nom']
+
+class SimpleFiliereSerializer(serializers.ModelSerializer):
+    """Minimal serializer for Filiere."""
+    class Meta:
+        model = Filiere
+        fields = ['id', 'nom']
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for detailed user profile, acting as a dashboard.
     """
-    # Common Info
     auditoire_details = serializers.SerializerMethodField()
     courses = serializers.SerializerMethodField()
-    
-    # Explicitly add section_id and section_name
-    section_id = serializers.PrimaryKeyRelatedField(source='section', read_only=True)
-    section_name = serializers.CharField(source='section.nom', read_only=True, allow_null=True)
-    filiere_name = serializers.CharField(source='filiere.nom', read_only=True, allow_null=True) # Add filiere_name
-
-    # --- Student Stats ---
+    sections = serializers.SerializerMethodField()
+    filieres = serializers.SerializerMethodField()
+    section = serializers.SerializerMethodField() # ID of managed section for chef_section
+    filiere = serializers.SerializerMethodField() # ID of managed filiere for chef_filiere
     student_stats = serializers.SerializerMethodField()
-
-    # --- Teacher Stats ---
     teacher_stats = serializers.SerializerMethodField()
 
     class Meta:
@@ -35,8 +43,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'first_name', 'last_name', 'name', 'phone', 'role', 'status', 
             'matricule', 'auditoire', 'auditoire_details', 
-            'section', 'section_id', 'section_name', # Include both the object and the ID/name
-            'filiere', 'filiere_name', # Include filiere object and name
+            'sections', 'filieres', 'section', 'filiere',
             'is_active', 'date_joined', 'courses',
             'student_stats', 'teacher_stats'
         ]
@@ -49,11 +56,53 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_courses(self, obj):
         from apps.courses.serializers import CourseSerializer
-        if obj.role == 'etudiant' and obj.auditoire:
-            return CourseSerializer(obj.auditoire.courses.all(), many=True).data
-        elif obj.role == 'enseignant':
-            return CourseSerializer(obj.courses_taught.all(), many=True).data
+        if obj.role == 'etudiant':
+            enrolled_courses_ids = CourseEnrollment.objects.filter(student=obj, is_active=True).values_list('course_id', flat=True)
+            return CourseSerializer(Course.objects.filter(id__in=enrolled_courses_ids), many=True).data
+        elif obj.role in ['enseignant', 'assistant']:
+            courses = obj.courses_held.all() | obj.courses_assisted.all()
+            return CourseSerializer(courses.distinct(), many=True).data
         return []
+
+    def get_sections(self, obj):
+        sections = set()
+        if obj.role in ['enseignant', 'assistant', 'chef_departement', 'chef_section']:
+            courses = obj.courses_held.all() | obj.courses_assisted.all()
+            for course in courses.distinct():
+                sections.update(course.sections.all())
+        if obj.section:
+            sections.add(obj.section)
+        return SimpleSectionSerializer(list(sections), many=True).data
+
+    def get_filieres(self, obj):
+        filieres = set()
+        if obj.role in ['enseignant', 'assistant', 'chef_departement', 'chef_section']:
+            courses = obj.courses_held.all() | obj.courses_assisted.all()
+            for course in courses.distinct():
+                filieres.update(course.filieres.all())
+        if obj.filiere:
+            filieres.add(obj.filiere)
+        return SimpleFiliereSerializer(list(filieres), many=True).data
+
+    def get_section(self, obj):
+        """Returns the ID of the section managed by a chef_section."""
+        if obj.role == 'chef_section':
+            try:
+                return obj.managed_section.id
+            except ObjectDoesNotExist:
+                # Fallback to the direct foreign key if the one-to-one isn't set
+                return obj.section.id if obj.section else None
+        return None
+
+    def get_filiere(self, obj):
+        """Returns the ID of the filiere managed by a chef_departement."""
+        if obj.role == 'chef_departement':
+            try:
+                return obj.managed_filiere.id
+            except ObjectDoesNotExist:
+                # Fallback to the direct foreign key if the one-to-one isn't set
+                return obj.filiere.id if obj.filiere else None
+        return None
 
     def get_student_stats(self, obj):
         if obj.role != 'etudiant':
@@ -82,10 +131,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         }
 
     def get_teacher_stats(self, obj):
-        if obj.role != 'enseignant':
+        if obj.role not in ['enseignant', 'assistant']:
             return None
             
-        courses_taught = obj.courses_taught.all()
+        courses_taught = (obj.courses_held.all() | obj.courses_assisted.all()).distinct()
         courses_taught_count = courses_taught.count()
         students_in_taught_courses_count = CourseEnrollment.objects.filter(course__in=courses_taught).values('student').distinct().count()
         avg_student_performance = Submission.objects.filter(assignment__course__in=courses_taught).aggregate(avg=Avg('score'))['avg'] or 0
@@ -99,21 +148,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     auditoire_name = serializers.SerializerMethodField()
-    section_name = serializers.CharField(source='section.nom', read_only=True, allow_null=True)
-    filiere_name = serializers.CharField(source='filiere.nom', read_only=True, allow_null=True)
+    filiere = SimpleFiliereSerializer(source='auditoire.filiere', read_only=True)
+    section = SimpleSectionSerializer(source='auditoire.filiere.section', read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'name', 'phone', 'role', 'status', 
-            'matricule', 'auditoire', 'auditoire_name', 'section', 'section_name', 
-            'filiere', 'filiere_name', 'is_active', 'date_joined'
+            'matricule', 'auditoire', 'auditoire_name',
+            'filiere', 'section',
+            'is_active', 'date_joined'
         ]
     
     def get_auditoire_name(self, obj):
         if obj.auditoire:
             return f"{obj.auditoire.nom} ({obj.auditoire.get_vacation_display()})"
         return None
+
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
@@ -185,12 +236,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         filiere_id = data.get('filiere_id')
 
         if role == 'chef_departement':
-            # If filiere_id is explicitly set to null, or not provided and was null before
             if filiere_id is None and self.instance.filiere is None:
                 raise serializers.ValidationError(
                     {"filiere_id": "Un chef de département doit être affecté à une filière."}
                 )
-            # If filiere_id is provided, validate it
             if filiere_id is not None:
                 try:
                     Filiere.objects.get(id=filiere_id)
