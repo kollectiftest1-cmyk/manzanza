@@ -13,19 +13,29 @@ from .serializers import (
     CourseSerializer, CourseDetailSerializer,
     CourseEnrollmentSerializer, CourseMaterialSerializer
 )
-# Corrected imports
 from apps.users.permissions import CanManageCourses, IsTeacherOrAdmin, IsAdminUser
+from apps.core.pagination import CustomPageNumberPagination # Import custom pagination
 
 class CourseViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Course model
     """
-    queryset = Course.objects.select_related('titulaire', 'auditoire').all()
+    queryset = Course.objects.select_related('titulaire', 'auditoire', 'auditoire__filiere', 'auditoire__filiere__section').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['is_active', 'semester', 'auditoire', 'titulaire']
+    filterset_fields = [
+        'is_active', 
+        'semester', 
+        'auditoire', 
+        'titulaire',
+        'auditoire__filiere__section', # Filter by section
+        'auditoire__filiere',         # Filter by filiere
+        'auditoire__vacation',        # Filter by vacation
+        'auditoire__niveau',          # Filter by niveau
+    ]
     search_fields = ['name', 'code', 'description']
     ordering_fields = ['name', 'created_at']
+    pagination_class = CustomPageNumberPagination # Add custom pagination class
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -39,16 +49,36 @@ class CourseViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        """Filter courses based on user role"""
+        """Filter courses based on user role and apply additional filters."""
         user = self.request.user
-        if user.is_staff or user.role in ['sga', 'sgad']:
-            return self.queryset
-        elif user.role in ['enseignant', 'assistant', 'chef_departement', 'chef_section']:
-            return self.queryset.filter(models.Q(titulaire=user) | models.Q(assistants=user)).distinct()
+        queryset = self.queryset
+
+        if user.is_staff or user.role in ['sga', 'sgad', 'iadmin']: # Added iadmin for full access
+            # Admins see all courses, filters applied by DjangoFilterBackend
+            pass
+        elif user.role == 'chef_departement':
+            # Chef de département sees courses in their filiere
+            if user.filiere:
+                queryset = queryset.filter(auditoire__filiere=user.filiere)
+            else:
+                queryset = queryset.none() # No filiere managed, no courses
+        elif user.role in ['enseignant', 'assistant']:
+            # Teachers/Assistants see courses they are titular or assistant of
+            queryset = queryset.filter(models.Q(titulaire=user) | models.Q(assistants=user)).distinct()
+        elif user.role == 'chef_section':
+            # Chef de section sees courses in their section
+            if user.section:
+                queryset = queryset.filter(auditoire__filiere__section=user.section)
+            else:
+                queryset = queryset.none() # No section managed, no courses
         elif user.role == 'etudiant':
+            # Students see courses they are enrolled in
             enrolled_courses_ids = CourseEnrollment.objects.filter(student=user, is_active=True).values_list('course_id', flat=True)
-            return self.queryset.filter(id__in=enrolled_courses_ids)
-        return self.queryset.none()
+            queryset = queryset.filter(id__in=enrolled_courses_ids)
+        else:
+            queryset = queryset.none() # Other roles see no courses by default
+
+        return queryset
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def enroll(self, request, pk=None):
@@ -67,8 +97,15 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def my_courses(self, request):
         """Get courses relevant to the current user."""
-        my_courses_qs = self.get_queryset()
-        serializer = self.get_serializer(my_courses_qs, many=True)
+        # The get_queryset method already handles filtering for 'etudiant' role
+        # We need to apply pagination here as well
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
 
@@ -78,7 +115,7 @@ class CourseEnrollmentViewSet(viewsets.ModelViewSet):
     """
     queryset = CourseEnrollment.objects.all()
     serializer_class = CourseEnrollmentSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser] # Correctly uses IsAdminUser
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get_queryset(self):
         """Filter enrollments based on user role"""

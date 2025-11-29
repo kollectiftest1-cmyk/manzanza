@@ -91,12 +91,13 @@ class Auditoire(models.Model):
     def __str__(self):
         return f"{self.nom} ({self.get_niveau_display()} - {self.get_vacation_display()})"
 
+    # Renamed properties to avoid conflict with annotated fields
     @property
-    def etudiants_count(self):
+    def _etudiants_count_property(self):
         """Count of students in this auditoire"""
         return self.students.filter(status='actif').count()
 
     @property
-    def cours_count(self):
+    def _cours_count_property(self):
         """Count of courses for this auditoire"""
         return self.courses.filter(is_active=True).count()

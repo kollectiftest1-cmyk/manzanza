@@ -14,11 +14,10 @@ class UserAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Informations personnelles', {'fields': ('first_name', 'last_name', 'phone', 'address',
-                                                   'date_of_birth', 'profile_picture')}),
+        ('Informations personnelles', {'fields': ('first_name', 'last_name', 'phone')}), # Removed address, date_of_birth, profile_picture
         ('Rôle et Statut', {'fields': ('role', 'status')}),
-        ('Étudiant', {'fields': ('matricule', 'promotion', 'auditoire')}),
-        ('Personnel', {'fields': ('department', 'section', 'specialty')}),
+        ('Étudiant', {'fields': ('matricule', 'auditoire')}), # Removed promotion
+        ('Personnel', {'fields': ('section', 'filiere')}), # Removed department, specialty, added filiere
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Dates importantes', {'fields': ('last_login', 'date_joined')}),
     )
@@ -26,6 +25,11 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'first_name', 'last_name', 'role', 'password1', 'password2'),
+            'fields': ('email', 'first_name', 'last_name', 'role', 'password'), # Changed password1, password2 to password for simplicity in add form
         }),
     )
+    # Ensure get_fieldsets is overridden to use the custom fieldsets
+    def get_fieldsets(self, request, obj=None):
+        if obj: # Editing an existing object
+            return self.fieldsets
+        return self.add_fieldsets

@@ -38,8 +38,9 @@ urlpatterns = [
     path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 
     # API Routes
-    path('api/', include(router.urls)),
-    path('api/auth/', include('apps.users.urls')),
+    path('api/', include(router.urls)), # Includes UserViewSet for /api/users/
+    path('api/auth/', include('apps.users.urls')), # Authentication URLs
+    path('api/', include('apps.users.api_urls')), # New: Student and Teacher list URLs
     path('api/inscriptions/', include('apps.inscriptions.urls')), # New
     path('api/courses/', include('apps.courses.urls')),
     path('api/auditoires/', include('apps.auditoires.urls')),

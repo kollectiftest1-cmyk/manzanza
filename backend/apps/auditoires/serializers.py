@@ -15,6 +15,7 @@ class SimpleCourseSerializer(serializers.ModelSerializer):
 
 class SimpleAuditoireSerializer(serializers.ModelSerializer):
     courses = SimpleCourseSerializer(many=True, read_only=True)
+    # Use the annotated field from the viewset directly
     etudiants_count = serializers.IntegerField(read_only=True)
     vacation_display = serializers.CharField(source='get_vacation_display', read_only=True)
 
@@ -103,8 +104,9 @@ class SectionSerializer(serializers.ModelSerializer):
 
 class AuditoireSerializer(serializers.ModelSerializer):
     """Auditoire Serializer"""
-    etudiants_count = serializers.IntegerField(read_only=True, default=0)
-    cours_count = serializers.IntegerField(read_only=True, default=0)
+    # Use the annotated fields from the viewset directly
+    etudiants_count = serializers.IntegerField(read_only=True)
+    cours_count = serializers.IntegerField(read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True, allow_null=True)
     section_name = serializers.CharField(source='filiere.section.nom', read_only=True, allow_null=True)
     filiere_name = serializers.CharField(source='filiere.nom', read_only=True, allow_null=True)

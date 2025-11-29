@@ -16,9 +16,9 @@ export const fetchCourses = createAsyncThunk(
 
 export const fetchMyCourses = createAsyncThunk(
   "courses/fetchMyCourses",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => { // Added params for potential future pagination/filters for students
     try {
-      const response = await coursesAPI.getMyCourses()
+      const response = await coursesAPI.getMyCourses(params)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement de vos cours")
@@ -79,6 +79,19 @@ const initialState = {
   selectedCourse: null,
   loading: false,
   error: null,
+  pagination: {
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    pageSize: 10, // Default page size
+  },
+  filters: {
+    section: '',
+    filiere: '',
+    auditoire: '',
+    vacation: '',
+    niveau: '',
+  },
 }
 
 const coursesSlice = createSlice({
@@ -97,6 +110,21 @@ const coursesSlice = createSlice({
     clearError: (state) => {
       state.error = null
     },
+    setPage: (state, action) => {
+      state.pagination.currentPage = action.payload;
+    },
+    setPageSize: (state, action) => {
+      state.pagination.pageSize = action.payload;
+    },
+    setFilter: (state, action) => {
+      const { filterName, value } = action.payload;
+      state.filters[filterName] = value;
+      state.pagination.currentPage = 1; // Reset to first page on filter change
+    },
+    clearFilters: (state) => {
+      state.filters = initialState.filters;
+      state.pagination.currentPage = 1; // Reset to first page on filter clear
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -107,7 +135,9 @@ const coursesSlice = createSlice({
       })
       .addCase(fetchCourses.fulfilled, (state, action) => {
         state.loading = false
-        state.courses = action.payload.results || action.payload
+        state.courses = action.payload.results || action.payload // Assuming results for paginated
+        state.pagination.totalItems = action.payload.count || action.payload.length; // Assuming count for paginated
+        state.pagination.totalPages = Math.ceil(state.pagination.totalItems / state.pagination.pageSize);
         state.error = null
       })
       .addCase(fetchCourses.rejected, (state, action) => {
@@ -121,7 +151,9 @@ const coursesSlice = createSlice({
       })
       .addCase(fetchMyCourses.fulfilled, (state, action) => {
         state.loading = false
-        state.courses = action.payload
+        state.courses = action.payload.results || action.payload // Assuming results for paginated
+        state.pagination.totalItems = action.payload.count || action.payload.length; // Assuming count for paginated
+        state.pagination.totalPages = Math.ceil(state.pagination.totalItems / state.pagination.pageSize);
         state.error = null
       })
       .addCase(fetchMyCourses.rejected, (state, action) => {
@@ -162,6 +194,10 @@ const coursesSlice = createSlice({
       })
       .addCase(createCourse.fulfilled, (state, action) => {
         state.loading = false
+        // Re-fetch courses to ensure pagination/filters are respected
+        // Or add the new course to the current list if it matches filters
+        // For simplicity, we'll just add it to the current view if not paginated
+        // A full re-fetch might be better in a real app to ensure consistency
         state.courses.push(action.payload)
         state.error = null
       })
@@ -192,5 +228,5 @@ const coursesSlice = createSlice({
   },
 })
 
-export const { setCourses, selectCourse, clearSelectedCourse, clearError } = coursesSlice.actions
+export const { setCourses, selectCourse, clearSelectedCourse, clearError, setPage, setPageSize, setFilter, clearFilters } = coursesSlice.actions
 export default coursesSlice.reducer

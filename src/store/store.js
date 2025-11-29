@@ -9,6 +9,7 @@ import auditoiresReducer from "./slices/auditoiresSlice"
 import paymentsReducer from "./slices/paymentsSlice"
 import libraryReducer from "./slices/librarySlice"
 import apparitoratReducer from "./slices/apparitoratSlice" // Import the new reducer
+import usersReducer from "./slices/usersSlice" // Import the new users reducer
 
 export const store = configureStore({
   reducer: {
@@ -22,5 +23,6 @@ export const store = configureStore({
     payments: paymentsReducer,
     library: libraryReducer,
     apparitorat: apparitoratReducer, // Add the new reducer
+    users: usersReducer, // Add the new users reducer
   },
 })

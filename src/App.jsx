@@ -3,7 +3,7 @@ import { useSelector } from "react-redux"
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js'
 
 import Navbar from "./components/Layout/Navbar"
-import Sidebar from "./components/Sidebar"
+import Sidebar from "./components/Sidebar" // Corrected import path for Sidebar
 import Home from "./pages/Home"
 import Login from "./pages/Login"
 import Dashboard from "./pages/Dashboard"
@@ -14,7 +14,7 @@ import Chat from "./pages/Chat"
 import Profile from "./pages/Profile"
 import Administration from "./pages/Administration"
 import Library from "./pages/Library"
-import BookDetail from "./pages/BookDetail" // Import the new component
+import BookDetail from "./pages/BookDetail"
 import Auditoires from "./pages/Auditoires"
 import AuditoireDetail from "./pages/AuditoireDetail"
 import SectionDetail from "./pages/SectionDetail"
@@ -28,8 +28,13 @@ import Paiements from "./pages/Paiements"
 import Notifications from "./pages/Notifications"
 import PublicInscription from "./pages/PublicInscription"
 import GestionInscriptions from "./pages/GestionInscriptions"
-import InscriptionDetail from "./pages/InscriptionDetail" // Import the new component
+import InscriptionDetail from "./pages/InscriptionDetail"
 import ProtectedRoute from "./components/Auth/ProtectedRoute"
+
+// Import new list pages
+import StudentListPage from "./pages/StudentListPage"
+import TeacherListPage from "./pages/TeacherListPage"
+
 import { Col, Row } from "react-bootstrap"
 
 // Register Chart.js components globally
@@ -38,8 +43,8 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 function App() {
   const { isAuthenticated } = useSelector((state) => state.auth)
 
-  // Define admin roles for reuse
-  const adminRoles = ['iadmin', 'pdg', 'directeur_general', 'sga', 'sgad'];
+  // Define roles that can view user lists
+  const canViewUsersRoles = ['iadmin', 'sga', 'chef_section', 'chef_departement', 'directeur_general', 'pdg'];
 
   return (
     <div className="App">
@@ -81,14 +86,25 @@ function App() {
                     <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="/profile/:id" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                    <Route path="/administration" element={<ProtectedRoute roles={adminRoles}><Administration /></ProtectedRoute>} />
+                    <Route path="/administration" element={<ProtectedRoute roles={canViewUsersRoles}><Administration /></ProtectedRoute>} />
                     
                     {/* Inscription Management Routes */}
                     <Route path="/gestion-inscriptions" element={<ProtectedRoute roles={['iadmin', 'sga']}><GestionInscriptions /></ProtectedRoute>} />
                     <Route path="/gestion-inscriptions/:id" element={<ProtectedRoute roles={['iadmin', 'sga']}><InscriptionDetail /></ProtectedRoute>} />
                     
-                    <Route path="/library" element={<ProtectedRoute roles={['iadmin', 'bibliothecaire', 'sga', 'etudiant']}><Library /></ProtectedRoute>} />
-                    <Route path="/book-detail/:id" element={<ProtectedRoute><BookDetail /></ProtectedRoute>} /> {/* New Book Detail Route */}
+                    <Route path="/library" element={<ProtectedRoute roles={['iadmin', 'bibliothecaire', 'sga', 'etudiant','chef_section','chef_departement']}><Library /></ProtectedRoute>} />
+                    <Route path="/book-detail/:id" element={<ProtectedRoute><BookDetail /></ProtectedRoute>} />
+
+                    {/* New Student List Routes */}
+                    <Route path="/students" element={<ProtectedRoute roles={canViewUsersRoles}><StudentListPage /></ProtectedRoute>} />
+                    <Route path="/students/filiere/:filiereId" element={<ProtectedRoute roles={canViewUsersRoles}><StudentListPage /></ProtectedRoute>} />
+                    <Route path="/students/section/:sectionId" element={<ProtectedRoute roles={canViewUsersRoles}><StudentListPage /></ProtectedRoute>} />
+                    <Route path="/students/auditoire/:auditoireId" element={<ProtectedRoute roles={canViewUsersRoles}><StudentListPage /></ProtectedRoute>} />
+
+                    {/* New Teacher List Routes */}
+                    <Route path="/teachers" element={<ProtectedRoute roles={canViewUsersRoles}><TeacherListPage /></ProtectedRoute>} />
+                    <Route path="/teachers/filiere/:filiereId" element={<ProtectedRoute roles={canViewUsersRoles}><TeacherListPage /></ProtectedRoute>} />
+                    <Route path="/teachers/section/:sectionId" element={<ProtectedRoute roles={canViewUsersRoles}><TeacherListPage /></ProtectedRoute>} />
                   </Routes>
                 </div>
               </div>

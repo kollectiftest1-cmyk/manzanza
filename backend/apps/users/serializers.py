@@ -19,6 +19,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     auditoire_details = serializers.SerializerMethodField()
     courses = serializers.SerializerMethodField()
     
+    # Explicitly add section_id and section_name
+    section_id = serializers.PrimaryKeyRelatedField(source='section', read_only=True)
+    section_name = serializers.CharField(source='section.nom', read_only=True, allow_null=True)
+    filiere_name = serializers.CharField(source='filiere.nom', read_only=True, allow_null=True) # Add filiere_name
+
     # --- Student Stats ---
     student_stats = serializers.SerializerMethodField()
 
@@ -29,7 +34,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'name', 'phone', 'role', 'status', 
-            'matricule', 'auditoire', 'auditoire_details', 'section', 'filiere', 
+            'matricule', 'auditoire', 'auditoire_details', 
+            'section', 'section_id', 'section_name', # Include both the object and the ID/name
+            'filiere', 'filiere_name', # Include filiere object and name
             'is_active', 'date_joined', 'courses',
             'student_stats', 'teacher_stats'
         ]
@@ -121,6 +128,23 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'auditoire_id', 'section_id', 'filiere_id'
         ]
 
+    def validate(self, data):
+        role = data.get('role')
+        filiere_id = data.get('filiere_id')
+
+        if role == 'chef_departement' and not filiere_id:
+            raise serializers.ValidationError(
+                {"filiere_id": "Un chef de département doit être affecté à une filière."}
+            )
+        if filiere_id:
+            try:
+                Filiere.objects.get(id=filiere_id)
+            except Filiere.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"filiere_id": "La filière spécifiée n'existe pas."}
+                )
+        return data
+
     def create(self, validated_data):
         auditoire_id = validated_data.pop('auditoire_id', None)
         section_id = validated_data.pop('section_id', None)
@@ -155,6 +179,26 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'matricule', 'auditoire_id', 'section_id', 'filiere_id'
         ]
         read_only_fields = ['email', 'role']
+
+    def validate(self, data):
+        role = data.get('role', self.instance.role) # Use existing role if not provided
+        filiere_id = data.get('filiere_id')
+
+        if role == 'chef_departement':
+            # If filiere_id is explicitly set to null, or not provided and was null before
+            if filiere_id is None and self.instance.filiere is None:
+                raise serializers.ValidationError(
+                    {"filiere_id": "Un chef de département doit être affecté à une filière."}
+                )
+            # If filiere_id is provided, validate it
+            if filiere_id is not None:
+                try:
+                    Filiere.objects.get(id=filiere_id)
+                except Filiere.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {"filiere_id": "La filière spécifiée n'existe pas."}
+                    )
+        return data
 
     def update(self, instance, validated_data):
         auditoire_id = validated_data.pop('auditoire_id', None)

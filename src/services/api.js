@@ -96,6 +96,8 @@ export const usersAPI = {
   update: (id, data) => api.put(`/users/${id}/`, data),
   delete: (id) => api.delete(`/users/${id}/`),
   getByRole: (role) => api.get('/users/by_role/', { params: { role } }),
+  getStudents: (params) => api.get('/students/', { params }), // New endpoint for students
+  getTeachers: (params) => api.get('/teachers/', { params }), // New endpoint for teachers
 };
 
 // ============================================

@@ -67,10 +67,16 @@ class CourseSerializer(serializers.ModelSerializer):
 
 class CourseDetailSerializer(CourseSerializer):
     """Detailed Course Serializer with enrollments"""
-    from apps.users.serializers import UserSerializer
+    # Removed the problematic module-level import: from apps.users.serializers import UserSerializer
 
     enrollments = CourseEnrollmentSerializer(many=True, read_only=True)
-    titulaire = UserSerializer(read_only=True)
+    # Use SerializerMethodField for titulaire to handle circular import
+    titulaire = serializers.SerializerMethodField()
 
     class Meta(CourseSerializer.Meta):
         fields = CourseSerializer.Meta.fields + ['enrollments']
+
+    def get_titulaire(self, obj):
+        # Import UserSerializer locally within the method to break the circular dependency
+        from apps.users.serializers import UserSerializer
+        return UserSerializer(obj.titulaire).data

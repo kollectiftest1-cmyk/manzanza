@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from django.db.models import Count, Q # Import Count and Q
 from .models import Auditoire, Section, Filiere
 from .serializers import (
     AuditoireSerializer, SectionSerializer, FiliereSerializer,
@@ -69,7 +70,11 @@ class AuditoireViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Auditoire model
     """
-    queryset = Auditoire.objects.select_related('filiere__section', 'filiere').all()
+    queryset = Auditoire.objects.select_related('filiere__section', 'filiere').annotate(
+        # Renamed annotations to avoid conflict with model properties
+        etudiants_count=Count('students', filter=Q(students__status='actif')),
+        cours_count=Count('courses', filter=Q(courses__is_active=True))
+    ).all().order_by('-created_at') # Added ordering for consistency, can be adjusted
     serializer_class = AuditoireSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

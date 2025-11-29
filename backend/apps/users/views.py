@@ -132,6 +132,9 @@ class LoginView(generics.GenericAPIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
+        # Re-fetch the user with related fields to ensure they are loaded for the serializer
+        user = User.objects.select_related('auditoire', 'section', 'filiere').get(pk=user.pk)
+
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
 
@@ -154,6 +157,44 @@ class LogoutView(generics.GenericAPIView):
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-            return Response({'detail': 'Déconnexion réussie.'})
+            return Response({'detail': 'Déconnexion réussie.'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StudentListView(generics.ListAPIView):
+    """
+    API view to list students with filtering options.
+    Filters: auditoire, filiere (via auditoire), section (via auditoire)
+    """
+    queryset = User.objects.select_related('auditoire', 'filiere', 'section').filter(role='etudiant').order_by('last_name', 'first_name')
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, CanViewUsers]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    # Corrected filterset_fields for students
+    filterset_fields = ['auditoire', 'auditoire__filiere', 'auditoire__filiere__section']
+    search_fields = ['first_name', 'last_name', 'email', 'matricule']
+    ordering_fields = ['last_name', 'first_name', 'matricule']
+
+
+class TeacherListView(generics.ListAPIView):
+    """
+    API view to list teachers and assistants with filtering options.
+    Filters: filiere (via courses taught), section (via courses taught)
+    """
+    # Select related for efficiency and distinct to avoid duplicates if a teacher teaches multiple courses in the same filiere/section
+    queryset = User.objects.select_related('filiere', 'section').filter(role__in=['enseignant', 'assistant']).order_by('last_name', 'first_name').distinct()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, CanViewUsers]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    # Updated filterset_fields to filter by filiere/section of courses taught
+    filterset_fields = [
+        'filiere', # Keep direct filiere filter for primary affiliation if needed
+        'section', # Keep direct section filter for primary affiliation if needed
+        'courses_held__auditoire__filiere', # Filter by filiere of courses taught
+        'courses_held__auditoire__filiere__section', # Filter by section of courses taught
+    ]
+    search_fields = ['first_name', 'last_name', 'email']
+    ordering_fields = ['last_name', 'first_name']

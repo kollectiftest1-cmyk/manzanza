@@ -80,32 +80,32 @@ class IsCaisseOrAdmin(permissions.BasePermission):
 
 class CanViewUsers(permissions.BasePermission):
     """
-    Permission to allow specific roles (iadmin, sga, chef_section) to view users.
+    Permission to allow specific roles (iadmin, sga, chef_section, chef_departement) to view users.
     """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section'])
+                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement'])
         return False
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section'])
+                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement'])
         return False
 
 class CanViewAcademicData(permissions.BasePermission):
     """
-    Permission to allow specific roles (iadmin, sga, chef_section) to view academic data (sections, filieres).
+    Permission to allow specific roles (iadmin, sga, chef_section, chef_departement) to view academic data (sections, filieres, auditoires).
     """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section'])
+                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement'])
         return False
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section'])
+                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement'])
         return False
