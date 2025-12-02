@@ -114,8 +114,9 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         elif user.role == 'etudiant':
             logger.info("Filtering for etudiant.")
-            enrolled_courses_ids = CourseEnrollment.objects.filter(student=user, is_active=True).values_list('course_id', flat=True)
-            return queryset.filter(id__in=enrolled_courses_ids)
+            if user.auditoire:
+                return queryset.filter(auditoires=user.auditoire)
+            return queryset.none()
 
         logger.warning(f"No matching role filter for user {user.email}, returning empty queryset.")
         return queryset.none()

@@ -161,7 +161,19 @@ const Administration = () => {
                       <td>{user.name}</td>
                       <td>{user.email}</td>
                       <td><Badge bg="info">{user.role_display}</Badge></td>
-                      <td>{user.auditoire_name || user.section_name || user.filiere_name || 'N/A'}</td>
+                      <td>
+                        {user.auditoire_name && (
+                          <div>
+                            <span className="fw-bold">{user.auditoire_name}</span>
+                            {user.filiere && user.section && (
+                              <div className="text-muted small">
+                                {user.section.nom} / {user.filiere.nom}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {!user.auditoire_name && (user.section?.nom || user.filiere?.nom || 'N/A')}
+                      </td>
                       <td>
                         <Button as={Link} to={`/profile/${user.id}`} variant="outline-primary" size="sm" className="me-2">
                           <i className="fas fa-eye me-1"></i>Voir

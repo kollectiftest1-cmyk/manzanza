@@ -13,7 +13,9 @@ const StudentListPage = () => {
 
   const params = useParams(); // Get parameters from the route path (e.g., /students/filiere/:filiereId)
   const location = useLocation(); // Get query parameters (e.g., /students?auditoire=1)
-
+  const studentForFiliere= studentList.filter(stu=>stu?.filiere?.id==params.filiereId);
+  const studentForSection= studentList.filter(stu=>stu?.section?.id==params.sectionId);
+  // console.log('studentForFiliere',studentForFiliere);
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const filters = {};
@@ -98,8 +100,8 @@ const StudentListPage = () => {
                         <td>{student.email}</td>
                         <td>{student.matricule || 'N/A'}</td>
                         <td>{student.auditoire_name || 'N/A'}</td>
-                        <td>{student.filiere_name || 'N/A'}</td>
-                        <td>{student.section_name || 'N/A'}</td>
+                        <td>{student?.filiere?.nom || 'N/A'}</td>
+                        <td>{student?.section?.nom || 'N/A'}</td>
                         <td>{student.status}</td>
                       </tr>
                     ))}

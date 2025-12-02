@@ -11,6 +11,7 @@ const TeacherListPage = () => {
 
   const params = useParams(); // Get parameters from the route path (e.g., /teachers/filiere/:filiereId)
   const location = useLocation(); // Get query parameters (e.g., /teachers?section=1)
+console.log('teachr ',teachers);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
@@ -72,30 +73,32 @@ const TeacherListPage = () => {
                 <Alert variant="info">Aucun enseignant ou assistant trouvé avec les filtres appliqués.</Alert>
               ) : (
                 <Table responsive hover striped bordered>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nom</th>
-                      <th>Prénom</th>
-                      <th>Email</th>
-                      <th>Rôle</th>
-                      <th>Filière</th>
-                      <th>Section</th>
-                    </tr>
-                  </thead>
                   <tbody>
-                    {teacherList.map((teacher) => (
-                      <tr key={teacher.id}>
-                        <td>{teacher.id}</td>
-                        <td>{teacher.last_name}</td>
-                        <td>{teacher.first_name}</td>
-                        <td>{teacher.email}</td>
-                        <td>{teacher.role}</td>
-                        <td>{teacher.filiere_name || 'N/A'}</td>
-                        <td>{teacher.section_name || 'N/A'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
+                      {teacherList.map((teacher) => (
+                        <tr key={teacher.id}>
+                          <td>{teacher.id}</td>
+                          <td>{teacher.last_name}</td>
+                          <td>{teacher.first_name}</td>
+                          <td>{teacher.email}</td>
+                          <td>{teacher.role}</td>
+
+                          {/* FILIERES */}
+                          <td>
+                            {teacher.filieres && teacher.filieres.length > 0
+                              ? teacher.filieres.map((f) => f.nom).join(", ")
+                              : "N/A"}
+                          </td>
+
+                          {/* SECTIONS */}
+                          <td>
+                            {teacher.sections && teacher.sections.length > 0
+                              ? teacher.sections.map((s) => s.nom).join(", ")
+                              : "N/A"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+
                 </Table>
               )}
             </Card.Body>

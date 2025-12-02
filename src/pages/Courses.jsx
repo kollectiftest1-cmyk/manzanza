@@ -48,12 +48,11 @@ const Courses = () => {
     credits: 3,
     description: "",
     titulaire: "",
-    auditoire: ""
+    auditoire_ids: []
   });
 
   // Dropdown options
   const [auditoireOptions, setAuditoireOptions] = useState([]);
-  const [filteredAuditoires, setFilteredAuditoires] = useState([]);
   const [teacherOptions, setTeacherOptions] = useState([]);
   const [sectionOptions, setSectionOptions] = useState([]);
   const [filiereOptions, setFiliereOptions] = useState([]);
@@ -121,30 +120,9 @@ const Courses = () => {
     loadCourses();
   }, [loadCourses]);
 
-  // Modal: load auditoires & teachers
+  // Modal: load teachers
   useEffect(() => {
     if (canCreateCourses()) {
-      getAuditoires().then((res) => {
-        const all = res.data.results || res.data;
-        setAuditoireOptions(all);
-
-        if (user?.role === "chef_section") {
-          const filtered = all.filter(
-            (a) => a.section === user.section_id
-          );
-          setFilteredAuditoires(filtered);
-
-          if (filtered.length === 1) {
-            setCourseData((prev) => ({
-              ...prev,
-              auditoire: filtered[0].id
-            }));
-          }
-        } else {
-          setFilteredAuditoires(all);
-        }
-      });
-
       getUsers({ role: "enseignant" }).then((res) => {
         setTeacherOptions(res.data.results || res.data);
       });
@@ -160,10 +138,7 @@ const Courses = () => {
       credits: 3,
       description: "",
       titulaire: "",
-      auditoire:
-        user?.role === "chef_section" && filteredAuditoires.length > 0
-          ? filteredAuditoires[0].id
-          : ""
+      auditoire_ids: []
     });
 
     setShowCourseModal(true);
@@ -178,7 +153,7 @@ const Courses = () => {
       credits: course.credits,
       description: course.description,
       titulaire: course.titulaire,
-      auditoire: course.auditoire
+      auditoire_ids: course.auditoire.map(a => a.id)
     });
 
     setShowCourseModal(true);
@@ -243,14 +218,11 @@ const Courses = () => {
                 }
               >
                 <option value="">Toutes</option>
-                {sectionOptions.map((o) => {
-                  console.log('dd',o);
-                  
-                  return( 
+                {sectionOptions.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.nom}
                   </option>
-                )})}
+                ))}
               </Form.Select>
             </Form.Group>
           </Col>}
@@ -401,7 +373,11 @@ const Courses = () => {
 
               <div className="text-muted small">
                 <i className="fas fa-university me-2"></i>
-                {course.auditoire_name}
+                {course.section && course.section.map(s => s.nom).join(', ')}
+              </div>
+              <div className="text-muted small">
+                <i className="fas fa-graduation-cap me-2"></i>
+                {course.filiere && course.filiere.map(f => f.nom).join(', ')}
               </div>
             </div>
           </Col>
@@ -460,27 +436,43 @@ const Courses = () => {
             </Form.Group>
 
             <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Auditoires</Form.Label>
+                  <Form.Control
+                    as="select"
+                    multiple
+                    value={courseData.auditoire_ids}
+                    onChange={(e) => setCourseData({...courseData, auditoire_ids: [...e.target.options].filter(o => o.selected).map(o => o.value)})}
+                  >
+                    {auditoireOptions.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.nom}
+                      </option>
+                    ))}
+                  </Form.Control>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
               <Col md={8}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Auditoire</Form.Label>
+                  <Form.Label>Enseignant titulaire</Form.Label>
                   <Form.Select
-                    value={courseData.auditoire}
+                    value={courseData.titulaire}
                     onChange={(e) =>
                       setCourseData({
                         ...courseData,
-                        auditoire: e.target.value
+                        titulaire: e.target.value
                       })
-                    }
-                    disabled={
-                      user?.role === "chef_section" &&
-                      filteredAuditoires.length === 1
                     }
                     required
                   >
                     <option value="">Choisir...</option>
-                    {filteredAuditoires.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.nom}
+                    {teacherOptions.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
                       </option>
                     ))}
                   </Form.Select>
@@ -505,27 +497,6 @@ const Courses = () => {
                 </Form.Group>
               </Col>
             </Row>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Enseignant titulaire</Form.Label>
-              <Form.Select
-                value={courseData.titulaire}
-                onChange={(e) =>
-                  setCourseData({
-                    ...courseData,
-                    titulaire: e.target.value
-                  })
-                }
-                required
-              >
-                <option value="">Choisir...</option>
-                {teacherOptions.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
 
             <Form.Group>
               <Form.Label>Description</Form.Label>

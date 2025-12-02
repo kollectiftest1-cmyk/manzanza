@@ -1,32 +1,22 @@
 import { Container, Row, Col, Card, Button, Badge, ListGroup, Table } from "react-bootstrap"
 import { LinkContainer } from "react-router-bootstrap"
-import { useEffect } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import { fetchAssignments } from "../../store/slices/assignmentsSlice"
-import { fetchAuditoires } from "../../store/slices/auditoiresSlice"
 
-const EnseignantDashboard = ({ user, courses, notifications }) => {
-  const dispatch = useDispatch()
-  const { assignments } = useSelector((state) => state.assignments)
-  const { auditoires } = useSelector((state) => state.auditoires)
+const EnseignantDashboard = ({ user, notifications }) => {
+  // All data now comes directly from the user object
+  const myCourses = user?.courses || []
+  const teacherStats = user?.teacher_stats || {}
+  const myAssignments = user?.assignments || [] // Assuming assignments might be added to user object
 
-  useEffect(() => {
-    dispatch(fetchAssignments())
-    dispatch(fetchAuditoires())
-  }, [dispatch])
-
-  const myCourses = courses.filter((course) => course.created_by === user?.id || course.teacher === user?.id)
-  const myAssignments = (assignments || []).filter(a => a.created_by === user?.id)
   const pendingGrades = myAssignments.filter(a => a.status === 'published').length
-  const totalStudents = myCourses.reduce((acc, course) => acc + (course.enrolled_students || 0), 0)
+  const totalStudents = teacherStats.total_students_managed || 0
+  const coursesTaughtCount = teacherStats.courses_taught_count || myCourses.length
 
-  // Get auditoires where this teacher teaches
-  const myAuditoires = (auditoires || []).filter(aud =>
-    myCourses.some(course => course.auditoire === aud.id)
-  )
+  // Extract sections and filieres from the user object
+  const sections = user?.sections?.map(s => s.nom).join(', ') || "N/A"
+  const filieres = user?.filieres?.map(f => f.nom).join(', ') || "N/A"
 
   return (
-    <Container className="py-0" style={{  }}>
+    <Container className="py-0">
       <Row className="mb-4">
         <Col>
           <div className="dashboard-card">
@@ -34,7 +24,7 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
               <Col md={8}>
                 <h1 className="h2 fw-bold mb-2">Espace Enseignant - {user?.name}</h1>
                 <p className="text-muted mb-3">
-                  Département: {user?.department} | Spécialité: {user?.specialty}
+                  Sections: {sections} | Filières: {filieres}
                 </p>
                 <div className="d-flex gap-2 flex-wrap">
                   <LinkContainer to="/courses">
@@ -59,41 +49,37 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
         </Col>
       </Row>
 
-      {/* <Row> */}
-        {/* <Col lg={12}> */}
-          {/* Teacher Stats */}
-          <Row className="mb-4">
-            <Col md={3}>
-              <div className="stat-card">
-                <div className="stat-number">{myCourses.length}</div>
-                <div className="stat-label">Cours Enseignés</div>
-              </div>
-            </Col>
-            <Col md={3}>
-              <div className="stat-card">
-                <div className="stat-number">{totalStudents}</div>
-                <div className="stat-label">Étudiants</div>
-              </div>
-            </Col>
-            <Col md={3}>
-              <div className="stat-card">
-                <div className="stat-number">{pendingGrades}</div>
-                <div className="stat-label">Notes à Saisir</div>
-              </div>
-            </Col>
-            <Col md={3}>
-              <div className="stat-card">
-                <div className="stat-number">{myAssignments.length}</div>
-                <div className="stat-label">TP/TD Créés</div>
-              </div>
-            </Col>
-          </Row>
+      {/* Teacher Stats */}
+      <Row className="mb-4">
+        <Col md={3}>
+          <div className="stat-card">
+            <div className="stat-number">{coursesTaughtCount}</div>
+            <div className="stat-label">Cours Enseignés</div>
+          </div>
+        </Col>
+        <Col md={3}>
+          <div className="stat-card">
+            <div className="stat-number">{totalStudents}</div>
+            <div className="stat-label">Étudiants</div>
+          </div>
+        </Col>
+        <Col md={3}>
+          <div className="stat-card">
+            <div className="stat-number">{pendingGrades}</div>
+            <div className="stat-label">Notes à Saisir</div>
+          </div>
+        </Col>
+        <Col md={3}>
+          <div className="stat-card">
+            <div className="stat-number">{myAssignments.length}</div>
+            <div className="stat-label">TP/TD Créés</div>
+          </div>
+        </Col>
+      </Row>
 
-          {/* </Col> */}
-          {/* </Row> */}
-          {/* My Courses */}
-          <Row>
-            <Col lg={12}>
+      {/* My Courses */}
+      <Row>
+        <Col lg={12}>
           <Card className="card-custom mb-4">
             <Card.Header>
               <h5 className="fw-bold mb-0">Mes Cours</h5>
@@ -105,7 +91,7 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
                     <th>Cours</th>
                     <th>Auditoire</th>
                     <th>Étudiants</th>
-                    <th>Prochaine Séance</th>
+                    <th>Crédits</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -116,12 +102,14 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
                         <div className="fw-semibold">{course.name}</div>
                         <small className="text-muted">{course.code}</small>
                       </td>
-                      <td>{course.auditoire}</td>
                       <td>
-                        <Badge bg="info">{course.enrolledStudents || 0}</Badge>
+                        {course.auditoire?.map(a => a.nom).join(', ')}
                       </td>
                       <td>
-                        <small>{course.nextSession || "À programmer"}</small>
+                        <Badge bg="info">{course.students_count || 0}</Badge>
+                      </td>
+                      <td>
+                        <Badge bg="secondary">{course.credits}</Badge>
                       </td>
                       <td>
                         <LinkContainer to={`/courses/${course.id}`}>
@@ -137,9 +125,9 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
             </Card.Body>
           </Card>
         </Col>
-        </Row>
+      </Row>
 
-        <Row>
+      <Row>
         <Col lg={6}>
           {/* Quick Actions */}
           <Card className="card-custom mb-4">
@@ -179,8 +167,8 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
               </ListGroup>
             </Card.Body>
           </Card>
-          </Col>
-          <Col>
+        </Col>
+        <Col lg={6}>
           {/* Pending Tasks */}
           <Card className="card-custom">
             <Card.Header>
@@ -193,11 +181,11 @@ const EnseignantDashboard = ({ user, courses, notifications }) => {
               </div>
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span>TP/TD à corriger</span>
-                <Badge bg="info">8</Badge>
+                <Badge bg="info">0</Badge> 
               </div>
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span>Messages non lus</span>
-                <Badge bg="primary">5</Badge>
+                <Badge bg="primary">{notifications?.unread_count || 0}</Badge>
               </div>
             </Card.Body>
           </Card>

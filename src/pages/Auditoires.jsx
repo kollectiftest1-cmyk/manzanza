@@ -39,7 +39,8 @@ const Auditoires = () => {
   const canManageSection = ['sga', 'iadmin'].includes(user?.role)
   const canManageFiliere = ['sga', 'iadmin','chef_section'].includes(user?.role)
   const canManageAuditoir = ['sga', 'iadmin','chef_section',"chef_departement"].includes(user?.role)
-  
+  const isSectionRole = ['chef_section'].includes(user?.role)
+  const isDepartementRole = ['chef_departement'].includes(user?.role)
   // More granular permission checks for fetching user lists
   const canFetchChefSection = ['sga', 'iadmin','chef_section'].includes(user?.role)
   const canFetchChefDepartement = ['sga', 'iadmin','chef_section'].includes(user?.role)
@@ -66,10 +67,6 @@ const Auditoires = () => {
         }
       }));
 
-      // Chef de section needs to see sections to create auditoires and manage filieres.
-      // If this still results in a 403 for
-      // chef_section, the backend permissions for
-      // reading /api/auditoires/sections/ need to be adjusted for the chef_section role.
       if (canManageFiliere || canManageAuditoir) {
         promises.push(getSections().then(res => setSections(res.data.results || res.data)).catch(err => {
           if (err.response && err.response.status === 403 && user?.role === 'chef_section') {
@@ -243,6 +240,9 @@ const Auditoires = () => {
     setShowFiliereModal(true);
   };
 
+  console.log(auditoires);
+  
+
   return (
     <Container fluid className="py-0">
       <Row className="mb-4 dashboard-card">
@@ -262,7 +262,7 @@ const Auditoires = () => {
         <>
           {canManageAuditoir && <Button variant="primary" onClick={() => setShowAuditoireModal(true)} className="mb-3 shadow-sm"><i className="fas fa-plus me-2"></i>Créer un Auditoire</Button>}
           <Row>
-            {(auditoires?.results || auditoires || []).map((auditoire) => (
+            {!isDepartementRole && !isSectionRole && (auditoires?.results || auditoires || []).map((auditoire) => (
               <Col md={6} lg={4} key={auditoire.id} className="mb-4">
                 <Card className="h-100 shadow-sm border-0 hover-card">
                   <Card.Body>
@@ -278,6 +278,48 @@ const Auditoires = () => {
                 </Card>
               </Col>
             ))}
+{(isDepartementRole || isSectionRole) && (
+  (auditoires?.results || auditoires || [])
+    .filter(aud => {
+
+      // Si user = rôle département → filtrer par departement
+      if (isDepartementRole) {
+        return aud.filiere === user.filiere;
+      }
+
+      // Si user = rôle section → filtrer par section
+      if (isSectionRole) {
+        return aud.section_id === user.section_id;
+      }
+
+      return false;
+    })
+    .map((auditoire) => (
+      <Col md={6} lg={4} key={auditoire.id} className="mb-4">
+        <Card className="h-100 shadow-sm border-0 hover-card">
+          <Card.Body>
+            <h5 className="text-primary">{auditoire.nom}</h5>
+            <div>
+              <Badge bg="info" className="me-2">{auditoire.niveau}</Badge>
+              <Badge bg="warning" className="me-2 text-capitalize">{auditoire.vacation_display}</Badge>
+              <Badge bg="secondary" className="me-2">{auditoire.section_name}</Badge>
+              <Badge bg="success">{auditoire.filiere_name}</Badge>
+            </div>
+          </Card.Body>
+
+          <Card.Footer className="bg-light">
+            <Link
+              to={`/auditoires/${auditoire.id}`}
+              className="btn btn-outline-primary w-100"
+            >
+              Voir Détails
+            </Link>
+          </Card.Footer>
+        </Card>
+      </Col>
+    ))
+)}
+
           </Row>
         </>
       )}

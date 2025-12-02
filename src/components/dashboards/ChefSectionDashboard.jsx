@@ -16,6 +16,9 @@ const ChefSectionDashboard = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  console.log("ddd",coursSection);
+  
+
   useEffect(() => {
     // Use user?.section for the ID, as per the provided user object structure
     if (!user || !user.section) { 
@@ -34,7 +37,8 @@ const ChefSectionDashboard = () => {
         // Fetch Auditoires count for the section
         const auditoiresRes = await auditoiresAPI.getAll({ filiere__section: sectionId, is_active: true, page_size: 1 })
         const auditoiresCount = auditoiresRes.data.count || 0
-
+        console.log('auditoiresRes',auditoiresRes);
+        
         // Fetch Courses for the section
         const coursesRes = await coursesAPI.getAll({ auditoire__filiere__section: sectionId, is_active: true, page_size: 100 }) // Fetch more if needed
         const activeCoursesCount = coursesRes.data.count || 0
@@ -49,13 +53,25 @@ const ChefSectionDashboard = () => {
         // Fetch students in the section's auditoires
         let totalStudentsCount = 0;
         // We need to fetch all auditoires for the section to get their student counts
-        const allAuditoiresRes = await auditoiresAPI.getAll({ filiere__section: sectionId, is_active: true, page_size: 100 }); // Fetch all auditoires
-        if (allAuditoiresRes.data.results) {
-            for (const auditoire of allAuditoiresRes.data.results) {
-                const studentsInAuditoireRes = await auditoiresAPI.getStudents(auditoire.id);
-                totalStudentsCount += studentsInAuditoireRes.data.count || studentsInAuditoireRes.data.length || 0;
-            }
+        // const allAuditoiresRes = await auditoiresAPI.getAll({ filiere__section: sectionId, is_active: true, page_size: 100 }); // Fetch all auditoires
+        // console.log('student ll',allAuditoiresRes);
+        if (auditoiresCount > 0) {
+          const allAuditoiresRes = await auditoiresAPI.getAll({ filiere__section: sectionId, is_active: true, page_size: auditoiresCount });
+          for (const auditoire of allAuditoiresRes.data.results) {
+              const studentsInAuditoireRes = await auditoiresAPI.getStudents(auditoire.id);
+              console.log('student ll',studentsInAuditoireRes);
+              
+              totalStudentsCount += studentsInAuditoireRes.data.count || studentsInAuditoireRes.data.length || 0;
+          }
         }
+        // if (auditoiresRes.data.results || allAuditoiresRes.data.length) {
+        //     for (const auditoire of allAuditoiresRes.data.results) {
+        //         const studentsInAuditoireRes = await auditoiresAPI.getStudents(auditoire.id);
+        //         console.log('student ll',studentsInAuditoireRes);
+                
+        //         totalStudentsCount += studentsInAuditoireRes.data.count || studentsInAuditoireRes.data.length || 0;
+        //     }
+        // }
         
         const teachersCount = teacherIds.size;
 

@@ -85,13 +85,13 @@ class CanViewUsers(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement'])
+                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement', 'enseignant'])
         return False
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement'])
+                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement', 'enseignant'])
         return False
 
 class CanViewAcademicData(permissions.BasePermission):
@@ -101,11 +101,11 @@ class CanViewAcademicData(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement'])
+                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement', 'enseignant'])
         return False
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement'])
+                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement', 'enseignant'])
         return False

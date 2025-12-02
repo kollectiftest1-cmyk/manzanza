@@ -44,28 +44,28 @@ const Sidebar = () => {
     {
       title: "Ma Section",
       roles: ["chef_section"],
-      condition: user?.section_id, // Only render if user is chef_section and has a section
+      condition: user?.section, // Only render if user is chef_section and has a section
       items: [
-        { path: `/auditoires?section=${user?.section?.id}`, icon: "fa-school", text: "Auditoires de ma section" },
-        { path: `/courses?section=${user?.section?.id}`, icon: "fa-book", text: "Cours de ma section" },
-        { path: `/students?section=${user?.section?.id}`, icon: "fa-user-graduate", text: "Étudiants de ma section" },
-        { path: `/teachers?section=${user?.section?.id}`, icon: "fa-chalkboard-teacher", text: "Enseignants de ma section" },
+        { path: `/auditoires?section=${user?.section}`, icon: "fa-school", text: "Auditoires de ma section" },
+        { path: `/courses?section=${user?.section}`, icon: "fa-book", text: "Cours de ma section" },
+        { path: `/students?section=${user?.section}`, icon: "fa-user-graduate", text: "Étudiants de ma section" },
+        { path: `/teachers?section=${user?.section}`, icon: "fa-chalkboard-teacher", text: "Enseignants de ma section" },
       ],
     },
-    {
-      title: "Mes Cours",
-      roles: teacherRoles,
-      items: [
-        { path: "/courses/my_courses", icon: "fa-book-open", text: "Mes Cours Enseignés" },
-        // Potentiellement ajouter des liens vers les étudiants de leurs cours si un endpoint est disponible
-      ],
-    },
+    // {
+    //   title: "Mes Cours",
+    //   roles: teacherRoles,
+    //   items: [
+    //     { path: "/courses/my_courses", icon: "fa-book-open", text: "Mes Cours Enseignés" },
+    //     // Potentiellement ajouter des liens vers les étudiants de leurs cours si un endpoint est disponible
+    //   ],
+    // },
     // Groupes généraux
     {
       title: "Académique",
-      roles: ["chef_section,", "chef_departement", "sga", "iadmin"],
+      roles: ["chef_section,", "chef_departement", "sga", "iadmin",'enseignant', 'assistant'],
       items: [
-        { path: "/auditoires", icon: "fa-school", text: "Gestion Auditoires", requiredRoles: academicManagementRoles },
+        { path: "/auditoires", icon: "fa-school", text: "Gestion Auditoires", requiredRoles: [...academicManagementRoles, ...teacherRoles], },
         { path: "/gestion-inscriptions", icon: "fa-user-plus", text: "Inscriptions", requiredRoles: ["sga", "iadmin"] },
         { path: "/tptd", icon: "fa-file-alt", text: "TP/TD", requiredRoles: ["etudiant", ...teacherRoles, "chef_section","chef_departement"] },
         { path: "/quiz", icon: "fa-question-circle", text: "Quiz", requiredRoles: ["etudiant", ...teacherRoles, "chef_section","chef_departement"] },

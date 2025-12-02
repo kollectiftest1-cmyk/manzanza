@@ -1,4 +1,5 @@
-import { useSelector } from "react-redux"
+import { useEffect } from "react"
+import { useSelector, useDispatch } from "react-redux"
 import EtudiantDashboard from "../components/dashboards/EtudiantDashboard"
 import EnseignantDashboard from "../components/dashboards/EnseignantDashboard"
 import SGADashboard from "../components/dashboards/SGADashboard"
@@ -13,11 +14,21 @@ import CaisseComptabiliteDashboard from "../components/dashboards/CaisseComptabi
 import JuryDashboard from "../components/dashboards/JuryDashboard"
 import IAdminDashboard from "../components/dashboards/IAdminDashboard"
 import { USER_ROLES } from "../store/slices/authSlice"
+import { fetchMyCourses, fetchCourses } from "../store/slices/coursesSlice"
 
 const Dashboard = () => {
+  const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
   const { courses } = useSelector((state) => state.courses)
   const { notifications } = useSelector((state) => state.notifications)
+
+  useEffect(() => {
+    if (user?.role === USER_ROLES.ETUDIANT) {
+      dispatch(fetchMyCourses())
+    } else if (user?.role) {
+      dispatch(fetchCourses())
+    }
+  }, [dispatch, user])
 
   const renderDashboard = () => {
     switch (user?.role) {
