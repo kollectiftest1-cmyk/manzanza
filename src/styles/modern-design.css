@@ -353,11 +353,70 @@ body {
   .hide-mobile {
     display: none !important;
   }
+
+  /* Home page responsive */
+  .hero-section {
+    padding-top: 80px !important;
+    padding-bottom: 40px !important;
+    min-height: auto !important;
+  }
+
+  .hero-section h1 {
+    font-size: 2rem !important;
+  }
+
+  .hero-section p {
+    font-size: 1rem !important;
+  }
+
+  .hero-section .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Login page responsive */
+  .login-container {
+    padding: 1rem !important;
+  }
+
+  .login-form {
+    padding: 1.5rem !important;
+  }
+
+  /* Cards responsive */
+  .modern-card {
+    padding: 1rem !important;
+  }
+
+  /* Stats responsive */
+  .stats-row {
+    flex-direction: column;
+  }
 }
 
 @media (min-width: 769px) {
   .show-mobile {
     display: none !important;
+  }
+}
+
+@media (max-width: 576px) {
+  /* Extra small devices */
+  .hero-section h1 {
+    font-size: 1.75rem !important;
+  }
+
+  .hero-section .btn {
+    font-size: 0.875rem !important;
+    padding: 0.5rem 1rem !important;
+  }
+
+  .modern-card {
+    padding: 0.75rem !important;
+  }
+
+  section {
+    padding: 40px 0 !important;
   }
 }
 

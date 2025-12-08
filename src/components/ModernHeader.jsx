@@ -4,7 +4,7 @@
  * Header professionnel avec search, notifications, et profil
  */
 
-import { useState } from "react"
+import { useState,useEffect } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -12,9 +12,10 @@ import { Dropdown, Badge, Form } from "react-bootstrap"
 import { logout } from "../store/slices/authSlice"
 import { markAllAsRead } from "../store/slices/notificationsSlice"
 import ThemeSwitcher from "./ThemeSwitcher"
+import UserAvatar from "./UserAvatar"
 import {
   FiSearch, FiBell, FiUser, FiMail, FiCalendar,
-  FiSettings, FiLogOut, FiChevronDown
+  FiSettings, FiLogOut, FiChevronDown, FiMenu
 } from "react-icons/fi"
 
 const ModernHeader = () => {
@@ -24,6 +25,33 @@ const ModernHeader = () => {
   const [searchFocused, setSearchFocused] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showSearchModal, setShowSearchModal] = useState(false)
+
+  // Gérer Ctrl+K pour ouvrir la recherche
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowSearchModal(true)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+    const sidebar = document.querySelector('.modern-sidebar')
+    const overlay = document.querySelector('.sidebar-overlay-backdrop')
+    if (sidebar) {
+      sidebar.classList.toggle('show')
+    }
+    if (overlay) {
+      overlay.classList.toggle('show')
+    }
+  }
 
   const handleLogout = () => {
     dispatch(logout())
@@ -182,7 +210,7 @@ const ModernHeader = () => {
             border-color: var(--color-primary);
           }
 
-          .user-avatar {
+          .user-avatar-header {
             width: 36px;
             height: 36px;
             border-radius: 8px;
@@ -309,6 +337,10 @@ const ModernHeader = () => {
         <div className="header-content">
           {/* Left Section */}
           <div className="header-left">
+            {/* Mobile Menu Toggle */}
+            <button className="menu-toggle-btn" onClick={toggleSidebar}>
+              <FiMenu size={22} />
+            </button>
             <div>
               <h1 className="header-title">Dashboard</h1>
               <div className="header-date">
@@ -419,9 +451,7 @@ const ModernHeader = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <div className="user-avatar">
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
-                </div>
+                <UserAvatar user={user} size="md" showStatus={true} />
                 <div className="user-info">
                   <p className="user-name">{user?.name || 'Utilisateur'}</p>
                   <p className="user-role">{user?.role || 'Étudiant'}</p>
@@ -465,6 +495,12 @@ const ModernHeader = () => {
           </div>
         </div>
       </header>
+
+      {/* Search Modal */}
+      <SearchModal
+        show={showSearchModal}
+        onHide={() => setShowSearchModal(false)}
+      />
     </>
   )
 }

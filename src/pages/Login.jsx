@@ -59,12 +59,12 @@ const Login = () => {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: 'calc(100vh - 70px)',
       background: 'var(--color-bodyBg)',
       display: 'flex',
       alignItems: 'center',
       position: 'relative',
-      overflow: 'hidden'
+      padding: '2rem 0'
     }}>
       {/* Background decoration */}
       <div style={{
@@ -102,24 +102,27 @@ const Login = () => {
             >
               <motion.div
                 animate={{
-                  scale: [1, 1.05, 1],
-                  rotate: [0, 5, -5, 0]
+                  scale: [1, 1.05, 1]
                 }}
                 transition={{
-                  duration: 4,
+                  duration: 3,
                   repeat: Infinity,
                   repeatType: "reverse"
                 }}
                 style={{
-                  fontSize: '6rem',
-                  marginBottom: '2rem',
-                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontWeight: 'bold'
+                  marginBottom: '2rem'
                 }}
               >
-                🎓
+                <img
+                  src="/logo.jpeg"
+                  alt="Université MANZANZA"
+                  style={{
+                    width: '150px',
+                    height: '150px',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.1))'
+                  }}
+                />
               </motion.div>
 
               <motion.h1
@@ -133,7 +136,7 @@ const Login = () => {
                   marginBottom: '1rem'
                 }}
               >
-                Syntax GU
+                Université MANZANZA
               </motion.h1>
 
               <motion.p
@@ -147,7 +150,7 @@ const Login = () => {
                   maxWidth: '500px'
                 }}
               >
-                Plateforme de Gestion Universitaire Moderne
+                Science - Conscience - Technologie
               </motion.p>
 
               <Row className="g-4 mt-4">
@@ -278,7 +281,7 @@ const Login = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="votre.email@syntaxgu.ac.cd"
+                        placeholder="votre.email@manzanza.ac.cd"
                         required
                         style={{
                           paddingLeft: '48px',

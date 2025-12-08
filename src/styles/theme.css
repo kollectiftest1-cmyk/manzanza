@@ -139,13 +139,18 @@ a:hover {
 .App {
   width: 100%;
   height: 100vh;
-  overflow: hidden;
   display: flex;
   background-color: var(--color-bg);
+  overflow: hidden;
 }
 
 .container-fluid {
   background-color: var(--color-bg);
+}
+
+.container-fluid.hh {
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ==================== Sidebar ==================== */
@@ -288,12 +293,10 @@ a:hover {
 
 /* ==================== Main Content ==================== */
 .main-content {
-  margin-left: 250px;
-  margin-top: 70px;
   background-color: var(--color-bg);
-  min-height: calc(100vh - 70px);
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 1.5rem;
 }
 
 .main-content::-webkit-scrollbar {
@@ -653,6 +656,18 @@ a:hover {
   .main-content {
     margin-left: 200px;
   }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -679,6 +694,7 @@ a:hover {
 
   .main-content {
     margin-top: 56px;
+    padding: var(--spacing-md) !important;
   }
 
   .sidebar-overlay {
@@ -698,6 +714,62 @@ a:hover {
   .sidebar-overlay.show {
     opacity: 1;
     pointer-events: all;
+  }
+
+  /* Card adjustments */
+  .card {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .card-body {
+    padding: var(--spacing-md) !important;
+  }
+
+  /* Button adjustments */
+  .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+  }
+
+  /* Table responsive */
+  .table {
+    font-size: 0.875rem;
+  }
+
+  .table thead th,
+  .table tbody td {
+    padding: 12px 8px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  h4 {
+    font-size: 1rem;
+  }
+
+  .main-content {
+    padding: var(--spacing-sm) !important;
+  }
+
+  .card-body {
+    padding: var(--spacing-sm) !important;
+  }
+
+  .btn {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
   }
 }
 

@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import {  FiHome, FiInfo, FiPhone, FiLogIn, FiUserPlus, FiBell, FiUser, FiSettings, FiLogOut } from "react-icons/fi"
 import { logout } from "../../store/slices/authSlice"
 import { markAllAsRead } from "../../store/slices/notificationsSlice"
-import { FaGraduationCap } from "react-icons/fa";
+import { FaGraduationCap } from "react-icons/fa"
+import UserAvatar from "../UserAvatar"
+import ThemeSwitcher from "../ThemeSwitcher"
 
 const Navbar = () => {
   const dispatch = useDispatch()
@@ -49,15 +51,13 @@ const Navbar = () => {
       <BootstrapNavbar
         expand="lg"
         style={{
-          background: scrolled || isAuthenticated
-            ? 'rgba(255, 255, 255, 0.95)'
-            : 'rgba(255, 255, 255, 0.85)',
+          background: 'var(--color-headerBg)',
           backdropFilter: 'blur(20px)',
           boxShadow: scrolled || isAuthenticated
             ? '0 4px 20px rgba(0,0,0,0.1)'
             : '0 2px 10px rgba(0,0,0,0.05)',
           padding: '12px 0',
-          borderBottom: '1px solid rgba(0,0,0,0.05)',
+          borderBottom: '1px solid var(--color-headerBorder)',
           transition: 'all 0.3s ease'
         }}
       >
@@ -72,13 +72,25 @@ const Navbar = () => {
                   gap: '12px',
                   fontWeight: '800',
                   fontSize: '24px',
+                  color: 'var(--color-primary)'
+                }}
+              >
+                <img
+                  src="/logo.jpeg"
+                  alt="Université MANZANZA"
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    objectFit: 'contain'
+                  }}
+                />
+                <span style={{
                   background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
-                }}
-              >
-                <FaGraduationCap size={32} style={{ color: 'var(--color-primary)' }} />
-                Syntax GU
+                }}>
+                  UNIVERSITÉ MANZANZA
+                </span>
               </motion.div>
             </BootstrapNavbar.Brand>
           </LinkContainer>
@@ -125,6 +137,9 @@ const Navbar = () => {
             </Nav>
 
             <Nav style={{ gap: '12px', alignItems: 'center' }}>
+              {/* Theme Switcher - Always Visible */}
+              <ThemeSwitcher />
+
               {isAuthenticated ? (
                 <>
                   <Dropdown align="end">
@@ -189,7 +204,7 @@ const Navbar = () => {
                         fontWeight: '600'
                       }}
                     >
-                      <FiUser size={18} />
+                      <UserAvatar user={user} size="sm" />
                       {user?.name || "Utilisateur"}
                     </Dropdown.Toggle>
                     <Dropdown.Menu style={{

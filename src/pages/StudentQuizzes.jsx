@@ -73,18 +73,18 @@ const StudentQuizzes = () => {
     const bestScore = getBestScore(quiz.id);
 
     if (quizAttempts.some(a => a.status === 'graded')) {
-      return <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Noté</span>;
+      return <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', background: 'rgba(28, 200, 138, 0.1)', color: 'var(--color-success)' }}>Noté</span>;
     }
 
     if (quizAttempts.some(a => a.status === 'submitted')) {
-      return <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">En attente</span>;
+      return <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', background: 'var(--color-primaryLight)', color: 'var(--color-primary)' }}>En attente</span>;
     }
 
     if (!canTakeQuiz(quiz)) {
-      return <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Terminé</span>;
+      return <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', background: 'rgba(133, 135, 150, 0.1)', color: 'var(--color-textSecondary)' }}>Terminé</span>;
     }
 
-    return <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Disponible</span>;
+    return <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', background: 'rgba(244, 169, 0, 0.1)', color: 'var(--color-warning)' }}>Disponible</span>;
   };
 
   const filteredQuizzes = quizzes.filter(q => {
@@ -133,7 +133,7 @@ const StudentQuizzes = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)', padding: '1.5rem' }}
+      style={{ minHeight: '100%', background: 'var(--color-bodyBg)', padding: '1.5rem' }}
     >
       <div style={{ maxWidth: '80rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {/* Header */}
@@ -141,8 +141,8 @@ const StudentQuizzes = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h2 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Mes Quiz</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Passez vos quiz et consultez vos résultats</p>
+          <h2 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--color-textPrimary)', marginBottom: '0.5rem' }}>Mes Quiz</h2>
+          <p style={{ color: 'var(--color-textSecondary)' }}>Passez vos quiz et consultez vos résultats</p>
         </motion.div>
 
         {/* Filtres */}
@@ -168,9 +168,9 @@ const StudentQuizzes = () => {
                 borderRadius: '8px',
                 fontWeight: '600',
                 transition: 'all 0.3s ease',
-                background: filter === btn.key ? btn.gradient : 'white',
-                color: filter === btn.key ? 'white' : 'var(--text-primary)',
-                border: 'none',
+                background: filter === btn.key ? btn.gradient : 'var(--color-cardBg)',
+                color: filter === btn.key ? 'white' : 'var(--color-textPrimary)',
+                border: filter === btn.key ? 'none' : '1px solid var(--color-border)',
                 cursor: 'pointer',
                 boxShadow: filter === btn.key ? `0 4px 12px ${btn.shadow}` : '0 2px 8px rgba(0,0,0,0.05)'
               }}
@@ -190,9 +190,10 @@ const StudentQuizzes = () => {
               style={{
                 textAlign: 'center',
                 padding: '3rem',
-                background: 'white',
+                background: 'var(--color-cardBg)',
                 borderRadius: '16px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
+                boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+                border: '1px solid var(--color-border)'
               }}
             >
               <BarChart style={{ width: '4rem', height: '4rem', margin: '0 auto 1rem', color: 'rgba(0,0,0,0.3)' }} />
@@ -217,11 +218,12 @@ const StudentQuizzes = () => {
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ scale: 1.02, y: -5 }}
                   style={{
-                    background: 'white',
+                    background: 'var(--color-cardBg)',
                     borderRadius: '16px',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                    boxShadow: 'var(--color-cardShadow)',
                     padding: '1.5rem',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    border: '1px solid var(--color-cardBorder)'
                   }}
                 >
                   <div className="flex justify-between items-start mb-4">

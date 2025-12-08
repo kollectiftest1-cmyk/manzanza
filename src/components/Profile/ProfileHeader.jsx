@@ -1,8 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { Row, Col, Card, Badge, Button, Dropdown } from "react-bootstrap"
-import { FiUser, FiKey, FiBell, FiFileText, FiMoreVertical } from "react-icons/fi"
+import { FiUser, FiKey, FiBell, FiFileText, FiMoreVertical, FiCamera } from "react-icons/fi"
 import { motion } from "framer-motion"
+import UserAvatar from "../UserAvatar"
+import AvatarUpload from "./AvatarUpload"
 
 const getRoleBadge = (role) => {
   const roleConfig = {
@@ -36,49 +39,69 @@ const getRoleBadge = (role) => {
 
 const ProfileHeader = ({ user, currentUser, onTabSelect }) => {
   const isOwnProfile = currentUser?.id === user?.id
+  const [showAvatarUpload, setShowAvatarUpload] = useState(false)
+
+  const handleAvatarSave = (newAvatarUrl) => {
+    // TODO: Mettre à jour l'avatar dans le backend
+    console.log('Nouvel avatar:', newAvatarUrl)
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card style={{
-        background: 'var(--color-cardBg)',
-        border: '1px solid var(--color-border)',
-        borderRadius: '16px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        marginBottom: '24px',
-        overflow: 'hidden'
-      }}>
-        <div style={{
-          background: 'linear-gradient(135deg, var(--color-primary) 0%, #667eea 100%)',
-          height: '120px'
-        }} />
-        <Card.Body style={{ padding: '0 32px 32px', marginTop: '-60px' }}>
-          <Row className="align-items-end" style={{ marginBottom: '20px' }}>
-            <Col xs="auto">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  width: "120px",
-                  height: "120px",
-                  borderRadius: "50%",
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: "3rem",
-                  fontWeight: '700',
-                  color: 'white',
-                  border: '5px solid var(--color-cardBg)',
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
-                }}
-              >
-                {user?.name?.charAt(0)?.toUpperCase() || "U"}
-              </motion.div>
-            </Col>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card style={{
+          background: 'var(--color-cardBg)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          marginBottom: '24px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)',
+            height: '120px'
+          }} />
+          <Card.Body style={{ padding: '0 32px 32px', marginTop: '-60px' }}>
+            <Row className="align-items-end" style={{ marginBottom: '20px' }}>
+              <Col xs="auto">
+                <div style={{ position: 'relative' }}>
+                  <UserAvatar
+                    user={user}
+                    size="xxl"
+                    editable={isOwnProfile}
+                    onClick={isOwnProfile ? () => setShowAvatarUpload(true) : null}
+                  />
+                  {isOwnProfile && (
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setShowAvatarUpload(true)}
+                      style={{
+                        position: 'absolute',
+                        bottom: '5px',
+                        right: '5px',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        background: 'var(--color-primary)',
+                        color: 'white',
+                        border: '3px solid var(--color-cardBg)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      <FiCamera size={16} />
+                    </motion.button>
+                  )}
+                </div>
+              </Col>
             <Col>
               <h3 style={{
                 margin: '0 0 8px 0',
@@ -196,6 +219,16 @@ const ProfileHeader = ({ user, currentUser, onTabSelect }) => {
         </Card.Body>
       </Card>
     </motion.div>
+
+    {/* Avatar Upload Modal */}
+    {showAvatarUpload && (
+      <AvatarUpload
+        user={user}
+        onSave={handleAvatarSave}
+        onClose={() => setShowAvatarUpload(false)}
+      />
+    )}
+  </>
   )
 }
 

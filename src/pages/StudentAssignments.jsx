@@ -58,16 +58,16 @@ const StudentAssignments = () => {
 
     if (!submission) {
       if (isLate(assignment.due_date)) {
-        return <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">En retard</span>;
+        return <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', background: 'rgba(220, 53, 69, 0.1)', color: 'var(--color-danger)' }}>En retard</span>;
       }
-      return <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">À faire</span>;
+      return <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', background: 'rgba(244, 169, 0, 0.1)', color: 'var(--color-warning)' }}>À faire</span>;
     }
 
     if (submission.status === 'graded') {
-      return <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Noté</span>;
+      return <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', background: 'rgba(28, 200, 138, 0.1)', color: 'var(--color-success)' }}>Noté</span>;
     }
 
-    return <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Soumis</span>;
+    return <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', background: 'var(--color-primaryLight)', color: 'var(--color-primary)' }}>Soumis</span>;
   };
 
   const filteredAssignments = assignments.filter(a => {
@@ -116,7 +116,7 @@ const StudentAssignments = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)', padding: '1.5rem' }}
+      style={{ minHeight: '100%', background: 'var(--color-bodyBg)', padding: '1.5rem' }}
     >
       <div style={{ maxWidth: '80rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {/* Header */}
@@ -124,8 +124,8 @@ const StudentAssignments = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h2 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Mes Devoirs (TP/TD)</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Gérez vos travaux pratiques et dirigés</p>
+          <h2 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--color-textPrimary)', marginBottom: '0.5rem' }}>Mes Devoirs (TP/TD)</h2>
+          <p style={{ color: 'var(--color-textSecondary)' }}>Gérez vos travaux pratiques et dirigés</p>
         </motion.div>
 
         {/* Filtres */}
@@ -144,9 +144,9 @@ const StudentAssignments = () => {
               borderRadius: '8px',
               fontWeight: '600',
               transition: 'all 0.3s ease',
-              background: filter === 'all' ? 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)' : 'white',
-              color: filter === 'all' ? 'white' : 'var(--text-primary)',
-              border: 'none',
+              background: filter === 'all' ? 'var(--color-gradientPrimary)' : 'var(--color-cardBg)',
+              color: filter === 'all' ? 'white' : 'var(--color-textPrimary)',
+              border: filter === 'all' ? 'none' : '1px solid var(--color-border)',
               cursor: 'pointer',
               boxShadow: filter === 'all' ? '0 4px 12px rgba(59, 130, 246, 0.3)' : '0 2px 8px rgba(0,0,0,0.05)'
             }}
@@ -162,9 +162,9 @@ const StudentAssignments = () => {
               borderRadius: '8px',
               fontWeight: '600',
               transition: 'all 0.3s ease',
-              background: filter === 'todo' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'white',
-              color: filter === 'todo' ? 'white' : 'var(--text-primary)',
-              border: 'none',
+              background: filter === 'todo' ? 'var(--color-gradientWarning)' : 'var(--color-cardBg)',
+              color: filter === 'todo' ? 'white' : 'var(--color-textPrimary)',
+              border: filter === 'todo' ? 'none' : '1px solid var(--color-border)',
               cursor: 'pointer',
               boxShadow: filter === 'todo' ? '0 4px 12px rgba(245, 158, 11, 0.3)' : '0 2px 8px rgba(0,0,0,0.05)'
             }}
@@ -180,9 +180,9 @@ const StudentAssignments = () => {
               borderRadius: '8px',
               fontWeight: '600',
               transition: 'all 0.3s ease',
-              background: filter === 'submitted' ? 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)' : 'white',
-              color: filter === 'submitted' ? 'white' : 'var(--text-primary)',
-              border: 'none',
+              background: filter === 'submitted' ? 'var(--color-gradientPrimary)' : 'var(--color-cardBg)',
+              color: filter === 'submitted' ? 'white' : 'var(--color-textPrimary)',
+              border: filter === 'submitted' ? 'none' : '1px solid var(--color-border)',
               cursor: 'pointer',
               boxShadow: filter === 'submitted' ? '0 4px 12px rgba(59, 130, 246, 0.3)' : '0 2px 8px rgba(0,0,0,0.05)'
             }}
@@ -198,9 +198,9 @@ const StudentAssignments = () => {
               borderRadius: '8px',
               fontWeight: '600',
               transition: 'all 0.3s ease',
-              background: filter === 'graded' ? 'linear-gradient(135deg, var(--color-success) 0%, #059669 100%)' : 'white',
-              color: filter === 'graded' ? 'white' : 'var(--text-primary)',
-              border: 'none',
+              background: filter === 'graded' ? 'var(--color-gradientSuccess)' : 'var(--color-cardBg)',
+              color: filter === 'graded' ? 'white' : 'var(--color-textPrimary)',
+              border: filter === 'graded' ? 'none' : '1px solid var(--color-border)',
               cursor: 'pointer',
               boxShadow: filter === 'graded' ? '0 4px 12px rgba(16, 185, 129, 0.3)' : '0 2px 8px rgba(0,0,0,0.05)'
             }}
@@ -219,9 +219,10 @@ const StudentAssignments = () => {
               style={{
                 textAlign: 'center',
                 padding: '3rem',
-                background: 'white',
+                background: 'var(--color-cardBg)',
                 borderRadius: '16px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
+                boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+                border: '1px solid var(--color-border)'
               }}
             >
               <FileText style={{ width: '4rem', height: '4rem', margin: '0 auto 1rem', color: 'rgba(0,0,0,0.3)' }} />
@@ -245,11 +246,12 @@ const StudentAssignments = () => {
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ scale: 1.02, y: -5 }}
                   style={{
-                    background: 'white',
+                    background: 'var(--color-cardBg)',
                     borderRadius: '16px',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                    boxShadow: 'var(--color-cardShadow)',
                     padding: '1.5rem',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    border: '1px solid var(--color-cardBorder)'
                   }}
                 >
                   <div className="flex justify-between items-start mb-4">

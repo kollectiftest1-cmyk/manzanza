@@ -21,15 +21,15 @@ const PublicInscription = () => {
   return (
     <div style={{
       background: 'var(--color-bodyBg)',
-      minHeight: '100vh',
+      minHeight: 'calc(100vh - 70px)',
       paddingBottom: '40px',
-      paddingTop: '80px' // Add space for navbar
+      color: 'var(--color-textPrimary)'
     }}>
       {/* Header */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--color-primary), #667eea)',
+        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
         color: 'white',
-        padding: '32px 24px',
+        padding: '40px 24px',
         textAlign: 'center',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
@@ -38,22 +38,25 @@ const PublicInscription = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '16px',
-            background: 'rgba(255,255,255,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 16px'
-          }}>
-            <FiClipboard size={32} />
-          </div>
-          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '600' }}>
-            Formulaire de Pré-inscription
+          <img
+            src="/logo.jpeg"
+            alt="Université MANZANZA"
+            style={{
+              width: '80px',
+              height: '80px',
+              objectFit: 'contain',
+              margin: '0 auto 16px',
+              display: 'block',
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))'
+            }}
+          />
+          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '700' }}>
+            Université MANZANZA
           </h3>
-          <p style={{ margin: '8px 0 0', opacity: 0.9, fontSize: '15px' }}>
+          <p style={{ margin: '8px 0 12px', opacity: 0.95, fontSize: '16px', fontWeight: '500' }}>
+            Formulaire de Pré-inscription
+          </p>
+          <p style={{ margin: '0', opacity: 0.9, fontSize: '14px' }}>
             Complétez les étapes ci-dessous pour soumettre votre demande
           </p>
         </motion.div>

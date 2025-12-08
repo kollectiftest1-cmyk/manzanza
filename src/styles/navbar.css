@@ -355,3 +355,20 @@
     display: block;
   }
 }
+
+/* Additional responsive improvements */
+@media (max-width: 576px) {
+  .navbar-modern {
+    padding: 0 var(--spacing-md);
+  }
+
+  .navbar-icon-btn {
+    padding: 6px;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+}

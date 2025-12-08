@@ -65,19 +65,19 @@ function App() {
   return (
     <div className="App">
       {isAuthenticated ? (
-        <div className="container-fluid hh p-0">
-          <Row className="row g-0">
-            <Col lg={2} className="col-auto">
+        <div className="container-fluid hh p-0" style={{ height: '100vh', overflow: 'hidden' }}>
+          <Row className="row g-0" style={{ height: '100%' }}>
+            <Col lg={2} className="col-auto" style={{ height: '100%' }}>
               <ModernSidebar />
             </Col>
-            <Col lg={10} className="col">
+            <Col lg={10} className="col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <ModernHeader />
               <div
                 className="main-content"
                 style={{
-                  height: "calc(100vh - 73px)",
+                  flex: 1,
                   overflowY: "auto",
-                  overflowX: "auto",
+                  overflowX: "hidden",
                   backgroundColor: "var(--color-bodyBg)",
                 }}
               >
@@ -140,12 +140,47 @@ function App() {
       ) : (
         <>
           <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/inscription" element={<PublicInscription />} />
-            <Route path="*" element={<Login />} />
-          </Routes>
+          <div style={{ minHeight: '100vh', paddingTop: '70px' }}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/inscription" element={<PublicInscription />} />
+              <Route path="*" element={<Login />} />
+            </Routes>
+          </div>
+          {/* Sidebar Overlay for Mobile */}
+          <div
+            className="sidebar-overlay-backdrop"
+            onClick={() => {
+              const sidebar = document.querySelector('.modern-sidebar')
+              const overlay = document.querySelector('.sidebar-overlay-backdrop')
+              if (sidebar) sidebar.classList.remove('show')
+              if (overlay) overlay.classList.remove('show')
+            }}
+            style={{
+              display: 'none',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1040,
+              opacity: 0,
+              transition: 'opacity 0.3s ease'
+            }}
+          />
+          <style>{`
+            @media (max-width: 991px) {
+              .sidebar-overlay-backdrop {
+                display: block !important;
+              }
+              .sidebar-overlay-backdrop.show {
+                opacity: 1 !important;
+                pointer-events: all !important;
+              }
+            }
+          `}</style>
         </>
       )}
     </div>

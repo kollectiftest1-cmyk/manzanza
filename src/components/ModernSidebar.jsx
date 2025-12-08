@@ -288,14 +288,27 @@ const ModernSidebar = () => {
       <style type="text/css">
         {`
           .modern-sidebar {
-            position: sticky;
-            top: 0;
             height: 100vh;
             overflow-y: auto;
             background: var(--color-sidebarBg);
             border-right: 1px solid var(--color-sidebarBorder);
             box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
             transition: all 0.3s ease;
+          }
+
+          @media (max-width: 991px) {
+            .modern-sidebar {
+              position: fixed;
+              left: -280px;
+              top: 0;
+              width: 280px;
+              z-index: 1050;
+              box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+            }
+
+            .modern-sidebar.show {
+              left: 0;
+            }
           }
 
           .modern-sidebar::-webkit-scrollbar {
@@ -371,8 +384,17 @@ const ModernSidebar = () => {
         {/* Logo / Header */}
         <div className="sidebar-header">
           <Link to="/dashboard" className="sidebar-logo">
-            <div className="sidebar-logo-icon">A</div>
-            <h4 className="sidebar-logo-text">Acadex</h4>
+            <img
+              src="/logo.jpeg"
+              alt="Université MANZANZA"
+              style={{
+                width: '45px',
+                height: '45px',
+                objectFit: 'contain',
+                borderRadius: '8px'
+              }}
+            />
+            <h4 className="sidebar-logo-text">MANZANZA</h4>
           </Link>
         </div>
 

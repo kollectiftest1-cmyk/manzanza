@@ -22,37 +22,37 @@ const Home = () => {
   }
 
   const features = [
-    { icon: FiBookOpen, title: "Gestion Académique", desc: "Cours, examens, notes centralisés", color: "var(--color-primary)" },
-    { icon: FiUsers, title: "Collaboration", desc: "Étudiants, enseignants connectés", color: "var(--color-success)" },
-    { icon: FiAward, title: "Certifications", desc: "Diplômes et attestations", color: "var(--color-warning)" },
-    { icon: FiTrendingUp, title: "Analytics", desc: "Statistiques en temps réel", color: "var(--color-info)" },
-    { icon: FiShield, title: "Sécurité", desc: "Données protégées & cryptées", color: "var(--color-danger)" },
-    { icon: FiZap, title: "Performance", desc: "Ultra rapide & optimisé", color: "var(--color-secondary)" }
+    { icon: FiBookOpen, title: "Cours en Ligne", desc: "Accédez à tous vos cours 24/7", color: "var(--color-primary)" },
+    { icon: FiUsers, title: "Communauté", desc: "Étudiants et enseignants connectés", color: "var(--color-success)" },
+    { icon: FiAward, title: "Diplômes Reconnus", desc: "Certifications officielles", color: "var(--color-warning)" },
+    { icon: FiTrendingUp, title: "Suivi Académique", desc: "Suivez votre progression", color: "var(--color-info)" },
+    { icon: FiShield, title: "Données Sécurisées", desc: "Vos informations protégées", color: "var(--color-danger)" },
+    { icon: FiZap, title: "Plateforme Rapide", desc: "Accès instantané partout", color: "var(--color-secondary)" }
   ]
 
   const services = [
     {
       icon: "🎓",
-      title: "Administrateurs & Directeurs",
-      desc: "Gestion complète de votre établissement en quelques clics. Rapports, finances, inscriptions automatisées.",
+      title: "Administration",
+      desc: "Gestion complète de l'université : inscriptions, programmes académiques, suivi des étudiants et du personnel.",
       gradient: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))"
     },
     {
       icon: "👨‍🏫",
-      title: "Enseignants",
-      desc: "Gérez vos cours, partagez des ressources, évaluez vos étudiants. Tout en un seul endroit.",
+      title: "Corps Enseignant",
+      desc: "Partagez vos cours, évaluez vos étudiants, suivez leur progression académique en temps réel.",
       gradient: "linear-gradient(135deg, var(--color-success), var(--color-info))"
     },
     {
       icon: "👩‍🎓",
-      title: "Étudiants & Parents",
-      desc: "Suivez les performances, accédez aux cours, communiquez avec les enseignants 24/7.",
+      title: "Étudiants",
+      desc: "Accédez à vos cours, consultez vos notes, soumettez vos travaux et communiquez avec vos professeurs.",
       gradient: "linear-gradient(135deg, var(--color-warning), var(--color-danger))"
     }
   ]
 
   return (
-    <div style={{ background: 'var(--color-bodyBg)', overflow: 'hidden' }}>
+    <div style={{ background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
       {/* Hero Section */}
       <section style={{
         minHeight: '100vh',
@@ -60,7 +60,8 @@ const Home = () => {
         alignItems: 'center',
         position: 'relative',
         paddingTop: '100px',
-        paddingBottom: '80px'
+        paddingBottom: '80px',
+        background: 'var(--color-bodyBg)'
       }}>
         {/* Background decoration */}
         <div style={{
@@ -104,13 +105,13 @@ const Home = () => {
                     display: 'inline-block',
                     padding: '8px 20px',
                     borderRadius: '50px',
-                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1))',
+                    background: 'linear-gradient(135deg, rgba(0, 31, 84, 0.1), rgba(244, 169, 0, 0.1))',
                     border: '1px solid var(--color-primary)',
                     marginBottom: '24px'
                   }}
                 >
                   <small style={{ color: 'var(--color-primary)', fontWeight: '600' }}>
-                    🚀 Plateforme Universitaire N°1 en RDC
+                    🎓 Université MANZANZA - Science, Conscience, Technologie
                   </small>
                 </motion.div>
 
@@ -126,13 +127,13 @@ const Home = () => {
                     marginBottom: '24px'
                   }}
                 >
-                  Simplifiez la gestion{' '}
+                  Université{' '}
                   <span style={{
                     background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent'
                   }}>
-                    universitaire
+                    MANZANZA
                   </span>
                 </motion.h1>
 
@@ -147,7 +148,7 @@ const Home = () => {
                     lineHeight: '1.8'
                   }}
                 >
-                  Une plateforme tout-en-un, rapide et intuitive pour la gestion académique et administrative de votre établissement.
+                  Plateforme de gestion académique de l'Université MANZANZA. Accédez à vos cours, suivez vos résultats, et restez connecté avec votre communauté universitaire.
                 </motion.p>
 
                 <motion.div
@@ -265,9 +266,21 @@ const Home = () => {
                     boxShadow: '0 30px 60px rgba(0,0,0,0.15)'
                   }}
                 >
-                  <div style={{ fontSize: '8rem', textAlign: 'center', marginBottom: '20px' }}>🎓</div>
-                  <h4 style={{ textAlign: 'center', color: 'var(--color-textPrimary)', fontWeight: '700' }}>Syntax GU</h4>
-                  <p style={{ textAlign: 'center', color: 'var(--color-textSecondary)', marginBottom: 0 }}>Excellence Académique</p>
+                  <img
+                    src="/logo.jpeg"
+                    alt="Université MANZANZA"
+                    style={{
+                      width: '180px',
+                      height: '180px',
+                      objectFit: 'contain',
+                      marginBottom: '20px',
+                      margin: '0 auto 20px',
+                      display: 'block',
+                      filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+                    }}
+                  />
+                  <h4 style={{ textAlign: 'center', color: 'var(--color-textPrimary)', fontWeight: '700' }}>Université MANZANZA</h4>
+                  <p style={{ textAlign: 'center', color: 'var(--color-textSecondary)', marginBottom: 0 }}>Science - Conscience - Technologie</p>
                 </motion.div>
               </motion.div>
             </Col>
@@ -291,10 +304,10 @@ const Home = () => {
                 color: 'var(--color-textPrimary)',
                 marginBottom: '16px'
               }}>
-                Pourquoi choisir Syntax GU ?
+                Pourquoi l'Université MANZANZA ?
               </h2>
               <p style={{ fontSize: '1.1rem', color: 'var(--color-textSecondary)', maxWidth: '700px', margin: '0 auto' }}>
-                Une solution complète et moderne pour transformer votre gestion universitaire
+                Une formation d'excellence avec des outils numériques modernes pour votre réussite académique
               </p>
             </motion.div>
 
@@ -353,10 +366,10 @@ const Home = () => {
                 color: 'var(--color-textPrimary)',
                 marginBottom: '16px'
               }}>
-                Pour tous les acteurs universitaires
+                Une plateforme pour toute la communauté universitaire
               </h2>
               <p style={{ fontSize: '1.1rem', color: 'var(--color-textSecondary)' }}>
-                Des outils adaptés à chaque rôle dans votre établissement
+                Des outils adaptés à chaque membre de l'Université MANZANZA
               </p>
             </motion.div>
 
