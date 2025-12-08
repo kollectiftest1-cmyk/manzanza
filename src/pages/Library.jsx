@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from "react"
 import { Container, Row, Col, Card, Form, Button, Badge, InputGroup, Pagination, Spinner, Alert, Modal } from "react-bootstrap"
 import { useSelector, useDispatch } from "react-redux"
+import { motion } from "framer-motion"
+import { FiBook, FiSearch, FiPlus, FiFilter, FiBookOpen, FiDownload } from "react-icons/fi"
 import { fetchBooks, fetchMyBorrowings, borrowBook, returnBook, createBook } from "../store/slices/librarySlice"
 import debounce from "lodash.debounce"
-import { Link } from "react-router-dom" // Import Link
+import { Link } from "react-router-dom"
 
 const Library = () => {
   const dispatch = useDispatch()
@@ -189,87 +191,232 @@ const Library = () => {
   const canManageLibrary = user?.role === 'bibliothecaire' || user?.role === 'iadmin' ||  user?.role === 'sga';
 
   return (
-    <Container fluid className="mt-4">
-      <Row className="mb-4 dashboard-card">
-        <Col>
-          <h2>Bibliothèque</h2>
-          <p className="text-muted">Catalogue des ressources académiques et gestion des emprunts</p>
-        </Col>
-      </Row>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: '32px' }}
+      >
+        <h2 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          color: 'var(--color-textPrimary)',
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <FiBook style={{ color: 'var(--color-primary)' }} />
+          Bibliothèque
+        </h2>
+        <p style={{ color: 'var(--color-textSecondary)', margin: 0 }}>
+          Catalogue des ressources académiques et gestion des emprunts
+        </p>
+      </motion.div>
 
       <Row>
         <Col md={user?.role === 'etudiant' ? 8 : 12}>
-          <Card className="shadow">
-            <Card.Header>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            style={{
+              background: 'var(--color-cardBg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '16px',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: '1px solid var(--color-border)',
+              background: 'var(--color-cardBg)'
+            }}>
               <Row className="align-items-center">
                 <Col md={4}>
-                  <h5 className="mb-0">Catalogue ({booksData?.count || 0})</h5>
+                  <h5 style={{ margin: 0, fontWeight: '700', color: 'var(--color-textPrimary)' }}>
+                    Catalogue ({booksData?.count || 0})
+                  </h5>
                 </Col>
                 <Col md={8} className="d-flex justify-content-end gap-2">
                   <InputGroup style={{ maxWidth: '250px' }}>
+                    <InputGroup.Text style={{
+                      background: 'var(--color-bodyBg)',
+                      border: '1px solid var(--color-border)',
+                      borderRight: 'none'
+                    }}>
+                      <FiSearch style={{ color: 'var(--color-textSecondary)' }} />
+                    </InputGroup.Text>
                     <Form.Control
                       type="search"
                       name="search"
                       placeholder="Rechercher..."
                       value={filters.search}
                       onChange={handleFilterChange}
+                      style={{
+                        background: 'var(--color-bodyBg)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-textPrimary)',
+                        borderLeft: 'none'
+                      }}
                     />
                   </InputGroup>
-                  <Form.Select name="category" value={filters.category} onChange={handleFilterChange} style={{ maxWidth: '180px' }}>
+                  <Form.Select
+                    name="category"
+                    value={filters.category}
+                    onChange={handleFilterChange}
+                    style={{
+                      maxWidth: '180px',
+                      borderRadius: '10px',
+                      background: 'var(--color-bodyBg)',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-textPrimary)'
+                    }}
+                  >
                     {categories.map((cat) => (
                       <option key={cat.value} value={cat.value}>{cat.label}</option>
                     ))}
                   </Form.Select>
                   {canManageLibrary && (
-                    <Button variant="primary" onClick={handleShowAddModal}>
-                      <i className="fas fa-plus me-2"></i>Ajouter
+                    <Button
+                      onClick={handleShowAddModal}
+                      style={{
+                        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '8px 20px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <FiPlus /> Ajouter
                     </Button>
                   )}
                 </Col>
               </Row>
-            </Card.Header>
-            <Card.Body>
-              {loading && books.length === 0 && <div className="text-center"><Spinner animation="border" /></div>}
-              {error && <Alert variant="danger">{error.detail || "Erreur de chargement des livres."}</Alert>}
-              
+            </div>
+
+            <div style={{ padding: '24px' }}>
+              {loading && books.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                  <Spinner animation="border" style={{ color: 'var(--color-primary)' }} />
+                  <p style={{ color: 'var(--color-textSecondary)', marginTop: '16px' }}>Chargement...</p>
+                </div>
+              )}
+              {error && (
+                <Alert variant="danger" style={{ borderRadius: '12px' }}>
+                  {error.detail || "Erreur de chargement des livres."}
+                </Alert>
+              )}
+
               <Row xs={1} sm={2} md={3} lg={4} className="g-4">
-                {books.map((book) => (
+                {books.map((book, index) => (
                   <Col key={book.id}>
-                    <Card className="h-100 shadow-sm" onClick={() => handleViewBook(book)} style={{ cursor: 'pointer' }}>
-                      <Card.Img
-                        variant="top"
-                        src={book.cover_image || "https://via.placeholder.com/150x200?text=No+Cover"}
-                        style={{ height: '200px', objectFit: 'cover' }}
-                      />
-                      <Card.Body>
-                        <Card.Title as="h6" className="fw-bold">{book.title}</Card.Title>
-                        <Card.Text className="text-muted small">{book.author}</Card.Text>
-                        {getCategoryBadge(book.category)}
-                      </Card.Body>
-                      <Card.Footer className="d-flex justify-content-between align-items-center">
-                        <Badge bg={book.available_quantity > 0 ? "success" : "danger"}>
-                          {book.available_quantity > 0 ? `${book.available_quantity} dispo.` : "Indisponible"}
-                        </Badge>
-                        <div className="d-flex gap-2">
-                          {user?.role === 'etudiant' && book.borrowable && book.available_quantity > 0 && (
-                            <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); handleBorrow(book.id); }} disabled={loading}>
-                              Emprunter
-                            </Button>
-                          )}
-                          {['numerique', 'audio', 'memoire', 'projet'].includes(book.book_type) && book.file && (
-                            <Link to={`/book-detail/${book.id}`} onClick={(e) => e.stopPropagation()}>
-                              <Button variant="outline-info" size="sm">
-                                <i className="fas fa-book-reader me-1"></i>Lire
-                              </Button>
-                            </Link>
-                          )}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -5 }}
+                    >
+                      <Card
+                        onClick={() => handleViewBook(book)}
+                        style={{
+                          cursor: 'pointer',
+                          height: '100%',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          background: 'var(--color-cardBg)',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <div style={{ position: 'relative', overflow: 'hidden', height: '200px' }}>
+                          <Card.Img
+                            variant="top"
+                            src={book.cover_image || "https://via.placeholder.com/150x200?text=No+Cover"}
+                            style={{
+                              height: '200px',
+                              objectFit: 'cover',
+                              transition: 'transform 0.3s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                          />
                         </div>
-                      </Card.Footer>
-                    </Card>
+                        <Card.Body style={{ padding: '16px' }}>
+                          <Card.Title
+                            as="h6"
+                            style={{
+                              fontWeight: '700',
+                              color: 'var(--color-textPrimary)',
+                              marginBottom: '8px',
+                              fontSize: '0.95rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {book.title}
+                          </Card.Title>
+                          <Card.Text style={{ color: 'var(--color-textSecondary)', fontSize: '0.85rem', marginBottom: '8px' }}>
+                            {book.author}
+                          </Card.Text>
+                          {getCategoryBadge(book.category)}
+                        </Card.Body>
+                        <Card.Footer style={{
+                          background: 'var(--color-bodyBg)',
+                          borderTop: '1px solid var(--color-border)',
+                          padding: '12px 16px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <Badge
+                            bg={book.available_quantity > 0 ? "success" : "danger"}
+                            style={{ borderRadius: '6px', padding: '4px 10px' }}
+                          >
+                            {book.available_quantity > 0 ? `${book.available_quantity} dispo.` : "Indisponible"}
+                          </Badge>
+                          <div className="d-flex gap-2">
+                            {user?.role === 'etudiant' && book.borrowable && book.available_quantity > 0 && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); handleBorrow(book.id); }}
+                                disabled={loading}
+                                style={{ borderRadius: '6px', fontSize: '0.8rem' }}
+                              >
+                                Emprunter
+                              </Button>
+                            )}
+                            {['numerique', 'audio', 'memoire', 'projet'].includes(book.book_type) && book.file && (
+                              <Link to={`/book-detail/${book.id}`} onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="outline-info"
+                                  size="sm"
+                                  style={{
+                                    borderRadius: '6px',
+                                    fontSize: '0.8rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                >
+                                  <FiBookOpen size={14} /> Lire
+                                </Button>
+                              </Link>
+                            )}
+                          </div>
+                        </Card.Footer>
+                      </Card>
+                    </motion.div>
                   </Col>
                 ))}
               </Row>
-            </Card.Body>
+            </div>
             {totalPages > 1 && (
               <Card.Footer className="d-flex justify-content-center">
                 <Pagination>
@@ -285,7 +432,7 @@ const Library = () => {
                 </Pagination>
               </Card.Footer>
             )}
-          </Card>
+          </motion.div>
         </Col>
 
         {user?.role === 'etudiant' && (

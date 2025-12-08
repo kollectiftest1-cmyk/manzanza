@@ -1,212 +1,162 @@
-import { Container, Row, Col, Card, Button, Table, Badge, Form } from "react-bootstrap"
-import { useSelector } from "react-redux"
+import { Container, Row, Col } from "react-bootstrap"
+import { motion } from "framer-motion"
+import { FiBook, FiBookOpen, FiClock, FiPlusCircle } from "react-icons/fi"
+import StatCard from "../StatCard"
+import ChartCard from "../ChartCard"
+import RecentActivity from "../RecentActivity"
 
-const BibliothecaireDashboard = () => {
-  const { user } = useSelector((state) => state.auth)
+const BibliothecaireDashboard = ({ user }) => {
 
-  const bibliothequeStats = {
-    totalLivres: 15420,
-    livresEmpruntes: 1250,
-    livresDisponibles: 14170,
-    utilisateursActifs: 890,
+  const categoriesData = {
+    labels: ['Informatique', 'Économie', 'Comptabilité', 'Droit', 'Finance', 'Mathématiques'],
+    datasets: [{
+      label: 'Livres par catégorie',
+      data: [120, 85, 95, 70, 60, 55],
+      backgroundColor: [
+        'rgba(78, 115, 223, 0.8)',
+        'rgba(28, 200, 138, 0.8)',
+        'rgba(246, 194, 62, 0.8)',
+        'rgba(231, 74, 59, 0.8)',
+        'rgba(111, 66, 193, 0.8)',
+        'rgba(54, 185, 204, 0.8)',
+      ],
+    }]
   }
 
-  const empruntsRecents = [
+  const empruntsData = {
+    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+    datasets: [{
+      label: 'Emprunts mensuels',
+      data: [145, 162, 138, 175, 158, 190],
+      borderColor: 'rgba(78, 115, 223, 1)',
+      backgroundColor: 'rgba(78, 115, 223, 0.1)',
+      tension: 0.4,
+      fill: true,
+    }]
+  }
+
+  const activities = [
     {
       id: 1,
-      livre: "Comptabilité Générale",
-      auteur: "Jean Martin",
-      emprunteur: "Marie Dupont",
-      dateEmprunt: "2024-01-15",
-      dateRetour: "2024-02-15",
-      statut: "En cours",
+      type: "check",
+      title: "Livre retourné",
+      description: "Comptabilité Générale - Marie Dupont",
+      time: "Il y a 15min",
     },
     {
       id: 2,
-      livre: "Économie Politique",
-      auteur: "Paul Bernard",
-      emprunteur: "Jean Leroy",
-      dateEmprunt: "2024-01-14",
-      dateRetour: "2024-02-14",
-      statut: "En retard",
+      type: "alert",
+      title: "Retard signalé",
+      description: "Économie Politique - Jean Leroy (5 jours)",
+      time: "Il y a 1h",
     },
     {
       id: 3,
-      livre: "Mathématiques Financières",
-      auteur: "Sophie Dubois",
-      emprunteur: "Pierre Martin",
-      dateEmprunt: "2024-01-13",
-      dateRetour: "2024-02-13",
-      statut: "En cours",
+      type: "file",
+      title: "Nouveaux livres",
+      description: "15 ouvrages ajoutés au catalogue",
+      time: "Il y a 2h",
     },
   ]
 
   return (
-    <Container fluid className="py-0" style={{ }}>
-      <Row className="mb-4 dashboard-card">
-        <Col>
-          <h2 className="text-primary fw-bold">Tableau de Bord - Bibliothécaire</h2>
-          <p className="text-muted">Gestion de la Bibliothèque Universitaire</p>
-        </Col>
-      </Row>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: '32px' }}
+      >
+        <h2 style={{
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: 'var(--color-textPrimary)',
+          marginBottom: '8px',
+        }}>
+          Bibliothèque 📚
+        </h2>
+        <p style={{
+          fontSize: '0.95rem',
+          color: 'var(--color-textSecondary)',
+          margin: 0,
+        }}>
+          Bienvenue {user?.name} | Gestion de la Bibliothèque Universitaire
+        </p>
+      </motion.div>
 
-      {/* Library Statistics */}
       <Row className="mb-4">
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-book fa-2x text-primary mb-3"></i>
-              <h4 className="fw-bold">{bibliothequeStats.totalLivres.toLocaleString()}</h4>
-              <p className="text-muted mb-0">Total Livres</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Livres au Catalogue"
+            value="485"
+            icon={FiBook}
+            color="primary"
+            subtitle="Total disponible"
+            delay={0}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-book-open fa-2x text-warning mb-3"></i>
-              <h4 className="fw-bold">{bibliothequeStats.livresEmpruntes.toLocaleString()}</h4>
-              <p className="text-muted mb-0">Empruntés</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Emprunts Actifs"
+            value="156"
+            icon={FiBookOpen}
+            color="info"
+            subtitle="En circulation"
+            delay={0.1}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-check-circle fa-2x text-success mb-3"></i>
-              <h4 className="fw-bold">{bibliothequeStats.livresDisponibles.toLocaleString()}</h4>
-              <p className="text-muted mb-0">Disponibles</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Retours Attendus"
+            value="23"
+            icon={FiClock}
+            color="warning"
+            subtitle="Cette semaine"
+            delay={0.2}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-users fa-2x text-info mb-3"></i>
-              <h4 className="fw-bold">{bibliothequeStats.utilisateursActifs}</h4>
-              <p className="text-muted mb-0">Utilisateurs Actifs</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Nouveautés du Mois"
+            value="12"
+            icon={FiPlusCircle}
+            color="success"
+            trend="up"
+            trendValue="+8 vs mois dernier"
+            delay={0.3}
+          />
         </Col>
       </Row>
 
-      <Row>
-        <Col lg={8}>
-          <Card className="card-custom">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold mb-0">Emprunts Récents</h5>
-              <Button size="sm" className="btn-primary-custom">
-                <i className="fas fa-plus me-1"></i>
-                Nouvel Emprunt
-              </Button>
-            </Card.Header>
-            <Card.Body>
-              <Table responsive hover>
-                <thead>
-                  <tr>
-                    <th>Livre</th>
-                    <th>Auteur</th>
-                    <th>Emprunteur</th>
-                    <th>Date Emprunt</th>
-                    <th>Date Retour</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {empruntsRecents.map((emprunt) => (
-                    <tr key={emprunt.id}>
-                      <td className="fw-semibold">{emprunt.livre}</td>
-                      <td>{emprunt.auteur}</td>
-                      <td>{emprunt.emprunteur}</td>
-                      <td>{emprunt.dateEmprunt}</td>
-                      <td>{emprunt.dateRetour}</td>
-                      <td>
-                        <Badge bg={emprunt.statut === "En cours" ? "success" : "danger"}>{emprunt.statut}</Badge>
-                      </td>
-                      <td>
-                        <Button size="sm" variant="outline-primary" className="me-1">
-                          <i className="fas fa-edit"></i>
-                        </Button>
-                        <Button size="sm" variant="outline-success">
-                          <i className="fas fa-undo"></i>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
+      <Row className="mb-4">
+        <Col lg={6} className="mb-4">
+          <ChartCard
+            title="Répartition par Catégorie"
+            subtitle="Catalogue complet"
+            chartType="doughnut"
+            data={categoriesData}
+            delay={0.4}
+            height={300}
+          />
         </Col>
+        <Col lg={6} className="mb-4">
+          <ChartCard
+            title="Évolution des Emprunts"
+            subtitle="6 derniers mois"
+            chartType="line"
+            data={empruntsData}
+            delay={0.5}
+            height={300}
+          />
+        </Col>
+      </Row>
 
-        <Col lg={4}>
-          <Card className="card-custom mb-4">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Recherche Rapide</h6>
-            </Card.Header>
-            <Card.Body>
-              <Form>
-                <Form.Group className="mb-3">
-                  <Form.Control type="text" placeholder="Rechercher un livre..." />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Select>
-                    <option>Tous les auteurs</option>
-                    <option>Jean Martin</option>
-                    <option>Paul Bernard</option>
-                    <option>Sophie Dubois</option>
-                  </Form.Select>
-                </Form.Group>
-                <Button className="btn-primary-custom w-100">
-                  <i className="fas fa-search me-2"></i>
-                  Rechercher
-                </Button>
-              </Form>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom mb-4">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Actions Rapides</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="d-grid gap-2">
-                <Button variant="outline-primary">
-                  <i className="fas fa-plus me-2"></i>
-                  Ajouter Livre
-                </Button>
-                <Button variant="outline-success">
-                  <i className="fas fa-user-plus me-2"></i>
-                  Nouvel Utilisateur
-                </Button>
-                <Button variant="outline-info">
-                  <i className="fas fa-chart-bar me-2"></i>
-                  Statistiques
-                </Button>
-                <Button variant="outline-warning">
-                  <i className="fas fa-exclamation-triangle me-2"></i>
-                  Retards
-                </Button>
-              </div>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Alertes</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="alert alert-warning">
-                <i className="fas fa-clock me-2"></i>
-                <strong>5 livres</strong> en retard de retour
-              </div>
-              <div className="alert alert-info">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Nouveau:</strong> 15 livres ajoutés cette semaine
-              </div>
-            </Card.Body>
-          </Card>
+      <Row className="mb-4">
+        <Col lg={12}>
+          <RecentActivity
+            activities={activities}
+            delay={0.6}
+          />
         </Col>
       </Row>
     </Container>

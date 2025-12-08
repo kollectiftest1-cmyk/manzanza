@@ -1,0 +1,135 @@
+/**
+ * Styles pour le sélecteur de thème
+ */
+
+.theme-switcher-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.theme-switcher-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: none;
+  border: none;
+  color: var(--color-navbarText);
+  cursor: pointer;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  transition: var(--transition);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.theme-switcher-toggle:hover {
+  background-color: var(--color-sidebarHover);
+  color: var(--color-primary);
+}
+
+.theme-switcher-toggle i {
+  font-size: 1.1rem;
+  color: var(--color-primary);
+}
+
+.theme-switcher-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--color-cardBg);
+  border: 1px solid var(--color-cardBorder);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  min-width: 180px;
+  margin-top: var(--spacing-sm);
+  overflow: hidden;
+}
+
+.theme-menu-item {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: none;
+  border: none;
+  color: var(--color-textPrimary);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.95rem;
+}
+
+.theme-menu-item:hover {
+  background-color: var(--color-bgDark);
+  color: var(--color-primary);
+}
+
+.theme-menu-item.active {
+  background-color: var(--color-sidebarActiveBg);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.theme-menu-item i {
+  width: 20px;
+  text-align: center;
+}
+
+/* Buttons variant */
+.theme-switcher-buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.theme-switcher-buttons label {
+  font-weight: 600;
+  color: var(--color-textPrimary);
+  margin: 0;
+}
+
+.theme-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.theme-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-bgDark);
+  border: 1px solid var(--color-cardBorder);
+  color: var(--color-textPrimary);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.theme-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.theme-btn.active {
+  background-color: var(--color-primary);
+  color: var(--color-textWhite);
+  border-color: var(--color-primary);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .theme-switcher-toggle span {
+    display: none;
+  }
+
+  .theme-switcher-menu {
+    right: auto;
+    left: 0;
+  }
+
+  .theme-buttons {
+    flex-wrap: wrap;
+  }
+}

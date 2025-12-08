@@ -12,11 +12,11 @@ class CourseMaterialInline(admin.TabularInline):
 class CourseAdmin(admin.ModelAdmin):
     """Admin configuration for Course model"""
 
-    list_display = ['code', 'name', 'titulaire', 'get_sections', 'get_filieres', 'credits', 'students_count', 'is_active']
-    list_filter = ['is_active', 'semester', 'annee_academique', 'credits', 'sections', 'filieres']
+    list_display = ['code', 'name', 'titulaire', 'get_auditoire', 'credits', 'students_count', 'is_active']
+    list_filter = ['is_active', 'semester', 'annee_academique', 'credits', 'auditoire']  # sections, filieres supprimés
     search_fields = ['name', 'code', 'titulaire__first_name', 'titulaire__last_name']
     inlines = [CourseMaterialInline]
-    filter_horizontal = ('assistants', 'sections', 'filieres')
+    filter_horizontal = ('assistants',)  # sections, filieres supprimés (modèle modifié)
 
     fieldsets = (
         ('Informations principales', {
@@ -26,20 +26,19 @@ class CourseAdmin(admin.ModelAdmin):
             'fields': ('titulaire', 'assistants')
         }),
         ('Configuration', {
-            'fields': ('sections', 'filieres', 'semester', 'annee_academique', 'is_active')
+            'fields': ('auditoire', 'semester', 'annee_academique', 'is_active')  # auditoire remplace sections/filieres
         }),
         ('Contenu', {
             'fields': ('syllabus', 'resources')
         }),
     )
 
-    def get_sections(self, obj):
-        return ", ".join([s.nom for s in obj.sections.all()])
-    get_sections.short_description = 'Sections'
-
-    def get_filieres(self, obj):
-        return ", ".join([f.nom for f in obj.filieres.all()])
-    get_filieres.short_description = 'Filières'
+    def get_auditoire(self, obj):
+        """Afficher l'auditoire avec sa filière et section"""
+        if obj.auditoire:
+            return f"{obj.auditoire.nom} ({obj.auditoire.filiere.nom})"
+        return "N/A"
+    get_auditoire.short_description = 'Auditoire'
 
 
 @admin.register(CourseEnrollment)

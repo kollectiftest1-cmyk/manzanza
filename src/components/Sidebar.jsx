@@ -78,6 +78,7 @@ const Sidebar = () => {
       items: [
         { path: "/chat", icon: "fa-comments", text: "Chat", requiredRoles: [] },
         { path: "/library", icon: "fa-book-reader", text: "Bibliothèque", requiredRoles: [] },
+        { path: "/notifications", icon: "fa-book-reader", text: "Notifications", requiredRoles: [] },
         { path: "/paiements", icon: "fa-dollar-sign", text: "Paiements", requiredRoles: ["etudiant", "iadmin", "sgad", "caisse"] },
       ],
     },

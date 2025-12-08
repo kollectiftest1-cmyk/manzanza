@@ -1,65 +1,90 @@
+"""
+Admin interface for TP/TD Assignment System
+"""
 from django.contrib import admin
-from .models import Assignment, Submission, SubmissionComment
+from .models import (
+    Assignment, AssignmentQuestion, AssignmentChoice,
+    AssignmentSubmission, AssignmentAnswer
+)
+
+
+class AssignmentQuestionInline(admin.TabularInline):
+    model = AssignmentQuestion
+    extra = 1
+    fields = ['order', 'question_text', 'question_type', 'points']
+
+
+class AssignmentChoiceInline(admin.TabularInline):
+    model = AssignmentChoice
+    extra = 2
+    fields = ['order', 'choice_text', 'is_correct']
 
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    """Admin configuration for Assignment model"""
-
-    list_display = ['title', 'course', 'assignment_type', 'due_date', 'status', 'submissions_count', 'is_active']
-    list_filter = ['assignment_type', 'status', 'is_active', 'due_date']
+    list_display = [
+        'title', 'assignment_type', 'course', 'due_date',
+        'max_points', 'status', 'created_by'
+    ]
+    list_filter = ['assignment_type', 'submission_type', 'status', 'course']
     search_fields = ['title', 'description', 'course__name']
+    readonly_fields = ['created_at', 'updated_at']
+    inlines = [AssignmentQuestionInline]
 
     fieldsets = (
-        ('Informations principales', {
-            'fields': ('title', 'description', 'instructions', 'course', 'assignment_type')
+        ('Informations de base', {
+            'fields': ('title', 'description', 'assignment_type', 'course')
         }),
-        ('Dates', {
-            'fields': ('start_date', 'due_date')
-        }),
-        ('Configuration', {
-            'fields': ('max_score', 'allow_late_submission', 'late_penalty')
+        ('Remise', {
+            'fields': ('submission_type', 'due_date', 'max_points')
         }),
         ('Ressources', {
-            'fields': ('attachment',)
+            'fields': ('instructions', 'resources')
         }),
-        ('Statut', {
-            'fields': ('status', 'is_active')
+        ('Paramètres', {
+            'fields': ('status', 'auto_grade')
+        }),
+        ('Métadonnées', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
         }),
     )
 
 
-@admin.register(Submission)
-class SubmissionAdmin(admin.ModelAdmin):
-    """Admin configuration for Submission model"""
+@admin.register(AssignmentQuestion)
+class AssignmentQuestionAdmin(admin.ModelAdmin):
+    list_display = ['assignment', 'order', 'question_type', 'points']
+    list_filter = ['question_type', 'assignment']
+    search_fields = ['question_text']
+    inlines = [AssignmentChoiceInline]
 
-    list_display = ['student', 'assignment', 'score', 'status', 'is_late', 'submitted_at', 'graded_at']
-    list_filter = ['status', 'is_late', 'submitted_at', 'graded_at']
+
+@admin.register(AssignmentSubmission)
+class AssignmentSubmissionAdmin(admin.ModelAdmin):
+    list_display = [
+        'student', 'assignment', 'status', 'score',
+        'submitted_at', 'graded_by'
+    ]
+    list_filter = ['status', 'assignment', 'submitted_at']
     search_fields = ['student__first_name', 'student__last_name', 'assignment__title']
-    readonly_fields = ['submitted_at', 'graded_at']
+    readonly_fields = ['created_at', 'updated_at']
 
     fieldsets = (
         ('Soumission', {
-            'fields': ('assignment', 'student', 'content', 'attachment')
+            'fields': ('assignment', 'student', 'submitted_at', 'status')
         }),
         ('Notation', {
-            'fields': ('score', 'feedback', 'graded_by', 'graded_at')
+            'fields': ('score', 'graded_by', 'graded_at', 'feedback')
         }),
-        ('Statut', {
-            'fields': ('status', 'is_late', 'submitted_at')
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
         }),
     )
 
 
-@admin.register(SubmissionComment)
-class SubmissionCommentAdmin(admin.ModelAdmin):
-    """Admin configuration for SubmissionComment model"""
-
-    list_display = ['author', 'submission', 'comment_preview', 'created_at']
-    list_filter = ['created_at']
-    search_fields = ['comment', 'author__first_name', 'author__last_name']
-
-    def comment_preview(self, obj):
-        """Show preview of comment"""
-        return obj.comment[:50] + '...' if len(obj.comment) > 50 else obj.comment
-    comment_preview.short_description = 'Commentaire'
+@admin.register(AssignmentAnswer)
+class AssignmentAnswerAdmin(admin.ModelAdmin):
+    list_display = ['submission', 'question', 'points_earned']
+    list_filter = ['submission__assignment']
+    search_fields = ['submission__student__first_name', 'submission__student__last_name']

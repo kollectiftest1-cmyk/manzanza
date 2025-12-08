@@ -2,29 +2,111 @@
 
 import { Container, Row, Col, Card } from "react-bootstrap"
 import { Link } from "react-router-dom"
+import { motion } from "framer-motion"
+import { FiClipboard, FiLogIn } from "react-icons/fi"
 import MultiStepForm from "../components/Inscription/MultiStepForm"
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+}
 
 const PublicInscription = () => {
   return (
-    <Container className="py-5">
-      <Row className="justify-content-center">
-        <Col md={10} lg={8}>
-          <Card className="shadow-lg border-0 rounded-lg">
-            <Card.Header className="text-center bg-primary text-white">
-              <h3 className="fw-light my-4">Formulaire de Pré-inscription</h3>
-            </Card.Header>
-            <Card.Body className="p-4 p-md-5" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+    <div style={{
+      background: 'var(--color-bodyBg)',
+      minHeight: '100vh',
+      paddingBottom: '40px',
+      paddingTop: '80px' // Add space for navbar
+    }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, var(--color-primary), #667eea)',
+        color: 'white',
+        padding: '32px 24px',
+        textAlign: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '16px',
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px'
+          }}>
+            <FiClipboard size={32} />
+          </div>
+          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '600' }}>
+            Formulaire de Pré-inscription
+          </h3>
+          <p style={{ margin: '8px 0 0', opacity: 0.9, fontSize: '15px' }}>
+            Complétez les étapes ci-dessous pour soumettre votre demande
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Main Content - Full Width, Natural Scroll */}
+      <Container style={{ marginTop: '40px', maxWidth: '1000px' }}>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div variants={itemVariants}>
+            <Card style={{
+              background: 'var(--color-cardBg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '16px',
+              boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+              padding: '32px',
+              marginBottom: '24px'
+            }}>
               <MultiStepForm />
-            </Card.Body>
-            <Card.Footer className="text-center py-3">
-              <div className="small">
-                <Link to="/login">Déjà un compte ? Se connecter</Link>
-              </div>
-            </Card.Footer>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+            </Card>
+
+            {/* Footer Link */}
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <Link
+                to="/login"
+                style={{
+                  color: 'var(--color-primary)',
+                  textDecoration: 'none',
+                  fontSize: '15px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
+                }}
+              >
+                <FiLogIn size={16} />
+                Déjà un compte ? Se connecter
+              </Link>
+            </div>
+          </motion.div>
+        </motion.div>
+      </Container>
+    </div>
   )
 }
 

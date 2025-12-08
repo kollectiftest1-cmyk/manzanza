@@ -1,9 +1,13 @@
 import { Routes, Route } from "react-router-dom"
 import { useSelector } from "react-redux"
+import { useEffect } from "react"
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js'
 
 import Navbar from "./components/Layout/Navbar"
 import Sidebar from "./components/Sidebar" // Corrected import path for Sidebar
+import ModernSidebar from "./components/ModernSidebar"
+import ModernHeader from "./components/ModernHeader"
+import { applyTheme, getCurrentThemeName } from "./config/theme"
 import Home from "./pages/Home"
 import Login from "./pages/Login"
 import Dashboard from "./pages/Dashboard"
@@ -35,6 +39,13 @@ import ProtectedRoute from "./components/Auth/ProtectedRoute"
 import StudentListPage from "./pages/StudentListPage"
 import TeacherListPage from "./pages/TeacherListPage"
 
+// Import TP/TD/Quiz pages
+import TeacherAssignments from "./pages/TeacherAssignments"
+import TeacherQuizzes from "./pages/TeacherQuizzes"
+import TeacherAttendance from "./pages/TeacherAttendance"
+import StudentAssignments from "./pages/StudentAssignments"
+import StudentQuizzes from "./pages/StudentQuizzes"
+
 import { Col, Row } from "react-bootstrap"
 
 // Register Chart.js components globally
@@ -46,25 +57,31 @@ function App() {
   // Define roles that can view user lists
   const canViewUsersRoles = ['iadmin', 'sga', 'chef_section', 'chef_departement', 'directeur_general', 'pdg'];
 
+  // Apply theme on mount
+  useEffect(() => {
+    applyTheme(getCurrentThemeName())
+  }, [])
+
   return (
     <div className="App">
       {isAuthenticated ? (
-        <div className="container-fluid p-0">
+        <div className="container-fluid hh p-0">
           <Row className="row g-0">
             <Col lg={2} className="col-auto">
-              <Sidebar />
+              <ModernSidebar />
             </Col>
             <Col lg={10} className="col">
+              <ModernHeader />
               <div
                 className="main-content"
                 style={{
-                  height: "100vh",
+                  height: "calc(100vh - 73px)",
                   overflowY: "auto",
                   overflowX: "auto",
-                  backgroundColor: "#f8f9fa",
+                  backgroundColor: "var(--color-bodyBg)",
                 }}
               >
-                <div className="p-4">
+                <div className="p-0">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -77,6 +94,15 @@ function App() {
                     <Route path="/tptd" element={<ProtectedRoute><TPTD /></ProtectedRoute>} />
                     <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
                     <Route path="/quiz/:id" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+
+                    {/* TP/TD/Quiz Routes for Teachers */}
+                    <Route path="/teacher/assignments" element={<ProtectedRoute roles={['enseignant', 'assistant']}><TeacherAssignments /></ProtectedRoute>} />
+                    <Route path="/teacher/quizzes" element={<ProtectedRoute roles={['enseignant', 'assistant']}><TeacherQuizzes /></ProtectedRoute>} />
+                    <Route path="/teacher/attendance" element={<ProtectedRoute roles={['enseignant', 'assistant']}><TeacherAttendance /></ProtectedRoute>} />
+
+                    {/* TP/TD/Quiz Routes for Students */}
+                    <Route path="/student/assignments" element={<ProtectedRoute roles={['etudiant']}><StudentAssignments /></ProtectedRoute>} />
+                    <Route path="/student/quizzes" element={<ProtectedRoute roles={['etudiant']}><StudentQuizzes /></ProtectedRoute>} />
                     <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                     <Route path="/rh" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><RH /></ProtectedRoute>} />
                     <Route path="/comptabilite" element={<ProtectedRoute roles={['iadmin', 'caisse', 'sgad']}><Comptabilite /></ProtectedRoute>} />

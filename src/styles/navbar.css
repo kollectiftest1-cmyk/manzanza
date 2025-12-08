@@ -1,0 +1,357 @@
+/**
+ * Styles pour la Navbar moderne
+ */
+
+.navbar-modern {
+  position: fixed;
+  top: 0;
+  left: 250px;
+  right: 0;
+  height: 70px;
+  background-color: var(--color-navbarBg);
+  border-bottom: 1px solid var(--color-navbarBorder);
+  box-shadow: var(--shadow-sm);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-lg);
+}
+
+.navbar-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xl);
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex: 0 0 auto;
+}
+
+.navbar-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--color-navbarText);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  transition: var(--transition);
+}
+
+.navbar-toggle:hover {
+  background-color: var(--color-sidebarHover);
+  color: var(--color-primary);
+}
+
+.navbar-brand-section {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-navbarText);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.navbar-brand:hover {
+  color: var(--color-primary);
+}
+
+.navbar-brand i {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+}
+
+.navbar-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: 0.95rem;
+  color: var(--color-textSecondary);
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 0 0 auto;
+}
+
+.navbar-item {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-icon-btn {
+  background: none;
+  border: none;
+  color: var(--color-navbarText);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  transition: var(--transition);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar-icon-btn:hover {
+  background-color: var(--color-sidebarHover);
+  color: var(--color-primary);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem !important;
+}
+
+.navbar-user {
+  border-left: 1px solid var(--color-navbarBorder);
+  padding-left: var(--spacing-md);
+}
+
+.navbar-user-btn {
+  background: none;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  transition: var(--transition);
+}
+
+.navbar-user-btn:hover {
+  background-color: var(--color-sidebarHover);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-textWhite);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 100px;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-textPrimary);
+}
+
+.user-role {
+  font-size: 0.8rem;
+  color: var(--color-textSecondary);
+  text-transform: capitalize;
+}
+
+.navbar-user-btn i:last-child {
+  font-size: 0.8rem;
+  color: var(--color-textSecondary);
+}
+
+/* Dropdown Menu Styles */
+.navbar-dropdown-menu {
+  background-color: var(--color-cardBg);
+  border: 1px solid var(--color-cardBorder);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0;
+  min-width: 220px;
+}
+
+.navbar-dropdown-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-bgDark);
+  border-bottom: 1px solid var(--color-cardBorder);
+  font-weight: 600;
+  color: var(--color-textPrimary);
+  font-size: 0.95rem;
+}
+
+.navbar-dropdown-item {
+  padding: var(--spacing-md) var(--spacing-lg);
+  color: var(--color-textPrimary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transition: var(--transition);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.navbar-dropdown-item:hover {
+  background-color: var(--color-bgDark);
+  color: var(--color-primary);
+}
+
+.navbar-dropdown-item i {
+  width: 18px;
+  text-align: center;
+  color: var(--color-primary);
+}
+
+.logout-item {
+  border-top: 1px solid var(--color-cardBorder);
+  color: var(--color-danger);
+}
+
+.logout-item:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.logout-item i {
+  color: var(--color-danger);
+}
+
+.navbar-user-menu {
+  min-width: 250px;
+}
+
+/* Main content adjustment */
+.main-content {
+  margin-left: 250px;
+  margin-top: 70px;
+}
+
+/* Responsive design */
+@media (max-width: 992px) {
+  .navbar-modern {
+    left: 200px;
+  }
+
+  .navbar-breadcrumb {
+    display: none;
+  }
+
+  .user-info {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar-modern {
+    left: 0;
+  }
+
+  .navbar-toggle {
+    display: flex;
+  }
+
+  .navbar-breadcrumb {
+    display: none;
+  }
+
+  .navbar-center {
+    display: none;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .navbar-brand-section {
+    display: none;
+  }
+
+  .navbar-left {
+    gap: var(--spacing-md);
+  }
+
+  .navbar-right {
+    gap: var(--spacing-sm);
+  }
+
+  .navbar-icon-btn {
+    font-size: 1rem;
+  }
+
+  .navbar-user-btn {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .notification-badge {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.4rem !important;
+  }
+}
+
+/* Sidebar overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+  opacity: 0;
+  pointer-events: none;
+  transition: var(--transition);
+}
+
+.sidebar-overlay.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+  }
+}

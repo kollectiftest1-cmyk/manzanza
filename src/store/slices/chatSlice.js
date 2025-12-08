@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
-import { chatAPI } from "../../services/api"
+import chatService from "../../services/chatService"
 
 // Async thunks pour les appels API
 export const fetchChannels = createAsyncThunk(
   "chat/fetchChannels",
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await chatAPI.getChannels(params)
+      const response = await chatService.getMyChannels()
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement des canaux")
@@ -18,7 +18,7 @@ export const fetchMessages = createAsyncThunk(
   "chat/fetchMessages",
   async (channelId, { rejectWithValue }) => {
     try {
-      const response = await chatAPI.getMessages(channelId)
+      const response = await chatService.getChannelMessages(channelId)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement des messages")
@@ -30,7 +30,7 @@ export const sendMessage = createAsyncThunk(
   "chat/sendMessage",
   async ({ channelId, content }, { rejectWithValue }) => {
     try {
-      const response = await chatAPI.sendMessage(channelId, { content })
+      const response = await chatService.sendMessage({ channel: channelId, content })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || "Erreur lors de l'envoi du message")
@@ -42,7 +42,7 @@ export const createChannel = createAsyncThunk(
   "chat/createChannel",
   async (channelData, { rejectWithValue }) => {
     try {
-      const response = await chatAPI.createChannel(channelData)
+      const response = await chatService.createChannel(channelData)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || "Erreur lors de la création du canal")
@@ -52,9 +52,9 @@ export const createChannel = createAsyncThunk(
 
 export const addReaction = createAsyncThunk(
   "chat/addReaction",
-  async ({ messageId, emoji }, { rejectWithValue }) => {
+  async ({ messageId, reactionType }, { rejectWithValue }) => {
     try {
-      const response = await chatAPI.addReaction(messageId, { emoji })
+      const response = await chatService.reactToMessage(messageId, reactionType)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || "Erreur lors de l'ajout de la réaction")

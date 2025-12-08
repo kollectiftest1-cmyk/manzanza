@@ -25,9 +25,15 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
+# Import ViewSets
+from apps.auditoires.views import SectionViewSet, FiliereViewSet, AuditoireViewSet
+
 # Main API router
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'sections', SectionViewSet, basename='section')
+router.register(r'filieres', FiliereViewSet, basename='filiere')
+router.register(r'auditoires', AuditoireViewSet, basename='auditoire')
 
 urlpatterns = [
     # Admin

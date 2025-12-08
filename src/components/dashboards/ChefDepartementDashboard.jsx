@@ -1,8 +1,16 @@
-import { Container, Row, Col, Card, Button, Table, ProgressBar } from "react-bootstrap"
+import { Container, Row, Col } from "react-bootstrap"
 import { useSelector, useDispatch } from "react-redux"
 import { useEffect } from "react"
+import { motion } from "framer-motion"
+import { Link } from "react-router-dom"
 import { fetchAuditoires } from "../../store/slices/auditoiresSlice"
 import { fetchCourses } from "../../store/slices/coursesSlice"
+import StatCard from "../StatCard"
+import ChartCard from "../ChartCard"
+import CalendarWidget from "../CalendarWidget"
+import ScheduleWidget from "../ScheduleWidget"
+import RecentActivity from "../RecentActivity"
+import { FiGrid, FiUsers, FiUserCheck, FiBook } from "react-icons/fi"
 
 const ChefDepartementDashboard = () => {
   const dispatch = useDispatch()
@@ -10,192 +18,296 @@ const ChefDepartementDashboard = () => {
   const { auditoires } = useSelector((state) => state.auditoires)
   const { courses } = useSelector((state) => state.courses)
 
-  const userFiliereId = user?.filiere; // Supposons que l'objet user a une propriété filiere avec un id
- console.log('e',auditoires);
- 
+  const userFiliereId = user?.filiere;
+  console.log('e',auditoires);
+
   useEffect(() => {
     if (userFiliereId) {
       dispatch(fetchAuditoires({ filiere: userFiliereId }))
       dispatch(fetchCourses({ filiere: userFiliereId }))
     } else {
-      // Gérer le cas où l'ID de la filière n'est pas disponible (par exemple, charger tous les auditoires/cours ou afficher un message)
-      // Pour l'instant, nous ne faisons rien si l'ID n'est pas là, ce qui signifie que les listes resteront vides.
-      // Vous pourriez vouloir charger tous les auditoires/cours ou afficher un message d'erreur/chargement.
       console.warn("L'ID de la filière de l'utilisateur n'est pas disponible. Impossible de filtrer les auditoires et les cours.")
     }
   }, [dispatch, userFiliereId])
 
-  // Calculate real statistics from backend data
-  // Ensure departementAuditoires is always an array
   const departementAuditoires = (auditoires && auditoires.results) ? auditoires.results : auditoires || [];
-  const departementCourses = (courses && courses.results) ? courses.results : courses || []; // Assurez-vous que courses est aussi un tableau
+  const departementCourses = (courses && courses.results) ? courses.results : courses || [];
+
+  // Calculer le nombre total d'enseignants UNIQUES (titulaires + assistants)
+  const uniqueTeachers = new Set();
+  departementCourses.forEach(course => {
+    // Ajouter le titulaire (support ancien et nouveau format)
+    const titulaire = course.titulaire_detail || course.titulaire;
+    if (titulaire?.id) {
+      uniqueTeachers.add(titulaire.id);
+    }
+
+    // Ajouter tous les assistants (support ancien et nouveau format)
+    const assistants = course.assistants_detail || course.assistants || [];
+    if (Array.isArray(assistants)) {
+      assistants.forEach(assistant => {
+        if (assistant?.id) {
+          uniqueTeachers.add(assistant.id);
+        }
+      });
+    }
+  });
 
   const departementStats = {
     totalAuditoires: departementAuditoires.length,
-    totalEtudiants: departementAuditoires.reduce((sum, aud) => sum + (aud.etudiants_count || 0), 0), // Utiliser etudiants_count
-    totalEnseignants: new Set(departementCourses.map(c => c.titulaire?.id)).size, // Utiliser c.titulaire.id
+    totalEtudiants: departementAuditoires.reduce((sum, aud) => sum + (aud.etudiants_count || 0), 0),
+    totalEnseignants: uniqueTeachers.size,
     coursActifs: departementCourses.filter(c => c.is_active).length,
   }
 
-  const auditoiresList = departementAuditoires.map(aud => ({
-    id: aud.id,
-    nom: aud.nom, // Utiliser aud.nom au lieu de aud.name
-    level: aud.niveau, // Utiliser aud.niveau au lieu de aud.level
-    program: aud.filiere_name, // Utiliser aud.filiere_name au lieu de aud.program
-    etudiants: aud.etudiants_count || 0,
-    cours: aud.cours_count || 0,
-    performance: Math.round(Math.random() * 20 + 75) // Mock performance - should come from grades API
-  }))
+  const auditoiresData = {
+    labels: departementAuditoires.slice(0, 6).map(a => a.nom),
+    datasets: [{
+      label: 'Étudiants par auditoire',
+      data: departementAuditoires.slice(0, 6).map(a => a.etudiants_count || 0),
+      backgroundColor: 'rgba(78, 115, 223, 0.8)',
+      borderRadius: 8,
+    }]
+  }
+
+  const deptActivities = [
+    {
+      id: 1,
+      type: "check",
+      title: "Nouveau cours validé",
+      description: "Le cours de Statistiques Avancées a été approuvé",
+      time: "Il y a 2h",
+    },
+    {
+      id: 2,
+      type: "user",
+      title: "Enseignant assigné",
+      description: "Prof. Dubois assigné à 3 nouveaux cours",
+      time: "Il y a 1 jour",
+    },
+  ]
+
+  const deptSchedule = [
+    {
+      title: "Réunion département",
+      description: "Coordination pédagogique",
+      time: "10:00 AM - 12:00 PM",
+      location: "Salle B201",
+      badge: "Réunion",
+      color: "var(--color-primary)",
+    },
+  ]
 
   return (
-    <Container fluid className="py-0" style={{ }}>
-      <Row className="mb-4 dashboard-card">
-        <Col>
-          <h2 className="text-primary fw-bold">Tableau de Bord - Chef de Département</h2>
-          <p className="text-muted">Département: {user?.departement?.nom || "Sciences Économiques et de Gestion"}</p> {/* Afficher le nom du département si disponible */}
-        </Col>
-      </Row>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: '32px' }}
+      >
+        <h2 style={{
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: 'var(--color-textPrimary)',
+          marginBottom: '8px',
+        }}>
+          Chef de Département 🏛️
+        </h2>
+        <p style={{
+          fontSize: '0.95rem',
+          color: 'var(--color-textSecondary)',
+          margin: 0,
+        }}>
+          Département: {user?.departement?.nom || user?.filiere_name || "Sciences Économiques et de Gestion"}
+        </p>
+      </motion.div>
 
-      {/* Statistics Cards */}
       <Row className="mb-4">
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-sitemap fa-2x text-primary mb-3"></i>
-              <h4 className="fw-bold">{departementStats.totalAuditoires}</h4>
-              <p className="text-muted mb-0">Auditoires</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Auditoires"
+            value={departementStats.totalAuditoires.toString()}
+            icon={FiGrid}
+            color="primary"
+            subtitle="Du département"
+            delay={0}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-users fa-2x text-success mb-3"></i>
-              <h4 className="fw-bold">{departementStats.totalEtudiants}</h4>
-              <p className="text-muted mb-0">Étudiants</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Étudiants"
+            value={departementStats.totalEtudiants.toString()}
+            icon={FiUsers}
+            color="success"
+            subtitle="Inscrits"
+            delay={0.1}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-chalkboard-teacher fa-2x text-warning mb-3"></i>
-              <h4 className="fw-bold">{departementStats.totalEnseignants}</h4>
-              <p className="text-muted mb-0">Enseignants</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Enseignants"
+            value={departementStats.totalEnseignants.toString()}
+            icon={FiUserCheck}
+            color="warning"
+            subtitle="Actifs"
+            delay={0.2}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-book fa-2x text-info mb-3"></i>
-              <h4 className="fw-bold">{departementStats.coursActifs}</h4>
-              <p className="text-muted mb-0">Cours Actifs</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Cours Actifs"
+            value={departementStats.coursActifs.toString()}
+            icon={FiBook}
+            color="info"
+            subtitle="Ce semestre"
+            delay={0.3}
+          />
+        </Col>
+      </Row>
+
+      {departementAuditoires.length > 0 && (
+        <Row className="mb-4">
+          <Col lg={12}>
+            <ChartCard
+              title="Étudiants par Auditoire"
+              subtitle="Top 6 auditoires"
+              chartType="bar"
+              data={auditoiresData}
+              delay={0.4}
+              height={300}
+            />
+          </Col>
+        </Row>
+      )}
+
+      <Row className="mb-4">
+        <Col xl={4} lg={12} className="mb-4">
+          <CalendarWidget
+            events={[
+              { date: new Date() },
+              { date: new Date(Date.now() + 86400000 * 4) },
+            ]}
+            delay={0.5}
+          />
+        </Col>
+        <Col xl={4} lg={6} className="mb-4">
+          <ScheduleWidget
+            schedule={deptSchedule}
+            date={new Date()}
+            delay={0.6}
+          />
+        </Col>
+        <Col xl={4} lg={6} className="mb-4">
+          <RecentActivity
+            activities={deptActivities}
+            delay={0.7}
+          />
         </Col>
       </Row>
 
-      <Row>
-        <Col lg={8}>
-          <Card className="card-custom">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold mb-0">Gestion des Auditoires</h5>
-              <Button size="sm" className="btn-primary-custom">
-                <i className="fas fa-plus me-1"></i>
-                Nouvel Auditoire
-              </Button>
-            </Card.Header>
-            <Card.Body>
-              <Table responsive hover>
-                <thead>
-                  <tr>
-                    <th>Auditoire</th>
-                    <th>Étudiants</th>
-                    <th>Cours</th>
-                    <th>Performance</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditoiresList.map((auditoire) => (
-                    <tr key={auditoire.id}>
-                      <td className="fw-semibold">{auditoire.nom}</td>
-                      <td>{auditoire.etudiants}</td>
-                      <td>{auditoire.cours}</td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <ProgressBar
-                            now={auditoire.performance}
-                            variant={
-                              auditoire.performance >= 85 ? "success" : auditoire.performance >= 70 ? "warning" : "danger"
-                            }
-                            style={{ width: "60px", height: "8px" }}
-                            className="me-2"
-                          />
-                          <small>{auditoire.performance}%</small>
-                        </div>
-                      </td>
-                      <td>
-                        <Button size="sm" variant="outline-primary" className="me-1">
-                          <i className="fas fa-edit"></i>
-                        </Button>
-                        <Button size="sm" variant="outline-info">
-                          <i className="fas fa-eye"></i>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-        </Col>
+      {departementAuditoires.length > 0 && (
+        <Row className="mb-4">
+          <Col lg={12}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.4 }}
+              style={{
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-cardBorder)',
+                borderRadius: '12px',
+                padding: '20px',
+                boxShadow: 'var(--color-cardShadow)',
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+              }}>
+                <h5 style={{
+                  margin: 0,
+                  fontSize: '1.1rem',
+                  fontWeight: '700',
+                  color: 'var(--color-textPrimary)',
+                }}>
+                  Auditoires du Département
+                </h5>
+                <Link to="/auditoires">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                      background: 'var(--color-primary)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                    }}
+                  >
+                    Gérer tous
+                  </motion.button>
+                </Link>
+              </div>
 
-        <Col lg={4}>
-          <Card className="card-custom mb-4">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Actions Rapides</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="d-grid gap-2">
-                <Button variant="outline-primary">
-                  <i className="fas fa-user-tie me-2"></i>
-                  Nommer Chef Auditoire
-                </Button>
-                <Button variant="outline-success">
-                  <i className="fas fa-chart-line me-2"></i>
-                  Rapport Département
-                </Button>
-                <Button variant="outline-info">
-                  <i className="fas fa-calendar-alt me-2"></i>
-                  Planning Global
-                </Button>
-                <Button variant="outline-warning">
-                  <i className="fas fa-cogs me-2"></i>
-                  Paramètres Département
-                </Button>
-              </div>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Alertes Importantes</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="alert alert-warning">
-                <i className="fas fa-exclamation-triangle me-2"></i>
-                <strong>Attention:</strong> Auditoire Finance nécessite un nouvel enseignant
-              </div>
-              <div className="alert alert-info">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Info:</strong> Réunion département prévue demain
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+              <Row>
+                {departementAuditoires.slice(0, 6).map((auditoire, index) => (
+                  <Col key={auditoire.id} xl={4} lg={6} md={6} className="mb-3">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.8 + (index * 0.1) }}
+                      whileHover={{ y: -5 }}
+                      style={{
+                        background: 'var(--color-bodyBg)',
+                        borderRadius: '10px',
+                        padding: '16px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                      }}
+                    >
+                      <h6 style={{
+                        fontSize: '0.95rem',
+                        fontWeight: '700',
+                        color: 'var(--color-textPrimary)',
+                        marginBottom: '8px',
+                      }}>
+                        {auditoire.nom}
+                      </h6>
+                      <p style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--color-textMuted)',
+                        marginBottom: '12px',
+                      }}>
+                        {auditoire.niveau} - {auditoire.filiere_name}
+                      </p>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '8px',
+                      }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--color-textSecondary)' }}>
+                          <FiUsers size={14} style={{ marginRight: '4px' }} />
+                          {auditoire.etudiants_count || 0} étudiants
+                        </span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--color-textSecondary)' }}>
+                          <FiBook size={14} style={{ marginRight: '4px' }} />
+                          {auditoire.cours_count || 0} cours
+                        </span>
+                      </div>
+                    </motion.div>
+                  </Col>
+                ))}
+              </Row>
+            </motion.div>
+          </Col>
+        </Row>
+      )}
     </Container>
   )
 }

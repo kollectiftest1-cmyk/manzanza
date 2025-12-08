@@ -6,21 +6,41 @@ from django.conf import settings
 
 
 class ChatChannel(models.Model):
-    """Chat Channel Model (Forum for each course)"""
+    """Chat Channel Model - Support multiple channel types"""
+
+    CHANNEL_TYPES = [
+        ('course', 'Chat de cours'),
+        ('section', 'Chat de section'),
+        ('filiere', 'Chat de filière'),
+        ('general', 'Chat général'),
+    ]
 
     name = models.CharField(max_length=200, verbose_name='Nom du canal')
     description = models.TextField(blank=True, null=True, verbose_name='Description')
-    course = models.ForeignKey('courses.Course', on_delete=models.CASCADE,
-                              related_name='chat_channels', verbose_name='Cours',
+    channel_type = models.CharField(max_length=20, choices=CHANNEL_TYPES, default='course', verbose_name='Type de canal')
+
+    # Relations - only one should be set based on channel_type
+    course = models.OneToOneField('courses.Course', on_delete=models.CASCADE,
+                              related_name='chat_channel', verbose_name='Cours',
+                              null=True, blank=True)
+    section = models.OneToOneField('auditoires.Section', on_delete=models.CASCADE,
+                              related_name='chat_channel', verbose_name='Section',
+                              null=True, blank=True)
+    filiere = models.OneToOneField('auditoires.Filiere', on_delete=models.CASCADE,
+                              related_name='chat_channel', verbose_name='Filière',
                               null=True, blank=True)
 
-    # If not linked to a course, it's a general channel
-    is_general = models.BooleanField(default=False, verbose_name='Canal général')
+    # Members
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='chat_channels',
+                                     verbose_name='Membres', blank=True)
+
+    # Settings
     is_active = models.BooleanField(default=True, verbose_name='Actif')
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                   null=True, related_name='channels_created')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Canal de discussion'
@@ -33,9 +53,7 @@ class ChatChannel(models.Model):
     @property
     def participants_count(self):
         """Count active participants"""
-        if self.course:
-            return self.course.enrollments.filter(is_active=True).count()
-        return 0
+        return self.members.filter(is_active=True).count()
 
 
 class Message(models.Model):

@@ -7,11 +7,15 @@ from apps.courses.models import Course
 from apps.users.models import User
 
 class SimpleCourseSerializer(serializers.ModelSerializer):
+    titulaire_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Course
         fields = ['id', 'name', 'code', 'credits', 'titulaire_name']
-    
-    titulaire_name = serializers.CharField(source='titulaire.name', read_only=True)
+
+    def get_titulaire_name(self, obj):
+        """Get titulaire name, handling None gracefully"""
+        return obj.titulaire.name if obj.titulaire else None
 
 class SimpleAuditoireSerializer(serializers.ModelSerializer):
     courses = SimpleCourseSerializer(many=True, read_only=True)
@@ -24,7 +28,7 @@ class SimpleAuditoireSerializer(serializers.ModelSerializer):
         fields = ['id', 'nom', 'niveau', 'vacation_display', 'etudiants_count', 'courses']
 
 class FiliereDetailSerializer(serializers.ModelSerializer):
-    section_nom = serializers.CharField(source='section.nom', read_only=True)
+    section_nom = serializers.SerializerMethodField()
     chef_filiere_name = serializers.SerializerMethodField()
     auditoires = SimpleAuditoireSerializer(many=True, read_only=True, source='auditoire_set')
     etudiants_count = serializers.SerializerMethodField()
@@ -33,6 +37,10 @@ class FiliereDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Filiere
         fields = ['id', 'nom', 'section', 'section_nom', 'chef_filiere', 'chef_filiere_name', 'auditoires', 'etudiants_count', 'enseignants_count']
+
+    def get_section_nom(self, obj):
+        """Get section nom, handling None gracefully"""
+        return obj.section.nom if obj.section else None
 
     def get_chef_filiere_name(self, obj):
         if obj.chef_filiere:
@@ -43,7 +51,17 @@ class FiliereDetailSerializer(serializers.ModelSerializer):
         return User.objects.filter(auditoire__filiere=obj).count()
 
     def get_enseignants_count(self, obj):
-        return User.objects.filter(courses_held__auditoire__filiere=obj).distinct().count()
+        """
+        Compter TOUS les enseignants et assistants qui donnent des cours dans cette filière
+        Un enseignant fait partie de la filière s'il y enseigne (titulaire OU assistant)
+        """
+        from django.db.models import Q
+
+        return User.objects.filter(
+            Q(courses_as_teacher__auditoire__filiere=obj) |
+            Q(courses_as_assistant__auditoire__filiere=obj),
+            role__in=['enseignant', 'assistant']
+        ).distinct().count()
 
 class SectionDetailSerializer(serializers.ModelSerializer):
     chef_section_name = serializers.SerializerMethodField()
@@ -65,20 +83,34 @@ class SectionDetailSerializer(serializers.ModelSerializer):
         return User.objects.filter(auditoire__filiere__section=obj).count()
 
     def get_enseignants_count(self, obj):
-        return User.objects.filter(courses_held__auditoire__filiere__section=obj).distinct().count()
+        """
+        Compter TOUS les enseignants et assistants qui donnent des cours dans cette section
+        Un enseignant fait partie de la section s'il y enseigne (titulaire OU assistant)
+        """
+        from django.db.models import Q
+
+        return User.objects.filter(
+            Q(courses_as_teacher__auditoire__filiere__section=obj) |
+            Q(courses_as_assistant__auditoire__filiere__section=obj),
+            role__in=['enseignant', 'assistant']
+        ).distinct().count()
         
     def get_auditoires_count(self, obj):
         return Auditoire.objects.filter(filiere__section=obj).count()
 
 class FiliereSerializer(serializers.ModelSerializer):
     """Filiere (Option) Serializer"""
-    section_nom = serializers.CharField(source='section.nom', read_only=True)
+    section_nom = serializers.SerializerMethodField()
     chef_filiere_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Filiere
         fields = ['id', 'nom', 'section', 'section_nom', 'chef_filiere', 'chef_filiere_name']
-        
+
+    def get_section_nom(self, obj):
+        """Get section nom, handling None gracefully"""
+        return obj.section.nom if obj.section else None
+
     def get_chef_filiere_name(self, obj):
         if obj.chef_filiere:
             return f"{obj.chef_filiere.first_name} {obj.chef_filiere.last_name}"
@@ -104,12 +136,12 @@ class SectionSerializer(serializers.ModelSerializer):
 
 class AuditoireSerializer(serializers.ModelSerializer):
     """Auditoire Serializer"""
-    # Use the annotated fields from the viewset directly
-    etudiants_count = serializers.IntegerField(read_only=True)
-    cours_count = serializers.IntegerField(read_only=True)
-    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True, allow_null=True)
-    section_name = serializers.CharField(source='filiere.section.nom', read_only=True, allow_null=True)
-    filiere_name = serializers.CharField(source='filiere.nom', read_only=True, allow_null=True)
+    # Utiliser SerializerMethodField pour un comptage fiable
+    etudiants_count = serializers.SerializerMethodField()
+    cours_count = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+    section_name = serializers.SerializerMethodField()
+    filiere_name = serializers.SerializerMethodField()
     vacation_display = serializers.CharField(source='get_vacation_display', read_only=True)
 
     # Helper field for the form. It will be accepted on input but not used for saving.
@@ -120,8 +152,8 @@ class AuditoireSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'nom', 'niveau', 'vacation', 'vacation_display', 'description',
             'annee_academique', 'capacite_max', 'is_active',
-            'etudiants_count', 'cours_count', 
-            'section_name', 
+            'etudiants_count', 'cours_count',
+            'section_name',
             'filiere', 'filiere_name',
             'created_by', 'created_by_name', 'created_at', 'updated_at',
             'section' # Include the helper field
@@ -130,5 +162,42 @@ class AuditoireSerializer(serializers.ModelSerializer):
             'id', 'created_at', 'updated_at', 'etudiants_count', 'cours_count',
             'created_by_name', 'section_name', 'filiere_name', 'vacation_display'
         ]
-        # No extra_kwargs needed, DRF will infer from the model.
-        # The model now correctly defines `filiere` as non-nullable.
+        extra_kwargs = {
+            'nom': {'required': False}  # Allow nom to be optional, will be auto-generated if not provided
+        }
+
+    def get_created_by_name(self, obj):
+        """Get created by name, handling None gracefully"""
+        return obj.created_by.get_full_name() if obj.created_by else None
+
+    def get_section_name(self, obj):
+        """Get section name through filiere, handling None gracefully"""
+        return obj.filiere.section.nom if obj.filiere and obj.filiere.section else None
+
+    def get_filiere_name(self, obj):
+        """Get filiere name, handling None gracefully"""
+        return obj.filiere.nom if obj.filiere else None
+
+    def get_etudiants_count(self, obj):
+        """Compter les étudiants actifs de cet auditoire"""
+        return obj.students.filter(is_active=True).count()
+
+    def get_cours_count(self, obj):
+        """Compter les cours actifs de cet auditoire"""
+        return obj.courses.filter(is_active=True).count()
+
+    def create(self, validated_data):
+        """
+        Override create to auto-generate nom if not provided
+        """
+        from apps.auditoires.utils import generate_auditoire_name
+
+        # If nom is not provided, generate it
+        if not validated_data.get('nom'):
+            validated_data['nom'] = generate_auditoire_name(
+                niveau=validated_data.get('niveau'),
+                filiere=validated_data.get('filiere'),
+                vacation=validated_data.get('vacation', 'jour')
+            )
+
+        return super().create(validated_data)

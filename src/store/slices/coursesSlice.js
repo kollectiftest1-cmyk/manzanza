@@ -19,6 +19,8 @@ export const fetchMyCourses = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => { // Added params for potential future pagination/filters for students
     try {
       const response = await coursesAPI.getMyCourses(params)
+      console.log('my courses ',response.data);
+      
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || "Erreur lors du chargement de vos cours")

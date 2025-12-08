@@ -17,6 +17,8 @@ from .serializers import (
     ChangePasswordSerializer, LoginSerializer, UserProfileSerializer
 )
 from .permissions import IsOwnerOrAdmin, IsAdminUser, CanViewUsers
+from .filters import UserFilter, StudentFilter, TeacherFilter
+from .mixins import RoleBasedFilterMixin
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -28,20 +30,38 @@ class StandardResultsSetPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     """
-    ViewSet for User model
+    ViewSet for User model with intelligent role-based filtering
     """
     queryset = User.objects.select_related(
         'auditoire', 'section', 'filiere'
     ).prefetch_related(
-        'courses_held'
+        'courses_as_teacher', 'courses_as_assistant'
     ).all().order_by('-date_joined')
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['role']
-    search_fields = ['first_name', 'last_name', 'email']
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = UserFilter
+    search_fields = ['first_name', 'last_name', 'email', 'matricule']
+    ordering_fields = ['last_name', 'first_name', 'date_joined']
+
+    def get_queryset(self):
+        """
+        Apply intelligent role-based filtering
+
+        Note: Si for_course_form=true, chef_section et chef_departement voient TOUS les utilisateurs
+        car ils peuvent assigner n'importe quel enseignant à un nouveau cours
+        """
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        # Si c'est pour le formulaire de cours, chef section/département voient TOUS les utilisateurs
+        for_course_form = self.request.query_params.get('for_course_form', 'false').lower() == 'true'
+        if for_course_form and user.role in ['chef_section', 'chef_departement', 'sga', 'admin', 'iadmin']:
+            return queryset
+
+        return self.filter_queryset_by_role(queryset, user, 'user')
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -198,9 +218,9 @@ class StudentFilter(FilterSet):
         return filtered_qs
 
 
-class StudentListView(generics.ListAPIView):
+class StudentListView(RoleBasedFilterMixin, generics.ListAPIView):
     """
-    API view to list students with filtering options.
+    API view to list students with intelligent role-based filtering
     """
     queryset = User.objects.select_related('auditoire__filiere__section', 'filiere__section', 'section').filter(role='etudiant').order_by('last_name', 'first_name')
     serializer_class = UserSerializer
@@ -211,21 +231,41 @@ class StudentListView(generics.ListAPIView):
     search_fields = ['first_name', 'last_name', 'email', 'matricule']
     ordering_fields = ['last_name', 'first_name', 'matricule']
 
+    def get_queryset(self):
+        """Apply intelligent role-based filtering"""
+        queryset = super().get_queryset()
+        return self.filter_queryset_by_role(queryset, self.request.user, 'user')
 
-class TeacherListView(generics.ListAPIView):
+
+class TeacherListView(RoleBasedFilterMixin, generics.ListAPIView):
     """
-    API view to list teachers and assistants with filtering options.
+    API view to list teachers and assistants with intelligent role-based filtering
     """
-    queryset = User.objects.select_related('filiere', 'section').filter(role__in=['enseignant', 'assistant']).order_by('last_name', 'first_name').distinct()
+    queryset = User.objects.select_related('filiere', 'section').prefetch_related(
+        'courses_as_teacher__auditoire__filiere__section',
+        'courses_as_assistant__auditoire__filiere__section'
+    ).filter(role__in=['enseignant', 'assistant']).order_by('last_name', 'first_name').distinct()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, CanViewUsers]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = [
-        'filiere',
-        'section',
-        'courses_held__filieres',
-        'courses_held__sections',
-    ]
+    filterset_class = TeacherFilter
     search_fields = ['first_name', 'last_name', 'email']
     ordering_fields = ['last_name', 'first_name']
+
+    def get_queryset(self):
+        """
+        Apply intelligent role-based filtering
+
+        Note: Si for_course_form=true, chef_section et chef_departement voient TOUS les enseignants
+        car ils peuvent assigner n'importe quel enseignant à un nouveau cours
+        """
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        # Si c'est pour le formulaire de cours, chef section/département voient TOUS les enseignants
+        for_course_form = self.request.query_params.get('for_course_form', 'false').lower() == 'true'
+        if for_course_form and user.role in ['chef_section', 'chef_departement']:
+            return queryset
+
+        return self.filter_queryset_by_role(queryset, user, 'user')

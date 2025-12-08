@@ -15,3 +15,7 @@ export const updateUser = (userId, userData) => {
 export const deleteUser = (userId) => {
   return api.delete(`/users/${userId}/`);
 };
+
+export const getTeacherStatistics = (userId) => {
+  return api.get(`/users/${userId}/teacher-stats/`);
+};

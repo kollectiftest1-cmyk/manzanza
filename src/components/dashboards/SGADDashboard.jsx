@@ -1,5 +1,12 @@
 import { Container, Row, Col, Card, Button, Table, Badge } from "react-bootstrap"
 import { useSelector } from "react-redux"
+import { motion } from "framer-motion"
+import StatCard from "../StatCard"
+import ChartCard from "../ChartCard"
+import CalendarWidget from "../CalendarWidget"
+import ScheduleWidget from "../ScheduleWidget"
+import RecentActivity from "../RecentActivity"
+import { FiDollarSign, FiTrendingDown, FiTrendingUp, FiCreditCard } from "react-icons/fi"
 
 const SGADDashboard = () => {
   const { user } = useSelector((state) => state.auth)
@@ -17,35 +24,29 @@ const SGADDashboard = () => {
     { id: 3, etudiant: "Paul Bernard", montant: 200000, type: "Inscription", statut: "Payé", date: "2024-01-13" },
   ]
 
-  return (
-    <Container fluid className="py-0" style={{ }}>
-      <Row className="mb-4 dashboard-card">
-        <Col>
-          <h2 className="text-primary fw-bold">Tableau de Bord - SGAD</h2>
-          <p className="text-muted">Secrétariat Général Administration & Finances</p>
-        </Col>
-      </Row>
+  const financeData = { labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'], datasets: [{ label: 'Recettes', data: [800000, 950000, 1100000, 1000000, 1200000, 1200000], borderColor: 'rgb(28, 200, 138)', backgroundColor: 'rgba(28, 200, 138, 0.1)', fill: true }] }
 
-      {/* Financial Statistics */}
+  return (
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--color-textPrimary)', marginBottom: '8px' }}>SGAD - Administration & Finances 💰</h2>
+        <p style={{ fontSize: '0.95rem', color: 'var(--color-textSecondary)', margin: 0 }}>Bienvenue {user?.name}</p>
+      </motion.div>
       <Row className="mb-4">
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-wallet fa-2x text-primary mb-3"></i>
-              <h4 className="fw-bold">{(financialStats.budgetTotal / 1000000).toFixed(1)}M</h4>
-              <p className="text-muted mb-0">Budget Total (FC)</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-arrow-down fa-2x text-danger mb-3"></i>
-              <h4 className="fw-bold">{(financialStats.depensesActuelles / 1000000).toFixed(1)}M</h4>
-              <p className="text-muted mb-0">Dépenses (FC)</p>
-            </Card.Body>
-          </Card>
-        </Col>
+        <Col xl={3} lg={6} className="mb-4"><StatCard title="Budget Total" value={`${(financialStats.budgetTotal / 1000000).toFixed(1)}M FC`} icon={FiDollarSign} color="primary" delay={0} /></Col>
+        <Col xl={3} lg={6} className="mb-4"><StatCard title="Dépenses" value={`${(financialStats.depensesActuelles / 1000000).toFixed(1)}M FC`} icon={FiTrendingDown} color="danger" delay={0.1} /></Col>
+        <Col xl={3} lg={6} className="mb-4"><StatCard title="Recettes" value={`${(financialStats.recettesInscriptions / 1000000).toFixed(1)}M FC`} icon={FiTrendingUp} color="success" delay={0.2} /></Col>
+        <Col xl={3} lg={6} className="mb-4"><StatCard title="Solde" value={`${(financialStats.soldeDisponible / 1000000).toFixed(1)}M FC`} icon={FiCreditCard} color="info" delay={0.3} /></Col>
+      </Row>
+      <Row className="mb-4">
+        <Col lg={12}><ChartCard title="Évolution des Recettes" subtitle="6 derniers mois" chartType="line" data={financeData} delay={0.4} height={300} /></Col>
+      </Row>
+      <Row className="mb-4">
+        <Col xl={4} lg={12} className="mb-4"><CalendarWidget events={[{ date: new Date() }]} delay={0.5} /></Col>
+        <Col xl={4} lg={6} className="mb-4"><ScheduleWidget schedule={[{ title: "Audit financier", description: "Révision comptable", time: "9:00 AM - 11:00 AM", badge: "Finance", color: "var(--color-success)" }]} delay={0.6} /></Col>
+        <Col xl={4} lg={6} className="mb-4"><RecentActivity activities={paiementsRecents.slice(0, 3).map(p => ({ id: p.id, type: 'check', title: `Paiement ${p.type}`, description: `${p.etudiant} - ${p.montant} FC`, time: p.date }))} delay={0.7} /></Col>
+      </Row>
+      <Row className="mb-4">
         <Col md={3}>
           <Card className="card-custom text-center">
             <Card.Body>

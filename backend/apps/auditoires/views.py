@@ -13,17 +13,24 @@ from .serializers import (
     AuditoireSerializer, SectionSerializer, FiliereSerializer,
     SectionDetailSerializer, FiliereDetailSerializer
 )
-from apps.users.permissions import IsAdminUser, IsSGAOrAdmin, CanViewAcademicData # Import CanViewAcademicData
+from .filters import AuditoireFilter, FiliereFilter, SectionFilter
+from apps.users.permissions import IsAdminUser, IsSGAOrAdmin, CanViewAcademicData
+from apps.users.mixins import RoleBasedFilterMixin
 
-class SectionViewSet(viewsets.ModelViewSet):
+class SectionViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     """
-    ViewSet for Section model.
-    Provides full CRUD functionality for Sections.
+    ViewSet for Section model with intelligent role-based filtering
     """
     queryset = Section.objects.select_related('chef_section').prefetch_related('filieres').all()
-    # permission_classes = [IsSGAOrAdmin] # Will be handled by get_permissions
-    filter_backends = [SearchFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = SectionFilter
     search_fields = ['nom']
+    ordering_fields = ['nom']
+
+    def get_queryset(self):
+        """Apply intelligent role-based filtering"""
+        queryset = super().get_queryset()
+        return self.filter_queryset_by_role(queryset, self.request.user, 'section')
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -39,16 +46,26 @@ class SectionViewSet(viewsets.ModelViewSet):
         return [IsSGAOrAdmin()]
 
 
-class FiliereViewSet(viewsets.ModelViewSet):
+class FiliereViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     """
-    ViewSet for Filiere (Option) model.
-    - `list` action is public for pre-inscription form.
-    - Other actions are restricted to SGA/Admin.
+    ViewSet for Filiere with intelligent role-based filtering
     """
     queryset = Filiere.objects.select_related('section', 'chef_filiere').all()
-    filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['section']
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = FiliereFilter
     search_fields = ['nom']
+    ordering_fields = ['nom']
+
+    def get_queryset(self):
+        """Apply intelligent role-based filtering"""
+        queryset = super().get_queryset()
+        # Public access for inscription - no filtering
+        if self.action == 'list' and not self.request.user.is_authenticated:
+            return queryset
+        # Authenticated users - apply role-based filtering
+        if self.request.user.is_authenticated:
+            return self.filter_queryset_by_role(queryset, self.request.user, 'filiere')
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -66,21 +83,28 @@ class FiliereViewSet(viewsets.ModelViewSet):
         return [IsSGAOrAdmin()]
 
 
-class AuditoireViewSet(viewsets.ModelViewSet):
+class AuditoireViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     """
-    ViewSet for Auditoire model
+    ViewSet for Auditoire model with intelligent role-based filtering
     """
-    queryset = Auditoire.objects.select_related('filiere__section', 'filiere').annotate(
-        # Renamed annotations to avoid conflict with model properties
-        etudiants_count=Count('students', filter=Q(students__status='actif')),
-        cours_count=Count('filiere__courses', filter=Q(filiere__courses__is_active=True))
-    ).all().order_by('-created_at') # Added ordering for consistency, can be adjusted
+    queryset = Auditoire.objects.select_related(
+        'filiere__section',
+        'filiere'
+    ).prefetch_related(
+        'students',
+        'courses'
+    ).all().order_by('-created_at')
     serializer_class = AuditoireSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['niveau', 'is_active', 'annee_academique', 'filiere__section', 'filiere']
+    filterset_class = AuditoireFilter
     search_fields = ['nom', 'description']
     ordering_fields = ['nom', 'niveau', 'created_at']
+
+    def get_queryset(self):
+        """Apply intelligent role-based filtering"""
+        queryset = super().get_queryset()
+        return self.filter_queryset_by_role(queryset, self.request.user, 'auditoire')
 
     def get_permissions(self):
         """Set permissions based on action"""
@@ -100,7 +124,7 @@ class AuditoireViewSet(viewsets.ModelViewSet):
         """Get all students in this auditoire"""
         auditoire = self.get_object()
         from apps.users.serializers import UserSerializer
-        students = auditoire.students.filter(status='actif')
+        students = auditoire.students.filter(is_active=True)
         serializer = UserSerializer(students, many=True)
         return Response(serializer.data)
 
@@ -109,6 +133,7 @@ class AuditoireViewSet(viewsets.ModelViewSet):
         """Get all courses for this auditoire"""
         auditoire = self.get_object()
         from apps.courses.serializers import CourseSerializer
-        courses = auditoire.filiere.courses.filter(is_active=True)
+        # Les cours appartiennent à l'auditoire, pas à la filière !
+        courses = auditoire.courses.filter(is_active=True)
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data)

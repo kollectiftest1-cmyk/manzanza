@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Container, Row, Col, Card, Form, Button, Badge, Dropdown, Alert } from "react-bootstrap"
 import { useSelector, useDispatch } from "react-redux"
+import { motion } from "framer-motion"
+import { FiSend, FiHash, FiUsers, FiMessageCircle, FiMoreVertical } from "react-icons/fi"
 import { fetchChannels, fetchMessages, sendMessage, setActiveChannel } from "../store/slices/chatSlice"
 
 const Chat = () => {
@@ -27,7 +29,7 @@ const Chat = () => {
 
   // Auto-scroll vers le bas
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    // messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
   useEffect(() => {
@@ -73,15 +75,33 @@ const Chat = () => {
   const selectedChannelData = channels.find((c) => c.id === activeChannel?.id)
 
   return (
-    <Container fluid className="mt-3">
-      <Row style={{ height: "90vh" }}>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', Height: '85vh' }}>
+      <Row style={{ height: "calc(100vh - 100px)" }}>
         {/* Sidebar - Liste des canaux */}
-        <Col md={3} style={{ height: "100%" }}>
-          <Card className="shadow-sm border-0 rounded-3" style={{ height: "100%", overflowY: "scroll" }}>
-            <Card.Header className="bg-primary text-white rounded-top-3">
-              <h6 className="mb-0">Canaux de Discussion</h6>
-            </Card.Header>
-            <Card.Body className="p-0">
+        <Col md={3} style={{ height: "90%" }}>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            style={{
+              height: "100%",
+              background: 'var(--color-cardBg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div style={{
+              padding: '20px',
+              background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+              color: 'white'
+            }}>
+              <h6 style={{ margin: 0, fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiMessageCircle size={20} /> Canaux de Discussion
+              </h6>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
               {loading && !channels.length ? (
                 <div className="text-center p-3">
                   <div className="spinner-border spinner-border-sm" role="status">
@@ -89,29 +109,62 @@ const Chat = () => {
                   </div>
                 </div>
               ) : channels.length === 0 ? (
-                <Alert variant="info" className="m-3">Aucun canal disponible</Alert>
+                <Alert variant="info" className="m-3" style={{ borderRadius: '12px' }}>Aucun canal disponible</Alert>
               ) : (
-                channels.map((channel) => (
-                  <div
-                    key={channel.id}
-                    className={`p-3 border-bottom ${
-                      activeChannel?.id === channel.id ? "bg-light text-primary fw-bold" : "text-dark"
-                    }`}
-                    onClick={() => handleChannelSelect(channel)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <div className="d-flex justify-content-between">
-                      <span># {channel.name}</span>
-                      {channel.member_count && <Badge bg="secondary">{channel.member_count}</Badge>}
-                    </div>
-                    {channel.description && (
-                      <small className="text-muted d-block mt-1">{channel.description}</small>
-                    )}
-                  </div>
-                ))
+                channels.map((channel) => {
+                  const channelIcon = {
+                    course: '📚',
+                    section: '👥',
+                    filiere: '🎓',
+                    general: '💬'
+                  }[channel.channel_type] || '💬'
+
+                  return (
+                    <motion.div
+                      key={channel.id}
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => handleChannelSelect(channel)}
+                      style={{
+                        padding: '12px 16px',
+                        marginBottom: '4px',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        background: activeChannel?.id === channel.id ? 'var(--color-primary)' : 'transparent',
+                        color: activeChannel?.id === channel.id ? 'white' : 'var(--color-textPrimary)',
+                        fontWeight: activeChannel?.id === channel.id ? '600' : '400',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>{channelIcon}</span> {channel.name}
+                        </span>
+                        {channel.participants_count > 0 && (
+                          <Badge
+                            bg={activeChannel?.id === channel.id ? 'light' : 'secondary'}
+                            text={activeChannel?.id === channel.id ? 'dark' : 'white'}
+                            style={{ borderRadius: '6px' }}
+                          >
+                            <FiUsers size={12} /> {channel.participants_count}
+                          </Badge>
+                        )}
+                      </div>
+                      {channel.latest_message && (
+                        <small style={{
+                          display: 'block',
+                          marginTop: '4px',
+                          opacity: 0.7,
+                          fontSize: '0.75rem'
+                        }}>
+                          {channel.latest_message.sender_name}: {channel.latest_message.content}
+                        </small>
+                      )}
+                    </motion.div>
+                  )
+                })
               )}
-            </Card.Body>
-          </Card>
+            </div>
+          </motion.div>
         </Col>
 
         {/* Zone de chat */}
@@ -129,9 +182,14 @@ const Chat = () => {
             <Card className="shadow-sm border-0 rounded-3" style={{ height: "75vh" }}>
               <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
                 <div>
-                  <h6 className="mb-0 text-primary"># {selectedChannelData?.name || "Canal"}</h6>
+                  <h6 className="mb-0" style={{ color: 'var(--color-primary)' }}>
+                    {selectedChannelData?.name || "Canal"}
+                  </h6>
                   <small className="text-muted">
-                    {selectedChannelData?.member_count || 0} participants
+                    <FiUsers size={12} /> {selectedChannelData?.participants_count || 0} participants
+                    {selectedChannelData?.channel_type && (
+                      <span className="ms-2">• {selectedChannelData.channel_type === 'course' ? 'Cours' : selectedChannelData.channel_type === 'section' ? 'Section' : selectedChannelData.channel_type === 'filiere' ? 'Filière' : 'Général'}</span>
+                    )}
                   </small>
                 </div>
                 <Dropdown>
@@ -193,29 +251,48 @@ const Chat = () => {
               </Card.Body>
 
               {/* Input */}
-              <Card.Footer className="bg-light">
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid var(--color-border)',
+                background: 'var(--color-bodyBg)'
+              }}>
                 <Form onSubmit={handleSendMessage}>
-                  <div className="d-flex">
+                  <div className="d-flex gap-2">
                     <Form.Control
                       type="text"
                       placeholder={`Écrire dans # ${selectedChannelData?.name || "canal"}...`}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      className="me-2 rounded-pill"
                       disabled={loading}
+                      style={{
+                        borderRadius: '12px',
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-cardBg)',
+                        color: 'var(--color-textPrimary)',
+                        padding: '12px 20px'
+                      }}
                     />
                     <Button
                       type="submit"
-                      variant="primary"
-                      className="rounded-pill px-4"
                       disabled={!newMessage.trim() || loading}
+                      style={{
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                        border: 'none',
+                        padding: '0 24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: '600'
+                      }}
                     >
-                      Envoyer
+                      <FiSend /> Envoyer
                     </Button>
                   </div>
                 </Form>
-              </Card.Footer>
+              </div>
             </Card>
+            // </motion.div>
           )}
         </Col>
       </Row>

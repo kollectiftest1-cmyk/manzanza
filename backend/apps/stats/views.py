@@ -14,9 +14,15 @@ class SGADashboardStats(APIView):
         total_sections = Section.objects.count()
         total_auditoires = Auditoire.objects.count()
 
+        # Nouvelles stats pour cours et enseignants
+        total_courses = Course.objects.filter(is_active=True).count()
+        total_teachers = User.objects.filter(role__in=['enseignant', 'assistant'], is_active=True).count()
+
         return Response({
             'total_students': total_students,
             'pending_inscriptions': pending_inscriptions,
             'total_sections': total_sections,
             'total_auditoires': total_auditoires,
+            'total_courses': total_courses,
+            'total_teachers': total_teachers,
         })

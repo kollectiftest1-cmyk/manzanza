@@ -20,9 +20,53 @@ class ChatChannelViewSet(viewsets.ModelViewSet):
     serializer_class = ChatChannelSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['course', 'is_general', 'is_active']
+    filterset_fields = ['course', 'section', 'filiere', 'channel_type', 'is_active']
     search_fields = ['name', 'description']
-    ordering_fields = ['name', 'created_at']
+    ordering_fields = ['name', 'created_at', 'updated_at']
+
+    def get_queryset(self):
+        """
+        Return channels based on user role and permissions
+        - SGA/Admin: ALL channels
+        - Chef Section: Channels of their section + courses of their section
+        - Chef Département: Channels of their filiere + courses of their filiere
+        - Enseignant/Assistant: Channels where they are members
+        - Étudiant: Channels of their auditoire's courses
+        """
+        user = self.request.user
+        if not user.is_authenticated:
+            return ChatChannel.objects.none()
+
+        # SGA and admins see ALL channels
+        if user.role in ['sga', 'admin', 'iadmin']:
+            return ChatChannel.objects.filter(is_active=True).distinct()
+
+        # Chef de section sees: their section chat + all filieres of their section + all courses of their section
+        if user.role == 'chef_section':
+            from django.db.models import Q
+            section = user.managed_section
+            if section:
+                return ChatChannel.objects.filter(
+                    Q(section=section) |  # Section chat
+                    Q(filiere__section=section) |  # Filieres of this section
+                    Q(course__auditoire__filiere__section=section),  # Courses of this section
+                    is_active=True
+                ).distinct()
+
+        # Chef de département sees: their filiere chat + all courses of their filiere
+        if user.role == 'chef_departement':
+            from django.db.models import Q
+            filiere = user.managed_filiere
+            if filiere:
+                return ChatChannel.objects.filter(
+                    Q(filiere=filiere) |  # Filiere chat
+                    Q(section=filiere.section) |  # Section chat
+                    Q(course__auditoire__filiere=filiere),  # Courses of this filiere
+                    is_active=True
+                ).distinct()
+
+        # Enseignants, assistants, and students see only channels where they are members
+        return ChatChannel.objects.filter(members=user, is_active=True).distinct()
 
     def get_permissions(self):
         """Set permissions based on action"""
@@ -40,6 +84,13 @@ class ChatChannelViewSet(viewsets.ModelViewSet):
         channel = self.get_object()
         messages = channel.messages.filter(is_deleted=False).order_by('created_at')
         serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def my_channels(self, request):
+        """Get all channels for current user"""
+        channels = self.get_queryset().order_by('-updated_at')
+        serializer = self.get_serializer(channels, many=True)
         return Response(serializer.data)
 
 

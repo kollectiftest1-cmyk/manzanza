@@ -7,7 +7,7 @@ from django.db.models import Avg, Count, Sum
 from django.core.exceptions import ObjectDoesNotExist
 from apps.auditoires.models import Auditoire, Section, Filiere
 from apps.quiz.models import QuizAttempt
-from apps.assignments.models import Submission
+from apps.assignments.models import AssignmentSubmission
 from apps.courses.models import Course, CourseEnrollment
 
 User = get_user_model()
@@ -60,16 +60,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
             enrolled_courses_ids = CourseEnrollment.objects.filter(student=obj, is_active=True).values_list('course_id', flat=True)
             return CourseSerializer(Course.objects.filter(id__in=enrolled_courses_ids), many=True).data
         elif obj.role in ['enseignant', 'assistant']:
-            courses = obj.courses_held.all() | obj.courses_assisted.all()
+            courses = obj.courses_as_teacher.all() | obj.courses_as_assistant.all()
             return CourseSerializer(courses.distinct(), many=True).data
         return []
 
     def get_sections(self, obj):
         sections = set()
         if obj.role in ['enseignant', 'assistant', 'chef_departement', 'chef_section']:
-            courses = obj.courses_held.all() | obj.courses_assisted.all()
+            courses = obj.courses_as_teacher.all() | obj.courses_as_assistant.all()
             for course in courses.distinct():
-                sections.update(course.sections.all())
+                if course.auditoire and course.auditoire.filiere and course.auditoire.filiere.section:
+                    sections.add(course.auditoire.filiere.section)
         if obj.section:
             sections.add(obj.section)
         return SimpleSectionSerializer(list(sections), many=True).data
@@ -77,9 +78,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_filieres(self, obj):
         filieres = set()
         if obj.role in ['enseignant', 'assistant', 'chef_departement', 'chef_section']:
-            courses = obj.courses_held.all() | obj.courses_assisted.all()
+            courses = obj.courses_as_teacher.all() | obj.courses_as_assistant.all()
             for course in courses.distinct():
-                filieres.update(course.filieres.all())
+                if course.auditoire and course.auditoire.filiere:
+                    filieres.add(course.auditoire.filiere)
         if obj.filiere:
             filieres.add(obj.filiere)
         return SimpleFiliereSerializer(list(filieres), many=True).data
@@ -107,16 +109,44 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_student_stats(self, obj):
         if obj.role != 'etudiant':
             return None
-        
-        quizzes_completed = QuizAttempt.objects.filter(student=obj, is_completed=True).count()
-        assignments_submitted = Submission.objects.filter(student=obj, status__in=['soumis', 'note']).count()
+
+        from apps.quiz.models import Quiz
+        from django.utils import timezone
+        from django.db.models import Q
+
+        # QuizAttempt n'a pas de champ is_completed, utiliser status='submitted' ou 'graded'
+        quizzes_completed = QuizAttempt.objects.filter(student=obj, status__in=['submitted', 'graded']).count()
+        assignments_submitted = AssignmentSubmission.objects.filter(student=obj, status__in=['submitted', 'graded']).count()
+
+        # Count pending quizzes (published, active, not yet attempted)
+        # Get courses the student is enrolled in
+        enrolled_course_ids = CourseEnrollment.objects.filter(
+            student=obj,
+            is_active=True
+        ).values_list('course_id', flat=True)
+
+        if enrolled_course_ids:
+            # Get quizzes for student's enrolled courses that are published and currently active
+            now = timezone.now()
+            available_quizzes = Quiz.objects.filter(
+                course_id__in=enrolled_course_ids,
+                status='published',
+                start_date__lte=now,
+                end_date__gte=now
+            )
+            # Exclude quizzes already attempted by this student
+            attempted_quiz_ids = QuizAttempt.objects.filter(student=obj).values_list('quiz_id', flat=True)
+            pending_quizzes = available_quizzes.exclude(id__in=attempted_quiz_ids).count()
+        else:
+            pending_quizzes = 0
+
         enrollments = CourseEnrollment.objects.filter(student=obj)
         validated_enrollments = enrollments.filter(grade__gte=50)
         validated_courses_count = validated_enrollments.count()
         total_credits_obtained = validated_enrollments.aggregate(total=Sum('course__credits'))['total'] or 0
-        quiz_avg = QuizAttempt.objects.filter(student=obj, is_completed=True).aggregate(avg=Avg('score'))['avg']
-        assignment_avg = Submission.objects.filter(student=obj, status='note').aggregate(avg=Avg('score'))['avg']
-        
+        quiz_avg = QuizAttempt.objects.filter(student=obj, status__in=['submitted', 'graded']).aggregate(avg=Avg('score'))['avg']
+        assignment_avg = AssignmentSubmission.objects.filter(student=obj, status='graded').aggregate(avg=Avg('score'))['avg']
+
         all_grades = []
         if quiz_avg is not None: all_grades.append(quiz_avg)
         if assignment_avg is not None: all_grades.append(assignment_avg)
@@ -124,6 +154,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
         return {
             'quizzes_completed': quizzes_completed,
+            'pending_quizzes': pending_quizzes,
             'assignments_submitted': assignments_submitted,
             'validated_courses_count': validated_courses_count,
             'total_credits_obtained': total_credits_obtained,
@@ -133,15 +164,32 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_teacher_stats(self, obj):
         if obj.role not in ['enseignant', 'assistant']:
             return None
-            
-        courses_taught = (obj.courses_held.all() | obj.courses_assisted.all()).distinct()
+
+        courses_taught = (obj.courses_as_teacher.all() | obj.courses_as_assistant.all()).distinct()
         courses_taught_count = courses_taught.count()
-        students_in_taught_courses_count = CourseEnrollment.objects.filter(course__in=courses_taught).values('student').distinct().count()
-        avg_student_performance = Submission.objects.filter(assignment__course__in=courses_taught).aggregate(avg=Avg('score'))['avg'] or 0
+
+        # Count unique students across all auditoires where teacher teaches
+        # Avoid counting same students multiple times when teaching multiple courses in same auditoire
+        unique_auditoires = set()
+        for course in courses_taught:
+            if course.auditoire:
+                unique_auditoires.add(course.auditoire.id)
+
+        total_students = 0
+        if unique_auditoires:
+            from apps.auditoires.models import Auditoire
+            for auditoire_id in unique_auditoires:
+                try:
+                    auditoire = Auditoire.objects.get(id=auditoire_id)
+                    total_students += auditoire.students.filter(is_active=True).count()
+                except Auditoire.DoesNotExist:
+                    pass
+
+        avg_student_performance = AssignmentSubmission.objects.filter(assignment__course__in=courses_taught).aggregate(avg=Avg('score'))['avg'] or 0
 
         return {
             'courses_taught_count': courses_taught_count,
-            'total_students_managed': students_in_taught_courses_count,
+            'total_students_managed': total_students,
             'average_student_performance': round(avg_student_performance, 2),
         }
 

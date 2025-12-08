@@ -1,256 +1,170 @@
-import { Container, Row, Col, Card, Button, Table, Badge } from "react-bootstrap"
-import { useSelector } from "react-redux"
+import { Container, Row, Col } from "react-bootstrap"
+import { motion } from "framer-motion"
+import { FiDollarSign, FiTrendingUp, FiTrendingDown, FiClock } from "react-icons/fi"
+import StatCard from "../StatCard"
+import ChartCard from "../ChartCard"
+import RecentActivity from "../RecentActivity"
 
-const CaisseComptabiliteDashboard = () => {
-  const { user } = useSelector((state) => state.auth)
+const CaisseComptabiliteDashboard = ({ user }) => {
 
-  const caisseStats = {
-    soldeCaisse: 2500000,
-    recettesJour: 450000,
-    depensesJour: 180000,
-    transactionsJour: 25,
+  const financeData = {
+    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+    datasets: [
+      {
+        label: 'Recettes (K FC)',
+        data: [450, 520, 480, 580, 620, 650],
+        borderColor: 'rgba(28, 200, 138, 1)',
+        backgroundColor: 'rgba(28, 200, 138, 0.1)',
+        tension: 0.4,
+        fill: true,
+      },
+      {
+        label: 'Dépenses (K FC)',
+        data: [350, 380, 420, 450, 480, 500],
+        borderColor: 'rgba(231, 74, 59, 1)',
+        backgroundColor: 'rgba(231, 74, 59, 0.1)',
+        tension: 0.4,
+        fill: true,
+      }
+    ]
   }
 
-  const transactionsRecentes = [
+  const methodesData = {
+    labels: ['Espèces', 'Virement', 'Chèque', 'Mobile Money'],
+    datasets: [{
+      label: 'Montant (K FC)',
+      data: [1200, 800, 300, 200],
+      backgroundColor: [
+        'rgba(78, 115, 223, 0.8)',
+        'rgba(28, 200, 138, 0.8)',
+        'rgba(246, 194, 62, 0.8)',
+        'rgba(111, 66, 193, 0.8)',
+      ],
+    }]
+  }
+
+  const activities = [
     {
       id: 1,
-      type: "Recette",
-      description: "Paiement inscription - Jean Dupont",
-      montant: 150000,
-      methode: "Espèces",
-      heure: "09:30",
-      statut: "Validé",
+      type: "check",
+      title: "Paiement reçu",
+      description: "Inscription Jean Dupont - 150K FC",
+      time: "Il y a 30min",
     },
     {
       id: 2,
-      type: "Dépense",
-      description: "Achat fournitures bureau",
-      montant: 45000,
-      methode: "Chèque",
-      heure: "11:15",
-      statut: "Validé",
+      type: "alert",
+      title: "Dépense enregistrée",
+      description: "Fournitures bureau - 45K FC",
+      time: "Il y a 1h",
     },
     {
       id: 3,
-      type: "Recette",
-      description: "Paiement minerval - Marie Martin",
-      montant: 75000,
-      methode: "Virement",
-      heure: "14:20",
-      statut: "En attente",
+      type: "file",
+      title: "Rapport généré",
+      description: "Rapport journalier de caisse",
+      time: "Il y a 2h",
     },
   ]
 
-  const methodesPayement = [
-    { methode: "Espèces", montant: 1200000, pourcentage: 48 },
-    { methode: "Virement", montant: 800000, pourcentage: 32 },
-    { methode: "Chèque", montant: 300000, pourcentage: 12 },
-    { methode: "Mobile Money", montant: 200000, pourcentage: 8 },
-  ]
-
   return (
-    <Container fluid className="py-0" style={{ }}>
-      <Row className="mb-4 dashboard-card">
-        <Col>
-          <h2 className="text-primary fw-bold">Tableau de Bord - Caisse & Comptabilité</h2>
-          <p className="text-muted">Gestion Financière et Comptable</p>
-        </Col>
-      </Row>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: '32px' }}
+      >
+        <h2 style={{
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: 'var(--color-textPrimary)',
+          marginBottom: '8px',
+        }}>
+          Caisse & Comptabilité 💰
+        </h2>
+        <p style={{
+          fontSize: '0.95rem',
+          color: 'var(--color-textSecondary)',
+          margin: 0,
+        }}>
+          Bienvenue {user?.name} | Gestion Financière
+        </p>
+      </motion.div>
 
-      {/* Financial Statistics */}
       <Row className="mb-4">
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-cash-register fa-2x text-primary mb-3"></i>
-              <h4 className="fw-bold">{(caisseStats.soldeCaisse / 1000000).toFixed(1)}M</h4>
-              <p className="text-muted mb-0">Solde Caisse (FC)</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Recettes du Mois"
+            value="650K FC"
+            icon={FiTrendingUp}
+            color="success"
+            trend="up"
+            trendValue="+8% vs mois dernier"
+            delay={0}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-arrow-up fa-2x text-success mb-3"></i>
-              <h4 className="fw-bold">{(caisseStats.recettesJour / 1000).toFixed(0)}K</h4>
-              <p className="text-muted mb-0">Recettes Jour (FC)</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Dépenses du Mois"
+            value="500K FC"
+            icon={FiTrendingDown}
+            color="danger"
+            subtitle="Contrôlées"
+            delay={0.1}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-arrow-down fa-2x text-danger mb-3"></i>
-              <h4 className="fw-bold">{(caisseStats.depensesJour / 1000).toFixed(0)}K</h4>
-              <p className="text-muted mb-0">Dépenses Jour (FC)</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Solde"
+            value="150K FC"
+            icon={FiDollarSign}
+            color="primary"
+            subtitle="Bénéfice net"
+            delay={0.2}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-exchange-alt fa-2x text-info mb-3"></i>
-              <h4 className="fw-bold">{caisseStats.transactionsJour}</h4>
-              <p className="text-muted mb-0">Transactions Jour</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Paiements en Attente"
+            value="12"
+            icon={FiClock}
+            color="warning"
+            subtitle="À valider"
+            delay={0.3}
+          />
         </Col>
       </Row>
 
-      <Row>
-        <Col lg={8}>
-          <Card className="card-custom mb-4">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold mb-0">Transactions Récentes</h5>
-              <Button size="sm" className="btn-primary-custom">
-                <i className="fas fa-plus me-1"></i>
-                Nouvelle Transaction
-              </Button>
-            </Card.Header>
-            <Card.Body>
-              <Table responsive hover>
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Description</th>
-                    <th>Montant (FC)</th>
-                    <th>Méthode</th>
-                    <th>Heure</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactionsRecentes.map((transaction) => (
-                    <tr key={transaction.id}>
-                      <td>
-                        <Badge bg={transaction.type === "Recette" ? "success" : "danger"}>{transaction.type}</Badge>
-                      </td>
-                      <td className="fw-semibold">{transaction.description}</td>
-                      <td>{transaction.montant.toLocaleString()}</td>
-                      <td>{transaction.methode}</td>
-                      <td>{transaction.heure}</td>
-                      <td>
-                        <Badge bg={transaction.statut === "Validé" ? "success" : "warning"}>{transaction.statut}</Badge>
-                      </td>
-                      <td>
-                        <Button size="sm" variant="outline-primary" className="me-1">
-                          <i className="fas fa-edit"></i>
-                        </Button>
-                        <Button size="sm" variant="outline-info">
-                          <i className="fas fa-receipt"></i>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom">
-            <Card.Header>
-              <h5 className="fw-bold mb-0">Répartition par Méthode de Paiement</h5>
-            </Card.Header>
-            <Card.Body>
-              <Table responsive>
-                <thead>
-                  <tr>
-                    <th>Méthode</th>
-                    <th>Montant (FC)</th>
-                    <th>Pourcentage</th>
-                    <th>Répartition</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {methodesPayement.map((methode, index) => (
-                    <tr key={index}>
-                      <td className="fw-semibold">{methode.methode}</td>
-                      <td>{methode.montant.toLocaleString()}</td>
-                      <td>{methode.pourcentage}%</td>
-                      <td>
-                        <div className="progress" style={{ height: "8px" }}>
-                          <div className="progress-bar bg-info" style={{ width: `${methode.pourcentage}%` }}></div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
+      <Row className="mb-4">
+        <Col lg={6} className="mb-4">
+          <ChartCard
+            title="Évolution Financière"
+            subtitle="6 derniers mois"
+            chartType="line"
+            data={financeData}
+            delay={0.4}
+            height={300}
+          />
         </Col>
+        <Col lg={6} className="mb-4">
+          <ChartCard
+            title="Répartition Méthodes de Paiement"
+            subtitle="Ce mois"
+            chartType="doughnut"
+            data={methodesData}
+            delay={0.5}
+            height={300}
+          />
+        </Col>
+      </Row>
 
-        <Col lg={4}>
-          <Card className="card-custom mb-4">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Actions Rapides</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="d-grid gap-2">
-                <Button variant="outline-primary">
-                  <i className="fas fa-money-bill-wave me-2"></i>
-                  Encaissement
-                </Button>
-                <Button variant="outline-danger">
-                  <i className="fas fa-hand-holding-usd me-2"></i>
-                  Décaissement
-                </Button>
-                <Button variant="outline-success">
-                  <i className="fas fa-file-invoice-dollar me-2"></i>
-                  Générer Reçu
-                </Button>
-                <Button variant="outline-info">
-                  <i className="fas fa-chart-pie me-2"></i>
-                  Rapport Journalier
-                </Button>
-              </div>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom mb-4">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Résumé Financier</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between">
-                  <small>Bénéfice Net Jour</small>
-                  <small className="fw-bold text-success">
-                    +{((caisseStats.recettesJour - caisseStats.depensesJour) / 1000).toFixed(0)}K FC
-                  </small>
-                </div>
-              </div>
-              <div className="mb-3">
-                <small className="text-muted">Objectif Mensuel</small>
-                <div className="fw-semibold">8.5M FC</div>
-                <div className="progress mt-1" style={{ height: "6px" }}>
-                  <div className="progress-bar bg-success" style={{ width: "65%" }}></div>
-                </div>
-                <small className="text-muted">65% atteint</small>
-              </div>
-              <div>
-                <small className="text-muted">Dernière clôture</small>
-                <div className="fw-semibold">Hier 18:00</div>
-              </div>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Alertes</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="alert alert-warning">
-                <i className="fas fa-exclamation-triangle me-2"></i>
-                <strong>Attention:</strong> 3 chèques à encaisser
-              </div>
-              <div className="alert alert-info">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Rappel:</strong> Clôture de caisse à 18h
-              </div>
-            </Card.Body>
-          </Card>
+      <Row className="mb-4">
+        <Col lg={12}>
+          <RecentActivity
+            activities={activities}
+            delay={0.6}
+          />
         </Col>
       </Row>
     </Container>

@@ -4,24 +4,47 @@ Course models
 from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
+from django.utils import timezone
 from apps.auditoires.models import Section, Filiere, Auditoire
 
 class Course(models.Model):
-    """Course Model"""
+    """Course Model - Un cours est donné dans UN SEUL auditoire"""
 
     name = models.CharField(max_length=200, verbose_name='Nom du cours')
     code = models.CharField(max_length=20, unique=True, blank=True, editable=False, verbose_name='Code du cours')
     description = models.TextField(blank=True, null=True, verbose_name='Description')
     credits = models.IntegerField(default=3, verbose_name='Crédits')
 
-    # Relations
-    titulaire = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-                               null=True, related_name='courses_held', verbose_name='Enseignant Titulaire')
-    assistants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='courses_assisted',
-                                       blank=True, verbose_name='Assistants')
-    sections = models.ManyToManyField(Section, related_name='courses', blank=True, verbose_name='Sections')
-    filieres = models.ManyToManyField(Filiere, related_name='courses', blank=True, verbose_name='Filières')
-    auditoires = models.ManyToManyField(Auditoire, related_name='courses', blank=True, verbose_name='Auditoires')
+    # Relations - Hiérarchie universitaire correcte
+    # Un cours appartient à UN auditoire (qui appartient à une filière, qui appartient à une section)
+    auditoire = models.ForeignKey(
+        Auditoire,
+        on_delete=models.CASCADE,
+        related_name='courses',
+        verbose_name='Auditoire',
+        help_text='Auditoire dans lequel ce cours est donné',
+        null=True,  # Temporaire pour la migration - À remplir puis retirer null=True
+        blank=True
+    )
+
+    # Un cours a UN enseignant titulaire
+    titulaire = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='courses_as_teacher',
+        verbose_name='Enseignant Titulaire',
+        limit_choices_to={'role__in': ['enseignant', 'chef_section', 'chef_departement']}
+    )
+
+    # Un cours peut avoir plusieurs assistants
+    assistants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='courses_as_assistant',
+        blank=True,
+        verbose_name='Assistants',
+        limit_choices_to={'role': 'assistant'}
+    )
 
     # Course content
     syllabus = models.FileField(upload_to='syllabi/', blank=True, null=True, verbose_name='Syllabus')
@@ -56,6 +79,16 @@ class Course(models.Model):
             super().save(force_update=True, update_fields=['code'])
 
     @property
+    def section(self):
+        """Section du cours (via auditoire → filière → section)"""
+        return self.auditoire.filiere.section if self.auditoire else None
+
+    @property
+    def filiere(self):
+        """Filière du cours (via auditoire → filière)"""
+        return self.auditoire.filiere if self.auditoire else None
+
+    @property
     def students_count(self):
         """Count of enrolled students"""
         return self.enrollments.filter(is_active=True).count()
@@ -71,12 +104,21 @@ class Course(models.Model):
 
 
 class CourseEnrollment(models.Model):
-    """Student enrollment in courses"""
+    """Student enrollment in courses - Un étudiant ne peut s'inscrire qu'aux cours de son auditoire"""
 
-    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-                               related_name='enrollments', verbose_name='Étudiant')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE,
-                              related_name='enrollments', verbose_name='Cours')
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='enrollments',
+        verbose_name='Étudiant',
+        limit_choices_to={'role': 'etudiant'}
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='enrollments',
+        verbose_name='Cours'
+    )
 
     progress = models.IntegerField(default=0, verbose_name='Progression (%)')
     grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='Note')
@@ -92,6 +134,16 @@ class CourseEnrollment(models.Model):
 
     def __str__(self):
         return f"{self.student.get_full_name()} - {self.course.name}"
+
+    def clean(self):
+        """Validation: un étudiant ne peut s'inscrire qu'aux cours de son auditoire"""
+        from django.core.exceptions import ValidationError
+        if self.student.auditoire and self.course.auditoire:
+            if self.student.auditoire != self.course.auditoire:
+                raise ValidationError(
+                    f"L'étudiant {self.student.get_full_name()} (auditoire: {self.student.auditoire.nom}) "
+                    f"ne peut pas s'inscrire au cours {self.course.name} (auditoire: {self.course.auditoire.nom})"
+                )
 
 
 class CourseMaterial(models.Model):
@@ -128,3 +180,10 @@ class CourseMaterial(models.Model):
 
     def __str__(self):
         return f"{self.course.code} - {self.title}"
+
+
+# Import attendance models to make them available
+from .attendance_models import Attendance, AttendanceSession
+
+# Import assistant models
+from .assistant_models import TeacherAssistant

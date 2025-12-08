@@ -1,5 +1,11 @@
-import { Container, Row, Col, Card, Button, Table, Badge, ProgressBar } from "react-bootstrap"
-import { LinkContainer } from "react-router-bootstrap"
+import { Container, Row, Col } from "react-bootstrap"
+import { motion } from "framer-motion"
+import StatCard from "../StatCard"
+import ChartCard from "../ChartCard"
+import CalendarWidget from "../CalendarWidget"
+import ScheduleWidget from "../ScheduleWidget"
+import RecentActivity from "../RecentActivity"
+import { FiUsers, FiSettings, FiShield, FiDatabase } from "react-icons/fi"
 
 const IAdminDashboard = ({ user, courses, notifications }) => {
   const stats = {
@@ -29,27 +35,22 @@ const IAdminDashboard = ({ user, courses, notifications }) => {
   ]
 
   return (
-    <Container fluid className="p-4">
-      {/* Header */}
-      <Row className="mb-4 dashboard-card">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h2 className="text-primary fw-bold">Tableau de Bord iAdmin</h2>
-              <p className="text-muted mb-0">Contrôle total du système DASH</p>
-            </div>
-            <div className="d-flex gap-2">
-              <Button variant="outline-primary" size="sm">
-                <i className="fas fa-download me-2"></i>Rapport Système
-              </Button>
-              <Button variant="primary" size="sm">
-                <i className="fas fa-cog me-2"></i>Configuration
-              </Button>
-            </div>
-          </div>
-        </Col>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--color-textPrimary)', marginBottom: '8px' }}>iAdmin - Contrôle Système 🔧</h2>
+        <p style={{ fontSize: '0.95rem', color: 'var(--color-textSecondary)', margin: 0 }}>Bienvenue {user?.name} | Accès complet au système</p>
+      </motion.div>
+      <Row className="mb-4">
+        <Col xl={3} lg={6} className="mb-4"><StatCard title="Utilisateurs" value={stats.totalUsers.toString()} icon={FiUsers} color="primary" delay={0} /></Col>
+        <Col xl={3} lg={6} className="mb-4"><StatCard title="Connexions Actives" value={stats.activeConnections.toString()} icon={FiShield} color="success" delay={0.1} /></Col>
+        <Col xl={3} lg={6} className="mb-4"><StatCard title="Stockage Utilisé" value={`${stats.storageUsed}%`} icon={FiDatabase} color="warning" delay={0.2} /></Col>
+        <Col xl={3} lg={6} className="mb-4"><StatCard title="Uptime Système" value={stats.systemUptime} icon={FiSettings} color="info" delay={0.3} /></Col>
       </Row>
-
+      <Row className="mb-4">
+        <Col xl={4} lg={12} className="mb-4"><CalendarWidget events={[{ date: new Date() }]} delay={0.4} /></Col>
+        <Col xl={4} lg={6} className="mb-4"><ScheduleWidget schedule={[{ title: "Maintenance système", description: "Mise à jour serveurs", time: "3:00 AM - 4:00 AM", badge: "Système", color: "var(--color-primary)" }]} delay={0.5} /></Col>
+        <Col xl={4} lg={6} className="mb-4"><RecentActivity activities={recentActivities.map((a, i) => ({ id: a.id, type: a.type === 'success' ? 'check' : 'user', title: a.action, description: `Par ${a.user}`, time: a.time }))} delay={0.6} /></Col>
+      </Row>
       {/* System Stats */}
       <Row className="mb-4">
         <Col md={3}>

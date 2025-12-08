@@ -1,283 +1,161 @@
-import { Container, Row, Col, Card, Button, Table, Badge } from "react-bootstrap"
-import { useSelector } from "react-redux"
+import { Container, Row, Col } from "react-bootstrap"
+import { motion } from "framer-motion"
+import { FiFileText, FiCalendar, FiClock, FiCheckCircle } from "react-icons/fi"
+import StatCard from "../StatCard"
+import ChartCard from "../ChartCard"
+import RecentActivity from "../RecentActivity"
 
-const JuryDashboard = () => {
-  const { user } = useSelector((state) => state.auth)
+const JuryDashboard = ({ user }) => {
 
-  const juryStats = {
-    memoiresSoumis: 45,
-    memoiresEvalues: 32,
-    defensesProgrammees: 8,
-    defensesTerminees: 24,
+  const statusData = {
+    labels: ['En Préparation', 'Soumis', 'En Évaluation', 'Soutenus', 'Validés'],
+    datasets: [{
+      label: 'Mémoires',
+      data: [15, 25, 18, 32, 28],
+      backgroundColor: [
+        'rgba(246, 194, 62, 0.8)',
+        'rgba(78, 115, 223, 0.8)',
+        'rgba(231, 74, 59, 0.8)',
+        'rgba(28, 200, 138, 0.8)',
+        'rgba(111, 66, 193, 0.8)',
+      ],
+    }]
   }
 
-  const memoiresEnAttente = [
+  const notesData = {
+    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+    datasets: [{
+      label: 'Note moyenne',
+      data: [13.5, 14.2, 13.8, 14.8, 14.5, 15.2],
+      borderColor: 'rgba(28, 200, 138, 1)',
+      backgroundColor: 'rgba(28, 200, 138, 0.1)',
+      tension: 0.4,
+      fill: true,
+    }]
+  }
+
+  const activities = [
     {
       id: 1,
-      titre: "Impact de la digitalisation sur la comptabilité",
-      etudiant: "Jean Dupont",
-      directeur: "Prof. Martin",
-      dateDepot: "2024-01-10",
-      statut: "En évaluation",
-      priorite: "Normale",
+      type: "check",
+      title: "Défense réussie",
+      description: "Marie Bernard - Note: 16/20",
+      time: "Il y a 2h",
     },
     {
       id: 2,
-      titre: "Analyse financière des PME congolaises",
-      etudiant: "Marie Bernard",
-      directeur: "Dr. Dubois",
-      dateDepot: "2024-01-08",
-      statut: "Défense programmée",
-      priorite: "Urgente",
+      type: "file",
+      title: "Nouveau mémoire soumis",
+      description: "Jean Dupont - Digitalisation comptable",
+      time: "Il y a 3h",
     },
     {
       id: 3,
-      titre: "Gestion des risques bancaires",
-      etudiant: "Paul Leroy",
-      directeur: "Prof. Mukendi",
-      dateDepot: "2024-01-12",
-      statut: "Corrections demandées",
-      priorite: "Normale",
-    },
-  ]
-
-  const defensesProchaines = [
-    {
-      id: 1,
-      etudiant: "Marie Bernard",
-      titre: "Analyse financière des PME congolaises",
-      date: "2024-01-20",
-      heure: "09:00",
-      salle: "Amphi A",
-      jury: ["Prof. Martin", "Dr. Dubois", "Prof. Mukendi"],
-    },
-    {
-      id: 2,
-      etudiant: "Pierre Kasongo",
-      titre: "Audit interne et performance",
-      date: "2024-01-22",
-      heure: "14:00",
-      salle: "Salle 201",
-      jury: ["Dr. Dubois", "Prof. Bernard", "Prof. Leroy"],
+      type: "alert",
+      title: "Évaluation urgente",
+      description: "3 mémoires à évaluer avant vendredi",
+      time: "Il y a 5h",
     },
   ]
 
   return (
-    <Container fluid className="py-0" style={{ }}>
-      <Row className="mb-4 dashboard-card">
-        <Col>
-          <h2 className="text-primary fw-bold">Tableau de Bord - Jury Mémoire</h2>
-          <p className="text-muted">Gestion des Mémoires et Défenses</p>
-        </Col>
-      </Row>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: '32px' }}
+      >
+        <h2 style={{
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: 'var(--color-textPrimary)',
+          marginBottom: '8px',
+        }}>
+          Jury de Mémoire 🎓
+        </h2>
+        <p style={{
+          fontSize: '0.95rem',
+          color: 'var(--color-textSecondary)',
+          margin: 0,
+        }}>
+          Bienvenue {user?.name} | Évaluation des Mémoires & Soutenances
+        </p>
+      </motion.div>
 
-      {/* Jury Statistics */}
       <Row className="mb-4">
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-file-alt fa-2x text-primary mb-3"></i>
-              <h4 className="fw-bold">{juryStats.memoiresSoumis}</h4>
-              <p className="text-muted mb-0">Mémoires Soumis</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Mémoires Soumis"
+            value="118"
+            icon={FiFileText}
+            color="primary"
+            subtitle="Année en cours"
+            delay={0}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-check-circle fa-2x text-success mb-3"></i>
-              <h4 className="fw-bold">{juryStats.memoiresEvalues}</h4>
-              <p className="text-muted mb-0">Mémoires Évalués</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Soutenances Programmées"
+            value="32"
+            icon={FiCalendar}
+            color="info"
+            subtitle="Ce mois"
+            delay={0.1}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-calendar-alt fa-2x text-warning mb-3"></i>
-              <h4 className="fw-bold">{juryStats.defensesProgrammees}</h4>
-              <p className="text-muted mb-0">Défenses Programmées</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="En Évaluation"
+            value="18"
+            icon={FiClock}
+            color="warning"
+            subtitle="À traiter"
+            delay={0.2}
+          />
         </Col>
-        <Col md={3}>
-          <Card className="card-custom text-center">
-            <Card.Body>
-              <i className="fas fa-graduation-cap fa-2x text-info mb-3"></i>
-              <h4 className="fw-bold">{juryStats.defensesTerminees}</h4>
-              <p className="text-muted mb-0">Défenses Terminées</p>
-            </Card.Body>
-          </Card>
+        <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
+          <StatCard
+            title="Validés"
+            value="28"
+            icon={FiCheckCircle}
+            color="success"
+            trend="up"
+            trendValue="92% taux réussite"
+            delay={0.3}
+          />
         </Col>
       </Row>
 
-      <Row>
-        <Col lg={8}>
-          <Card className="card-custom mb-4">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold mb-0">Mémoires en Évaluation</h5>
-              <Button size="sm" className="btn-primary-custom">
-                <i className="fas fa-plus me-1"></i>
-                Nouveau Mémoire
-              </Button>
-            </Card.Header>
-            <Card.Body>
-              <Table responsive hover>
-                <thead>
-                  <tr>
-                    <th>Titre</th>
-                    <th>Étudiant</th>
-                    <th>Directeur</th>
-                    <th>Date Dépôt</th>
-                    <th>Statut</th>
-                    <th>Priorité</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {memoiresEnAttente.map((memoire) => (
-                    <tr key={memoire.id}>
-                      <td className="fw-semibold">{memoire.titre}</td>
-                      <td>{memoire.etudiant}</td>
-                      <td>{memoire.directeur}</td>
-                      <td>{memoire.dateDepot}</td>
-                      <td>
-                        <Badge
-                          bg={
-                            memoire.statut === "En évaluation"
-                              ? "warning"
-                              : memoire.statut === "Défense programmée"
-                                ? "success"
-                                : "info"
-                          }
-                        >
-                          {memoire.statut}
-                        </Badge>
-                      </td>
-                      <td>
-                        <Badge bg={memoire.priorite === "Urgente" ? "danger" : "secondary"}>{memoire.priorite}</Badge>
-                      </td>
-                      <td>
-                        <Button size="sm" variant="outline-primary" className="me-1">
-                          <i className="fas fa-eye"></i>
-                        </Button>
-                        <Button size="sm" variant="outline-success">
-                          <i className="fas fa-edit"></i>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom">
-            <Card.Header>
-              <h5 className="fw-bold mb-0">Défenses Prochaines</h5>
-            </Card.Header>
-            <Card.Body>
-              {defensesProchaines.map((defense) => (
-                <div key={defense.id} className="border rounded p-3 mb-3">
-                  <Row>
-                    <Col md={8}>
-                      <h6 className="fw-bold mb-1">{defense.etudiant}</h6>
-                      <p className="text-muted mb-2">{defense.titre}</p>
-                      <div className="d-flex align-items-center mb-2">
-                        <i className="fas fa-calendar me-2 text-primary"></i>
-                        <span className="me-3">{defense.date}</span>
-                        <i className="fas fa-clock me-2 text-primary"></i>
-                        <span className="me-3">{defense.heure}</span>
-                        <i className="fas fa-door-open me-2 text-primary"></i>
-                        <span>{defense.salle}</span>
-                      </div>
-                      <div>
-                        <small className="text-muted">Jury: </small>
-                        <small>{defense.jury.join(", ")}</small>
-                      </div>
-                    </Col>
-                    <Col md={4} className="text-end">
-                      <Button size="sm" variant="outline-primary" className="me-1">
-                        <i className="fas fa-edit"></i>
-                      </Button>
-                      <Button size="sm" variant="outline-info">
-                        <i className="fas fa-calendar-check"></i>
-                      </Button>
-                    </Col>
-                  </Row>
-                </div>
-              ))}
-            </Card.Body>
-          </Card>
+      <Row className="mb-4">
+        <Col lg={6} className="mb-4">
+          <ChartCard
+            title="Statut des Mémoires"
+            subtitle="Année académique en cours"
+            chartType="doughnut"
+            data={statusData}
+            delay={0.4}
+            height={300}
+          />
         </Col>
+        <Col lg={6} className="mb-4">
+          <ChartCard
+            title="Évolution des Notes Moyennes"
+            subtitle="6 derniers mois"
+            chartType="line"
+            data={notesData}
+            delay={0.5}
+            height={300}
+          />
+        </Col>
+      </Row>
 
-        <Col lg={4}>
-          <Card className="card-custom mb-4">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Actions Rapides</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="d-grid gap-2">
-                <Button variant="outline-primary">
-                  <i className="fas fa-file-upload me-2"></i>
-                  Soumettre Mémoire
-                </Button>
-                <Button variant="outline-success">
-                  <i className="fas fa-calendar-plus me-2"></i>
-                  Programmer Défense
-                </Button>
-                <Button variant="outline-info">
-                  <i className="fas fa-users me-2"></i>
-                  Constituer Jury
-                </Button>
-                <Button variant="outline-warning">
-                  <i className="fas fa-chart-bar me-2"></i>
-                  Rapport Jury
-                </Button>
-              </div>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom mb-4">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Statistiques Période</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between">
-                  <small>Taux de réussite</small>
-                  <small className="fw-bold">92%</small>
-                </div>
-                <div className="progress" style={{ height: "8px" }}>
-                  <div className="progress-bar bg-success" style={{ width: "92%" }}></div>
-                </div>
-              </div>
-              <div className="mb-3">
-                <small className="text-muted">Note moyenne</small>
-                <div className="fw-semibold">14.5/20</div>
-              </div>
-              <div>
-                <small className="text-muted">Délai moyen évaluation</small>
-                <div className="fw-semibold">12 jours</div>
-              </div>
-            </Card.Body>
-          </Card>
-
-          <Card className="card-custom">
-            <Card.Header>
-              <h6 className="fw-bold mb-0">Rappels Importants</h6>
-            </Card.Header>
-            <Card.Body>
-              <div className="alert alert-warning">
-                <i className="fas fa-clock me-2"></i>
-                <strong>Urgent:</strong> 3 mémoires à évaluer avant vendredi
-              </div>
-              <div className="alert alert-info">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Info:</strong> Réunion jury lundi 9h
-              </div>
-            </Card.Body>
-          </Card>
+      <Row className="mb-4">
+        <Col lg={12}>
+          <RecentActivity
+            activities={activities}
+            delay={0.6}
+          />
         </Col>
       </Row>
     </Container>

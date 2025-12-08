@@ -35,8 +35,9 @@ const Dashboard = () => {
       case USER_ROLES.ETUDIANT:
         return <EtudiantDashboard user={user} courses={courses} notifications={notifications} />
       case USER_ROLES.ENSEIGNANT:
-      case USER_ROLES.ASSISTANT:
         return <EnseignantDashboard user={user} courses={courses} notifications={notifications} />
+      case USER_ROLES.ASSISTANT:
+        return <AssistantDashboard user={user} courses={courses} notifications={notifications} />
       case USER_ROLES.SGA:
         return <SGADashboard user={user} courses={courses} notifications={notifications} />
       case USER_ROLES.SGAD:

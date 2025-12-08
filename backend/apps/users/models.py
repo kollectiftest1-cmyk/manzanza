@@ -74,3 +74,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def name(self):
         return f"{self.first_name} {self.last_name}"
+
+    def get_full_name(self):
+        """Return the full name of the user"""
+        return f"{self.first_name} {self.last_name}"

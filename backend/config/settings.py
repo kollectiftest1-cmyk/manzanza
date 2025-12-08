@@ -89,6 +89,10 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default=''),
         'PORT': config('DB_PORT', default=''),
+        'ATOMIC_REQUESTS': True,
+        'OPTIONS': {
+            'timeout': 20,  # Increase timeout for SQLite to handle concurrent requests
+        }
     }
 }
 

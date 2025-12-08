@@ -41,29 +41,30 @@ class PreInscriptionViewSet(viewsets.ModelViewSet):
         """
         Validates a pre-inscription, creates a new student user,
         and assigns them to the correct auditoire.
+        If the auditoire doesn't exist, it will be created automatically.
         """
+        from apps.auditoires.utils import find_or_create_auditoire
+
         pre_inscription = self.get_object()
 
         if pre_inscription.status != 'en_attente':
             return Response({'error': 'Cette demande a déjà été traitée.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Find the target auditoire
+        # 1. Find or create the target auditoire
         try:
-            target_auditoire = Auditoire.objects.get(
+            target_auditoire, created = find_or_create_auditoire(
                 filiere=pre_inscription.filiere,
                 niveau=pre_inscription.niveau,
-                vacation=pre_inscription.vacation
-                # Assuming current annee_academique. Add if needed.
+                vacation=pre_inscription.vacation,
+                created_by=request.user
             )
-        except Auditoire.DoesNotExist:
-            return Response({
-                'error': f"L'auditoire pour {pre_inscription.filiere.nom} - {pre_inscription.niveau} ({pre_inscription.vacation}) n'existe pas. Veuillez le créer avant de valider."
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except Auditoire.MultipleObjectsReturned:
-             return Response({
-                'error': f"Plusieurs auditoires correspondent aux critères pour {pre_inscription.filiere.nom} - {pre_inscription.niveau} ({pre_inscription.vacation}). Veuillez corriger les doublons."
-            }, status=status.HTTP_400_BAD_REQUEST)
 
+            auditoire_status = "créé automatiquement" if created else "existant"
+
+        except Exception as e:
+            return Response({
+                'error': f"Erreur lors de la recherche/création de l'auditoire: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # 2. Create the user
         temp_password = get_random_string(12)
@@ -77,7 +78,7 @@ class PreInscriptionViewSet(viewsets.ModelViewSet):
                 role='etudiant',
                 status='actif'
             )
-            # Assign the found auditoire to the student
+            # Assign the found/created auditoire to the student
             user.auditoire = target_auditoire
             user.save()
 
@@ -94,10 +95,11 @@ class PreInscriptionViewSet(viewsets.ModelViewSet):
 
         return Response({
             'status': 'Inscription validée avec succès.',
-            'message': f"L'étudiant {user.first_name} {user.last_name} a été créé et affecté à l'auditoire '{target_auditoire.nom}'.",
+            'message': f"L'étudiant {user.first_name} {user.last_name} a été créé et affecté à l'auditoire '{target_auditoire.nom}' ({auditoire_status}).",
             'user_id': user.id,
             'email': user.email,
-            'temp_password': temp_password # For testing; consider removing in production
+            'temp_password': temp_password,  # For testing; consider removing in production
+            'auditoire_created': created
         }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='reject')

@@ -1,190 +1,423 @@
 """
-Assignment views
+Views for TP/TD Assignment System
 """
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
 from django.utils import timezone
-from .models import Assignment, Submission, SubmissionComment
-from .serializers import AssignmentSerializer, SubmissionSerializer, SubmissionCommentSerializer
-from apps.users.permissions import IsTeacherOrAdmin
+from django.db.models import Q
+
+from .models import (
+    Assignment, AssignmentQuestion, AssignmentSubmission,
+    AssignmentAnswer, AssignmentChoice
+)
+from .serializers import (
+    AssignmentSerializer, AssignmentQuestionSerializer,
+    AssignmentSubmissionSerializer, AssignmentAnswerSerializer,
+    AssignmentCreateSerializer, AssignmentChoiceSerializer
+)
 
 
 class AssignmentViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for Assignment model
+    ViewSet for managing assignments (TP/TD)
     """
-    queryset = Assignment.objects.all()
-    serializer_class = AssignmentSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['course', 'assignment_type', 'status', 'is_active']
-    search_fields = ['title', 'description']
-    ordering_fields = ['due_date', 'created_at']
 
-    def get_permissions(self):
-        """Set permissions based on action"""
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsTeacherOrAdmin()]
-        return super().get_permissions()
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Assignment.objects.select_related('course', 'created_by').prefetch_related('questions')
+
+        # Filter based on user role
+        if user.role == 'etudiant':
+            # Students see published assignments from their courses
+            queryset = queryset.filter(
+                course__auditoire=user.auditoire,
+                status='published'
+            )
+        elif user.role in ['enseignant', 'assistant']:
+            # Teachers see assignments from their courses
+            queryset = queryset.filter(
+                Q(course__titulaire=user) | Q(course__assistants=user)
+            )
+        elif user.role in ['chef_section', 'chef_departement']:
+            # Section/Department chiefs see assignments from their area
+            if user.role == 'chef_section' and user.section:
+                queryset = queryset.filter(course__auditoire__filiere__section=user.section)
+            elif user.role == 'chef_departement' and user.filiere:
+                queryset = queryset.filter(course__auditoire__filiere=user.filiere)
+        # SGA/Admin see all
+
+        return queryset.distinct().order_by('-due_date')
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return AssignmentCreateSerializer
+        return AssignmentSerializer
 
     def perform_create(self, serializer):
-        """Set created_by to current user"""
         serializer.save(created_by=self.request.user)
 
-    @action(detail=True, methods=['post'])
-    def submit(self, request, pk=None):
-        """Submit assignment"""
+    @action(detail=True, methods=['get'])
+    def questions(self, request, pk=None):
+        """Get all questions for an assignment"""
         assignment = self.get_object()
-        student = request.user
+        questions = assignment.questions.all()
+        serializer = AssignmentQuestionSerializer(questions, many=True)
+        return Response(serializer.data)
 
-        if student.role != 'etudiant':
-            return Response(
-                {'error': 'Seuls les étudiants peuvent soumettre des travaux.'},
-                status=status.HTTP_403_FORBIDDEN
+    @action(detail=True, methods=['post'])
+    def add_question(self, request, pk=None):
+        """Add a question to an assignment"""
+        from django.db import models
+        assignment = self.get_object()
+
+        # Helper function to convert string booleans to actual booleans
+        def str_to_bool(value, default=False):
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                return value.lower() in ('true', '1', 'yes')
+            return default
+
+        # Helper function to safely convert to float
+        def safe_float(value, default=1.0):
+            if value is None or value == '' or value == 'null':
+                return default
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return default
+
+        # Extract question data (AssignmentQuestion has different fields than QuizQuestion)
+        question_data = {
+            'assignment': assignment,
+            'question_text': request.data.get('question_text'),
+            'question_type': request.data.get('question_type', 'text'),
+            'points': safe_float(request.data.get('points'), None),  # Can be null
+            'correct_answer': request.data.get('correct_answer', ''),  # Note: singular, not plural
+        }
+
+        # Get the next order number
+        max_order = assignment.questions.aggregate(models.Max('order'))['order__max'] or 0
+        question_data['order'] = max_order + 1
+
+        # Handle attachment upload (AssignmentQuestion uses 'attachment', not 'image')
+        if 'image' in request.FILES:
+            question_data['attachment'] = request.FILES['image']
+        elif 'attachment' in request.FILES:
+            question_data['attachment'] = request.FILES['attachment']
+
+        # Create the question
+        question = AssignmentQuestion.objects.create(**question_data)
+
+        # Handle choices for choice-based questions
+        choices_data = request.data.get('choices', [])
+        if isinstance(choices_data, str):
+            import json
+            choices_data = json.loads(choices_data)
+
+        for idx, choice_data in enumerate(choices_data):
+            # AssignmentChoice doesn't have points_percentage field
+            AssignmentChoice.objects.create(
+                question=question,
+                choice_text=choice_data.get('choice_text'),
+                is_correct=str_to_bool(choice_data.get('is_correct'), False),
+                order=idx + 1
             )
 
-        # Check if already submitted
-        submission = Submission.objects.filter(assignment=assignment, student=student).first()
-
-        # Check if late
-        is_late = timezone.now() > assignment.due_date
-        if is_late and not assignment.allow_late_submission:
-            return Response(
-                {'error': 'La date limite est dépassée et les soumissions tardives ne sont pas autorisées.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        data = request.data.copy()
-        data['assignment'] = assignment.id
-        data['student'] = student.id
-        data['is_late'] = is_late
-        data['status'] = 'soumis'
-        data['submitted_at'] = timezone.now()
-
-        if submission:
-            # Update existing submission
-            serializer = SubmissionSerializer(submission, data=data, partial=True)
-        else:
-            # Create new submission
-            serializer = SubmissionSerializer(data=data)
-
-        serializer.is_valid(raise_exception=True)
-        serializer.save(student=student)
-
+        serializer = AssignmentQuestionSerializer(question)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def publish(self, request, pk=None):
+        """Publish an assignment"""
+        assignment = self.get_object()
+        assignment.status = 'published'
+        assignment.save()
+        return Response({'status': 'Assignment published'})
+
+    @action(detail=True, methods=['post'])
+    def close(self, request, pk=None):
+        """Close an assignment"""
+        assignment = self.get_object()
+        assignment.status = 'closed'
+        assignment.save()
+        return Response({'status': 'Assignment closed'})
 
     @action(detail=True, methods=['get'])
     def submissions(self, request, pk=None):
-        """Get all submissions for assignment"""
+        """Get all submissions for an assignment"""
         assignment = self.get_object()
-
-        # Only teachers and admins can see all submissions
-        if request.user.role not in ['iadmin', 'sga', 'enseignant', 'assistant']:
-            return Response(
-                {'error': 'Vous n\'avez pas la permission de voir toutes les soumissions.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
         submissions = assignment.submissions.all()
-        serializer = SubmissionSerializer(submissions, many=True)
+        serializer = AssignmentSubmissionSerializer(submissions, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def my_submission(self, request, pk=None):
+        """Get current user's submission for this assignment"""
+        assignment = self.get_object()
+        try:
+            submission = AssignmentSubmission.objects.get(
+                assignment=assignment,
+                student=request.user
+            )
+            serializer = AssignmentSubmissionSerializer(submission)
+            return Response(serializer.data)
+        except AssignmentSubmission.DoesNotExist:
+            return Response({'status': 'No submission found'}, status=status.HTTP_404_NOT_FOUND)
 
-class SubmissionViewSet(viewsets.ModelViewSet):
+
+class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for Submission model
+    ViewSet for managing assignment submissions
     """
-    queryset = Submission.objects.all()
-    serializer_class = SubmissionSerializer
+    serializer_class = AssignmentSubmissionSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['assignment', 'student', 'status', 'is_late']
-    search_fields = ['student__first_name', 'student__last_name']
-    ordering_fields = ['submitted_at', 'score']
 
     def get_queryset(self):
-        """Filter submissions based on user role"""
         user = self.request.user
+        queryset = AssignmentSubmission.objects.select_related(
+            'assignment', 'student', 'graded_by'
+        ).prefetch_related('answers')
 
-        if user.role in ['iadmin', 'sga', 'enseignant', 'assistant']:
-            return self.queryset
-        elif user.role == 'etudiant':
-            return self.queryset.filter(student=user)
+        if user.role == 'etudiant':
+            # Students see only their submissions
+            queryset = queryset.filter(student=user)
+        elif user.role in ['enseignant', 'assistant']:
+            # Teachers see submissions from their courses
+            queryset = queryset.filter(
+                Q(assignment__course__titulaire=user) |
+                Q(assignment__course__assistants=user)
+            )
 
-        return self.queryset.none()
+        return queryset.distinct()
+
+    def create(self, request, *args, **kwargs):
+        """Create submission with answers"""
+        # Extract assignment ID
+        assignment_id = request.data.get('assignment')
+
+        if not assignment_id:
+            return Response(
+                {'error': 'assignment field is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            assignment = Assignment.objects.get(id=assignment_id)
+        except Assignment.DoesNotExist:
+            return Response(
+                {'error': 'Assignment not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check if student already submitted
+        existing = AssignmentSubmission.objects.filter(
+            assignment=assignment,
+            student=request.user
+        ).first()
+
+        if existing:
+            return Response(
+                {'error': 'You have already submitted this assignment'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create submission
+        submission = AssignmentSubmission.objects.create(
+            assignment=assignment,
+            student=request.user,
+            submitted_at=timezone.now(),
+            status='submitted'
+        )
+
+        # Process answers from FormData
+        answers_created = 0
+        errors = []
+
+        # Parse answers from request.data or request.POST
+        answers_data = {}
+        for key, value in request.data.items():
+            if key.startswith('answers['):
+                # Extract index and field name
+                # e.g., "answers[0][question_id]" -> index=0, field=question_id
+                parts = key.split('[')
+                if len(parts) >= 3:
+                    index = parts[1].rstrip(']')
+                    field = parts[2].rstrip(']')
+
+                    if index not in answers_data:
+                        answers_data[index] = {}
+
+                    if field == 'selected_choices':
+                        if 'selected_choices' not in answers_data[index]:
+                            answers_data[index]['selected_choices'] = []
+                        answers_data[index]['selected_choices'].append(value)
+                    else:
+                        answers_data[index][field] = value
+
+        # Create answers
+        for index, answer_data in answers_data.items():
+            try:
+                question_id = answer_data.get('question_id')
+                if not question_id:
+                    continue
+
+                question = AssignmentQuestion.objects.get(
+                    id=question_id,
+                    assignment=assignment
+                )
+
+                # Get file if present
+                answer_file = request.FILES.get(f'answers[{index}][answer_file]')
+
+                answer = AssignmentAnswer.objects.create(
+                    submission=submission,
+                    question=question,
+                    answer_text=answer_data.get('answer_text', ''),
+                    answer_file=answer_file
+                )
+
+                # Handle selected choices
+                selected_choices = answer_data.get('selected_choices', [])
+                if selected_choices:
+                    choices = AssignmentChoice.objects.filter(id__in=selected_choices)
+                    answer.selected_choices.set(choices)
+
+                answers_created += 1
+
+            except AssignmentQuestion.DoesNotExist:
+                errors.append(f"Question {question_id} not found")
+            except Exception as e:
+                errors.append(f"Error creating answer: {str(e)}")
+
+        serializer = self.get_serializer(submission)
+        return Response({
+            'submission': serializer.data,
+            'answers_created': answers_created,
+            'errors': errors
+        }, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        """Create submission with student info"""
+        serializer.save(
+            student=self.request.user,
+            submitted_at=timezone.now(),
+            status='submitted'
+        )
 
     @action(detail=True, methods=['post'])
     def grade(self, request, pk=None):
         """Grade a submission"""
         submission = self.get_object()
-
-        # Only teachers and admins can grade
-        if request.user.role not in ['iadmin', 'sga', 'enseignant', 'assistant']:
-            return Response(
-                {'error': 'Vous n\'avez pas la permission de noter.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
         score = request.data.get('score')
         feedback = request.data.get('feedback', '')
 
-        if score is None:
-            return Response(
-                {'error': 'Score requis.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if score is not None:
+            submission.score = score
+            submission.graded_by = request.user
+            submission.graded_at = timezone.now()
+            submission.status = 'graded'
+            submission.feedback = feedback
+            submission.save()
 
-        # Apply late penalty if applicable
-        if submission.is_late and submission.assignment.late_penalty > 0:
-            penalty = float(score) * (submission.assignment.late_penalty / 100)
-            score = max(0, float(score) - penalty)
+            return Response({
+                'status': 'Submission graded',
+                'score': score
+            })
 
-        submission.score = score
-        submission.feedback = feedback
-        submission.status = 'note'
-        submission.graded_by = request.user
-        submission.graded_at = timezone.now()
-        submission.save()
-
-        serializer = SubmissionSerializer(submission)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'])
-    def add_comment(self, request, pk=None):
-        """Add comment to submission"""
-        submission = self.get_object()
-
-        comment_text = request.data.get('comment')
-        if not comment_text:
-            return Response(
-                {'error': 'Commentaire requis.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        comment = SubmissionComment.objects.create(
-            submission=submission,
-            author=request.user,
-            comment=comment_text
+        return Response(
+            {'error': 'Score is required'},
+            status=status.HTTP_400_BAD_REQUEST
         )
 
-        serializer = SubmissionCommentSerializer(comment)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    @action(detail=True, methods=['post'])
+    def submit_answer(self, request, pk=None):
+        """Submit answer to a specific question"""
+        submission = self.get_object()
+        question_id = request.data.get('question_id')
+        answer_text = request.data.get('answer_text', '')
+        answer_file = request.FILES.get('answer_file')
+        selected_choice_ids = request.data.get('selected_choice_ids', [])
 
+        try:
+            question = AssignmentQuestion.objects.get(id=question_id)
 
-class SubmissionCommentViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for SubmissionComment model
-    """
-    queryset = SubmissionComment.objects.all()
-    serializer_class = SubmissionCommentSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['submission']
+            # Create or update answer
+            answer, created = AssignmentAnswer.objects.update_or_create(
+                submission=submission,
+                question=question,
+                defaults={
+                    'answer_text': answer_text,
+                    'answer_file': answer_file
+                }
+            )
 
-    def perform_create(self, serializer):
-        """Set author to current user"""
-        serializer.save(author=self.request.user)
+            # Handle multiple choice selections
+            if selected_choice_ids:
+                choices = AssignmentChoice.objects.filter(id__in=selected_choice_ids)
+                answer.selected_choices.set(choices)
+
+            serializer = AssignmentAnswerSerializer(answer)
+            return Response(serializer.data)
+
+        except AssignmentQuestion.DoesNotExist:
+            return Response(
+                {'error': 'Question not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=True, methods=['post'])
+    def auto_grade(self, request, pk=None):
+        """Automatically grade submission based on predefined answers"""
+        submission = self.get_object()
+
+        if not submission.assignment.auto_grade:
+            return Response(
+                {'error': 'Auto-grading not enabled for this assignment'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        total_points = 0
+        earned_points = 0
+
+        for answer in submission.answers.all():
+            question = answer.question
+            total_points += question.points or 0
+
+            # Auto-grade based on question type
+            if question.question_type == 'single_choice':
+                selected = answer.selected_choices.first()
+                if selected and selected.is_correct:
+                    answer.points_earned = question.points
+                    earned_points += question.points
+                else:
+                    answer.points_earned = 0
+
+            elif question.question_type == 'multiple_choice':
+                correct_choices = set(question.choices.filter(is_correct=True).values_list('id', flat=True))
+                selected = set(answer.selected_choices.values_list('id', flat=True))
+                if correct_choices == selected:
+                    answer.points_earned = question.points
+                    earned_points += question.points
+                else:
+                    answer.points_earned = 0
+
+            answer.save()
+
+        # Calculate final score
+        if total_points > 0:
+            submission.score = (earned_points / total_points) * submission.assignment.max_points
+            submission.graded_by = request.user
+            submission.graded_at = timezone.now()
+            submission.status = 'graded'
+            submission.save()
+
+        return Response({
+            'status': 'Auto-grading completed',
+            'score': submission.score,
+            'total_points': total_points,
+            'earned_points': earned_points
+        })

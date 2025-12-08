@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Container, Row, Col, Card, Button, Table, Badge, Form, Modal, Spinner, Alert, Tab, Tabs, InputGroup } from "react-bootstrap"
+import { Container, Row, Col, Card, Button, Table, Badge, Form, Modal, Spinner, Alert, Tab, Tabs, InputGroup, Nav } from "react-bootstrap"
 import { useSelector, useDispatch } from "react-redux"
+import { motion } from "framer-motion"
+import { FiHome, FiPlus, FiCalendar, FiCheck, FiX, FiArchive, FiUsers, FiClock, FiTrendingUp, FiList, FiSave } from "react-icons/fi"
 import {
   fetchRooms,
   createRoom,
@@ -11,6 +13,17 @@ import {
   createReservation,
   updateReservationStatus,
 } from "../store/slices/apparitoratSlice"
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+}
 
 const Apparitorat = () => {
   const dispatch = useDispatch()
@@ -167,105 +180,255 @@ const Apparitorat = () => {
 
 
   return (
-    <Container fluid className="py-0">
-      <Row className="dashboard-card">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="text-primary">Apparitorat - Gestion des Salles</h2>
-            <div>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div 
+        variants={containerVariants} 
+        initial="hidden" 
+        animate="visible"
+      >
+        {/* Header Section */}
+        <motion.div variants={itemVariants} style={{ marginBottom: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #fa709a, #fee140)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+              }}>
+                <FiHome size={28} style={{ color: 'white' }} />
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '32px', fontWeight: '700', color: 'var(--color-text)' }}>
+                  Apparitorat
+                </h2>
+                <p style={{ margin: 0, color: 'var(--color-textSecondary)', fontSize: '16px' }}>Gestion des salles et réservations</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {canManageRooms && (
-                <Button variant="info" onClick={handleShowRoomModal} className="me-2">
-                  <i className="fas fa-plus me-2"></i>Ajouter Salle
+                <Button 
+                  variant="info" 
+                  onClick={handleShowRoomModal}
+                  style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <FiPlus size={18} />
+                  Ajouter Salle
                 </Button>
               )}
-              <Button variant="primary" onClick={handleShowReservationModal}>
-                <i className="fas fa-calendar-plus me-2"></i>Nouvelle Réservation
+              <Button 
+                variant="primary" 
+                onClick={handleShowReservationModal}
+                style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <FiCalendar size={18} />
+                Nouvelle Réservation
               </Button>
             </div>
           </div>
-        </Col>
-      </Row>
+        </motion.div>
 
-      {loading && <div className="text-center"><Spinner animation="border" /></div>}
-      {error && <Alert variant="danger">{error}</Alert>}
+        {loading && (
+          <motion.div variants={itemVariants} style={{ textAlign: 'center', padding: '20px' }}>
+            <Spinner animation="border" style={{ color: 'var(--color-primary)', width: '3rem', height: '3rem' }} />
+          </motion.div>
+        )}
+        {error && (
+          <motion.div variants={itemVariants}>
+            <Alert variant="danger" style={{ borderRadius: '12px', padding: '16px' }}>{error}</Alert>
+          </motion.div>
+        )}
 
-      {/* Statistiques */}
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="text-center border-0 shadow-sm">
-            <Card.Body>
-              <h3 className="text-primary">{totalRooms}</h3>
-              <p className="text-muted mb-0">Salles</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center border-0 shadow-sm">
-            <Card.Body>
-              <h3 className="text-success">{confirmedReservationsCount}</h3>
-              <p className="text-muted mb-0">Réservations Confirmées</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center border-0 shadow-sm">
-            <Card.Body>
-              <h3 className="text-warning">{pendingReservationsCount}</h3>
-              <p className="text-muted mb-0">En Attente</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center border-0 shadow-sm">
-            <Card.Body>
-              <h3 className="text-info">{occupancyRate}%</h3>
-              <p className="text-muted mb-0">Taux d'Occupation</p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+        {/* Statistiques */}
+        <Row style={{ marginBottom: '32px' }}>
+          <Col md={3} className="mb-3 mb-md-0">
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                textAlign: 'center',
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Card.Body style={{ padding: '24px' }}>
+                  <FiHome size={32} style={{ color: 'var(--color-primary)', marginBottom: '12px' }} />
+                  <h3 style={{ color: 'var(--color-primary)', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>{totalRooms}</h3>
+                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Salles</p>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+          <Col md={3} className="mb-3 mb-md-0">
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                textAlign: 'center',
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Card.Body style={{ padding: '24px' }}>
+                  <FiCheck size={32} style={{ color: '#28a745', marginBottom: '12px' }} />
+                  <h3 style={{ color: '#28a745', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>{confirmedReservationsCount}</h3>
+                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Réservations Confirmées</p>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+          <Col md={3} className="mb-3 mb-md-0">
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                textAlign: 'center',
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Card.Body style={{ padding: '24px' }}>
+                  <FiClock size={32} style={{ color: '#ffc107', marginBottom: '12px' }} />
+                  <h3 style={{ color: '#ffc107', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>{pendingReservationsCount}</h3>
+                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>En Attente</p>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+          <Col md={3}>
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                textAlign: 'center',
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Card.Body style={{ padding: '24px' }}>
+                  <FiTrendingUp size={32} style={{ color: '#17a2b8', marginBottom: '12px' }} />
+                  <h3 style={{ color: '#17a2b8', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>{occupancyRate}%</h3>
+                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Taux d'Occupation</p>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+        </Row>
 
-      <Row>
-        {/* Liste des salles */}
-        <Col md={6}>
-          <Card className="border-0 shadow-sm mb-4">
-            <Card.Header className="bg-white">
-              <h5 className="mb-0">Salles Disponibles</h5>
-            </Card.Header>
-            <Card.Body>
-              {Array.isArray(rooms) && rooms.length === 0 && !loading && <p className="text-muted text-center">Aucune salle disponible.</p>}
-              {Array.isArray(rooms) && rooms.map((room) => (
-                <Card key={room.id} className="mb-3 border">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div>
-                        <h6 className="text-primary">{room.name}</h6>
-                        <p className="text-muted mb-1">Capacité: {room.capacity} places</p>
-                        <p className="text-muted mb-1">Type: <Badge bg="secondary">{room.room_type}</Badge></p>
-                        <div>
-                          {room.equipment && room.equipment.map((eq, index) => (
-                            <Badge key={index} bg="info" className="me-1">
-                              {eq}
-                            </Badge>
-                          ))}
+        <Row>
+          {/* Liste des salles */}
+          <Col md={6}>
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                marginBottom: '24px'
+              }}>
+                <Card.Header style={{
+                  background: 'linear-gradient(135deg, var(--color-primary), #667eea)',
+                  color: 'white',
+                  padding: '20px 24px',
+                  borderBottom: 'none',
+                  borderTopLeftRadius: '16px',
+                  borderTopRightRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <FiHome size={20} />
+                  <h5 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Salles Disponibles</h5>
+                </Card.Header>
+                <Card.Body style={{ padding: '24px' }}>
+                  {Array.isArray(rooms) && rooms.length === 0 && !loading && (
+                    <p style={{ textAlign: 'center', color: 'var(--color-textSecondary)', fontSize: '16px', padding: '20px' }}>
+                      <FiHome size={48} style={{ opacity: 0.3, marginBottom: '12px', display: 'block', margin: '0 auto 12px' }} />
+                      Aucune salle disponible.
+                    </p>
+                  )}
+                  {Array.isArray(rooms) && rooms.map((room) => (
+                    <Card key={room.id} style={{
+                      marginBottom: '16px',
+                      background: 'var(--color-bodyBg)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '12px'
+                    }}>
+                      <Card.Body style={{ padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                          <div style={{ flexGrow: 1 }}>
+                            <h6 style={{ color: 'var(--color-primary)', margin: 0, marginBottom: '8px', fontSize: '16px', fontWeight: '600' }}>
+                              {room.name}
+                            </h6>
+                            <p style={{ color: 'var(--color-textSecondary)', margin: 0, marginBottom: '4px', fontSize: '14px' }}>
+                              <FiUsers size={14} style={{ marginRight: '6px' }} />
+                              Capacité: {room.capacity} places
+                            </p>
+                            <p style={{ color: 'var(--color-textSecondary)', margin: 0, marginBottom: '8px', fontSize: '14px' }}>
+                              Type: <Badge bg="secondary" style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '12px', marginLeft: '4px' }}>{room.room_type}</Badge>
+                            </p>
+                            <div>
+                              {room.equipment && room.equipment.map((eq, index) => (
+                                <Badge key={index} bg="info" style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', marginRight: '6px', marginBottom: '4px' }}>
+                                  {eq}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <Badge bg="success" style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px' }}>Disponible</Badge>
                         </div>
-                      </div>
-                      <Badge bg="success">Disponible</Badge>
-                    </div>
-                  </Card.Body>
-                </Card>
-              ))}
-            </Card.Body>
-          </Card>
-        </Col>
+                      </Card.Body>
+                    </Card>
+                  ))}
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
 
-        {/* Réservations */}
-        <Col md={6}>
-          <Card className="border-0 shadow-sm">
-            <Card.Header className="bg-white">
-              <h5 className="mb-0">Gestion des Réservations</h5>
-            </Card.Header>
-            <Card.Body className="p-0">
+          {/* Réservations */}
+          <Col md={6}>
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}>
+                <Card.Header style={{
+                  background: 'linear-gradient(135deg, #11998e, #38ef7d)',
+                  color: 'white',
+                  padding: '20px 24px',
+                  borderBottom: 'none',
+                  borderTopLeftRadius: '16px',
+                  borderTopRightRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <FiCalendar size={20} />
+                  <h5 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Gestion des Réservations</h5>
+                </Card.Header>
+                <Card.Body style={{ padding: 0 }}>
               <Tabs
                 id="reservation-tabs"
                 activeKey={key}
@@ -382,18 +545,33 @@ const Apparitorat = () => {
                   </Table>
                 </Tab>
               </Tabs>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+        </Row>
 
-      {/* Modal nouvelle réservation */}
-      <Modal show={showReservationModal} onHide={handleCloseReservationModal} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Nouvelle Réservation de Salle</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmitReservation}>
-          <Modal.Body>
+        {/* Modal nouvelle réservation */}
+        <Modal show={showReservationModal} onHide={handleCloseReservationModal} size="lg" centered>
+          <div style={{
+            background: 'var(--color-cardBg)',
+            borderRadius: '16px',
+            border: '1px solid var(--color-border)',
+            overflow: 'hidden'
+          }}>
+            <Modal.Header closeButton style={{
+              background: 'linear-gradient(135deg, var(--color-primary), #667eea)',
+              color: 'white',
+              borderBottom: 'none',
+              padding: '24px'
+            }}>
+              <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '22px' }}>
+                <FiCalendar size={24} />
+                Nouvelle Réservation de Salle
+              </Modal.Title>
+            </Modal.Header>
+            <Form onSubmit={handleSubmitReservation}>
+              <Modal.Body style={{ padding: '32px', background: 'var(--color-cardBg)' }}>
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -472,25 +650,40 @@ const Apparitorat = () => {
                 onChange={(e) => setNewReservation({ ...newReservation, equipment_needs: e.target.value.split(',').map(item => item.trim()).filter(item => item !== '') })}
               />
             </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleCloseReservationModal}>
-              Annuler
-            </Button>
-            <Button variant="primary" type="submit" disabled={loading}>
-              {loading ? <Spinner as="span" size="sm" animation="border" /> : "Réserver"}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+              </Modal.Body>
+              <Modal.Footer style={{ background: 'var(--color-cardBg)', borderTop: '1px solid var(--color-border)', padding: '20px' }}>
+                <Button variant="secondary" onClick={handleCloseReservationModal} style={{ borderRadius: '8px', padding: '10px 24px' }}>
+                  Annuler
+                </Button>
+                <Button variant="primary" type="submit" disabled={loading} style={{ borderRadius: '8px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {loading ? <Spinner as="span" size="sm" animation="border" /> : <><FiSave size={18} />Réserver</>}
+                </Button>
+              </Modal.Footer>
+            </Form>
+          </div>
+        </Modal>
 
-      {/* Modal for creating a new room */}
-      <Modal show={showRoomModal} onHide={handleCloseRoomModal} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Ajouter une Nouvelle Salle</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmitRoom}>
-          <Modal.Body>
+        {/* Modal for creating a new room */}
+        <Modal show={showRoomModal} onHide={handleCloseRoomModal} size="lg" centered>
+          <div style={{
+            background: 'var(--color-cardBg)',
+            borderRadius: '16px',
+            border: '1px solid var(--color-border)',
+            overflow: 'hidden'
+          }}>
+            <Modal.Header closeButton style={{
+              background: 'linear-gradient(135deg, #11998e, #38ef7d)',
+              color: 'white',
+              borderBottom: 'none',
+              padding: '24px'
+            }}>
+              <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '22px' }}>
+                <FiPlus size={24} />
+                Ajouter une Nouvelle Salle
+              </Modal.Title>
+            </Modal.Header>
+            <Form onSubmit={handleSubmitRoom}>
+              <Modal.Body style={{ padding: '32px', background: 'var(--color-cardBg)' }}>
             <Form.Group className="mb-3">
               <Form.Label>Nom de la Salle</Form.Label>
               <Form.Control
@@ -553,17 +746,19 @@ const Apparitorat = () => {
                 ))}
               </div>
             </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleCloseRoomModal}>
-              Annuler
-            </Button>
-            <Button variant="primary" type="submit" disabled={loading}>
-              {loading ? <Spinner as="span" size="sm" animation="border" /> : "Créer Salle"}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+              </Modal.Body>
+              <Modal.Footer style={{ background: 'var(--color-cardBg)', borderTop: '1px solid var(--color-border)', padding: '20px' }}>
+                <Button variant="secondary" onClick={handleCloseRoomModal} style={{ borderRadius: '8px', padding: '10px 24px' }}>
+                  Annuler
+                </Button>
+                <Button variant="primary" type="submit" disabled={loading} style={{ borderRadius: '8px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {loading ? <Spinner as="span" size="sm" animation="border" /> : <><FiPlus size={18} />Créer Salle</>}
+                </Button>
+              </Modal.Footer>
+            </Form>
+          </div>
+        </Modal>
+      </motion.div>
     </Container>
   )
 }

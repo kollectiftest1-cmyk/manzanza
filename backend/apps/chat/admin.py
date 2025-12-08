@@ -6,9 +6,9 @@ from .models import ChatChannel, Message, MessageReaction
 class ChatChannelAdmin(admin.ModelAdmin):
     """Admin configuration for ChatChannel model"""
 
-    list_display = ['name', 'course', 'is_general', 'participants_count', 'is_active', 'created_at']
-    list_filter = ['is_general', 'is_active', 'created_at']
-    search_fields = ['name', 'description', 'course__name']
+    list_display = ['name', 'channel_type', 'course', 'participants_count', 'is_active', 'created_at']
+    list_filter = ['channel_type', 'is_active', 'created_at']
+    search_fields = ['name', 'description', 'course__name', 'section__nom', 'filiere__nom']
 
 
 @admin.register(Message)

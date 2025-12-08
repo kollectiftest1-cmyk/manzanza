@@ -15,30 +15,35 @@ from .serializers import (
     CourseSerializer, CourseDetailSerializer,
     CourseEnrollmentSerializer, CourseMaterialSerializer
 )
+from .filters import CourseFilter
 from apps.users.permissions import CanManageCourses, IsTeacherOrAdmin, IsAdminUser
+from apps.users.mixins import RoleBasedFilterMixin
 from apps.core.pagination import CustomPageNumberPagination
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
-class CourseViewSet(viewsets.ModelViewSet):
+class CourseViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     """
-    ViewSet for Course model
+    ViewSet for Course model with intelligent role-based filtering
     """
-    queryset = Course.objects.select_related('titulaire').prefetch_related('sections', 'filieres', 'assistants', 'auditoires').all()
+    queryset = Course.objects.select_related(
+        'titulaire',
+        'auditoire',
+        'auditoire__filiere',
+        'auditoire__filiere__section'
+    ).prefetch_related('assistants').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = [
-        'is_active',
-        'semester',
-        'titulaire',
-        'sections',
-        'filieres',
-        'auditoires',
-    ]
+    filterset_class = CourseFilter
     search_fields = ['name', 'code', 'description']
     ordering_fields = ['name', 'created_at']
     pagination_class = CustomPageNumberPagination
+
+    def get_queryset(self):
+        """Apply intelligent role-based filtering"""
+        queryset = super().get_queryset()
+        return self.filter_queryset_by_role(queryset, self.request.user, 'course')
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -70,7 +75,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                     logger.info(f"Found managed filiere: {user.managed_filiere.id}")
             except ObjectDoesNotExist:
                 logger.warning("Managed filiere does not exist for user.")
-            
+
             if hasattr(user, 'filiere') and user.filiere:
                 filieres_to_check.append(user.filiere.id)
                 logger.info(f"Found user filiere: {user.filiere.id}")
@@ -78,10 +83,11 @@ class CourseViewSet(viewsets.ModelViewSet):
             if filieres_to_check:
                 unique_filiere_ids = list(set(filieres_to_check))
                 logger.info(f"Filtering courses by filiere IDs: {unique_filiere_ids}")
-                filtered_queryset = queryset.filter(filieres__id__in=unique_filiere_ids).distinct()
+                # Cours filtrés via auditoire.filiere
+                filtered_queryset = queryset.filter(auditoire__filiere__id__in=unique_filiere_ids).distinct()
                 logger.info(f"Found {filtered_queryset.count()} courses for chef_departement.")
                 return filtered_queryset
-            
+
             logger.warning("No filieres found for chef_departement, returning empty queryset.")
             return queryset.none()
 
@@ -100,8 +106,9 @@ class CourseViewSet(viewsets.ModelViewSet):
 
             if sections_to_check:
                 unique_section_ids = list(set(sections_to_check))
-                logger.info(f"Filtering courses by section IDs (via filieres): {unique_section_ids}")
-                filtered_queryset = queryset.filter(filieres__section__id__in=unique_section_ids).distinct()
+                logger.info(f"Filtering courses by section IDs (via auditoire.filiere.section): {unique_section_ids}")
+                # Cours filtrés via auditoire.filiere.section
+                filtered_queryset = queryset.filter(auditoire__filiere__section__id__in=unique_section_ids).distinct()
                 logger.info(f"Found {filtered_queryset.count()} courses for chef_section.")
                 return filtered_queryset
 
@@ -115,7 +122,8 @@ class CourseViewSet(viewsets.ModelViewSet):
         elif user.role == 'etudiant':
             logger.info("Filtering for etudiant.")
             if user.auditoire:
-                return queryset.filter(auditoires=user.auditoire)
+                # Les cours de l'étudiant sont ceux de son auditoire
+                return queryset.filter(auditoire=user.auditoire)
             return queryset.none()
 
         logger.warning(f"No matching role filter for user {user.email}, returning empty queryset.")

@@ -1,8 +1,21 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Container, Row, Col, Card, Button, Badge, Tab, Tabs, Form, Modal, Table } from "react-bootstrap"
+import { Container, Row, Col, Card, Button, Badge, Tab, Tabs, Form, Modal, Table, Nav } from "react-bootstrap"
 import { useSelector } from "react-redux"
+import { motion } from "framer-motion"
+import { FiUsers, FiUserPlus, FiEye, FiEdit, FiTrash2, FiFileText, FiDollarSign, FiDownload, FiSave, FiLock, FiBriefcase } from "react-icons/fi"
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+}
 
 const RH = () => {
   const { user } = useSelector((state) => state.auth)
@@ -99,71 +112,157 @@ const RH = () => {
 
   if (!canAccessRH) {
     return (
-      <Container className="py-4">
-        <div className="text-center">
-          <i className="fas fa-lock fa-3x text-muted mb-3"></i>
-          <h4>Accès Restreint</h4>
-          <p className="text-muted">Vous n'avez pas les permissions pour accéder à cette section.</p>
-        </div>
+      <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: 'center' }}>
+          <FiLock size={64} style={{ color: 'var(--color-textSecondary)', opacity: 0.3, marginBottom: '24px' }} />
+          <h4 style={{ color: 'var(--color-text)', marginBottom: '12px' }}>Accès Restreint</h4>
+          <p style={{ color: 'var(--color-textSecondary)', fontSize: '16px' }}>Vous n'avez pas les permissions pour accéder à cette section.</p>
+        </motion.div>
       </Container>
     )
   }
 
   return (
-    <Container fluid className="py-0">
-      <Row className="mb-4">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <h2 className="text-primary">
-              <i className="fas fa-users-cog me-2"></i>
-              Ressources Humaines
-            </h2>
-            <Button variant="primary" onClick={() => setShowModal(true)}>
-              <i className="fas fa-user-plus me-2"></i>
+    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
+      <motion.div 
+        variants={containerVariants} 
+        initial="hidden" 
+        animate="visible"
+      >
+        {/* Header Section */}
+        <motion.div variants={itemVariants} style={{ marginBottom: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #f093fb, #f5576c)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+              }}>
+                <FiUsers size={28} style={{ color: 'white' }} />
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '32px', fontWeight: '700', color: 'var(--color-text)' }}>
+                  Ressources Humaines
+                </h2>
+                <p style={{ margin: 0, color: 'var(--color-textSecondary)', fontSize: '16px' }}>Gestion du personnel et des contrats</p>
+              </div>
+            </div>
+            <Button 
+              variant="primary" 
+              onClick={() => setShowModal(true)}
+              style={{ borderRadius: '8px', padding: '10px 24px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FiUserPlus size={18} />
               Nouveau Personnel
             </Button>
           </div>
-        </Col>
-      </Row>
+        </motion.div>
 
-      {/* Statistiques RH */}
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="text-center border-0 shadow-sm">
-            <Card.Body>
-              <h3 className="text-primary">{personnel.length}</h3>
-              <p className="text-muted mb-0">Total Personnel</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center border-0 shadow-sm">
-            <Card.Body>
-              <h3 className="text-success">{personnel.filter((p) => p.statut === "Actif").length}</h3>
-              <p className="text-muted mb-0">Personnel Actif</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center border-0 shadow-sm">
-            <Card.Body>
-              <h3 className="text-warning">{contrats.filter((c) => c.type === "CDI").length}</h3>
-              <p className="text-muted mb-0">Contrats CDI</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center border-0 shadow-sm">
-            <Card.Body>
-              <h3 className="text-info">${paies.reduce((total, p) => total + p.salaireNet, 0).toLocaleString()}</h3>
-              <p className="text-muted mb-0">Masse Salariale</p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+        {/* Statistiques RH */}
+        <Row style={{ marginBottom: '32px' }}>
+          <Col md={3} className="mb-3 mb-md-0">
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                textAlign: 'center',
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Card.Body style={{ padding: '24px' }}>
+                  <FiUsers size={32} style={{ color: 'var(--color-primary)', marginBottom: '12px' }} />
+                  <h3 style={{ color: 'var(--color-primary)', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>{personnel.length}</h3>
+                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Total Personnel</p>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+          <Col md={3} className="mb-3 mb-md-0">
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                textAlign: 'center',
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Card.Body style={{ padding: '24px' }}>
+                  <FiUsers size={32} style={{ color: '#28a745', marginBottom: '12px' }} />
+                  <h3 style={{ color: '#28a745', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>{personnel.filter((p) => p.statut === "Actif").length}</h3>
+                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Personnel Actif</p>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+          <Col md={3} className="mb-3 mb-md-0">
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                textAlign: 'center',
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Card.Body style={{ padding: '24px' }}>
+                  <FiFileText size={32} style={{ color: '#ffc107', marginBottom: '12px' }} />
+                  <h3 style={{ color: '#ffc107', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>{contrats.filter((c) => c.type === "CDI").length}</h3>
+                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Contrats CDI</p>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+          <Col md={3}>
+            <motion.div variants={itemVariants}>
+              <Card style={{
+                textAlign: 'center',
+                background: 'var(--color-cardBg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Card.Body style={{ padding: '24px' }}>
+                  <FiDollarSign size={32} style={{ color: '#17a2b8', marginBottom: '12px' }} />
+                  <h3 style={{ color: '#17a2b8', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>${paies.reduce((total, p) => total + p.salaireNet, 0).toLocaleString()}</h3>
+                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Masse Salariale</p>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+        </Row>
 
-      <Card className="border-0 shadow-sm">
-        <Card.Body>
+        <motion.div variants={itemVariants}>
+          <Card style={{
+            background: 'var(--color-cardBg)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}>
+            <Card.Body style={{ padding: '24px' }}>
           <Tabs activeKey={activeTab} onSelect={setActiveTab} className="mb-4">
             <Tab
               eventKey="personnel"
@@ -380,15 +479,30 @@ const RH = () => {
               </Row>
             </Tab>
           </Tabs>
-        </Card.Body>
-      </Card>
+            </Card.Body>
+          </Card>
+        </motion.div>
 
-      {/* Modal Nouveau Personnel */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Ajouter un Nouveau Personnel</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
+        {/* Modal Nouveau Personnel */}
+        <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
+          <div style={{
+            background: 'var(--color-cardBg)',
+            borderRadius: '16px',
+            border: '1px solid var(--color-border)',
+            overflow: 'hidden'
+          }}>
+            <Modal.Header closeButton style={{
+              background: 'linear-gradient(135deg, var(--color-primary), #667eea)',
+              color: 'white',
+              borderBottom: 'none',
+              padding: '24px'
+            }}>
+              <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '22px' }}>
+                <FiUserPlus size={24} />
+                Ajouter un Nouveau Personnel
+              </Modal.Title>
+            </Modal.Header>
+            <Modal.Body style={{ padding: '32px', background: 'var(--color-cardBg)' }}>
           <Form>
             <Row>
               <Col md={6}>
@@ -449,17 +563,19 @@ const RH = () => {
               <Form.Control type="date" />
             </Form.Group>
           </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Annuler
-          </Button>
-          <Button variant="primary">
-            <i className="fas fa-save me-2"></i>
-            Enregistrer
-          </Button>
-        </Modal.Footer>
-      </Modal>
+            </Modal.Body>
+            <Modal.Footer style={{ background: 'var(--color-cardBg)', borderTop: '1px solid var(--color-border)', padding: '20px' }}>
+              <Button variant="secondary" onClick={() => setShowModal(false)} style={{ borderRadius: '8px', padding: '10px 24px' }}>
+                Annuler
+              </Button>
+              <Button variant="primary" style={{ borderRadius: '8px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiSave size={18} />
+                Enregistrer
+              </Button>
+            </Modal.Footer>
+          </div>
+        </Modal>
+      </motion.div>
     </Container>
   )
 }

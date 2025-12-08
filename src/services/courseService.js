@@ -1,29 +1,22 @@
 import api from './api';
 
-export const getCourses = () => {
-  return api.get('/courses/');
+const courseService = {
+  getCourses: () => api.get('/courses/'),
+  getMyCourses: () => api.get('/courses/my_courses/'),
+  getCourseDetail: (id) => api.get(`/courses/${id}/`),
+  createCourse: (courseData) => api.post('/courses/', courseData),
+  updateCourse: (id, courseData) => api.put(`/courses/${id}/`, courseData),
+  deleteCourse: (id) => api.delete(`/courses/${id}/`),
+  enrollCourse: (courseId) => api.post(`/courses/${courseId}/enroll/`),
 };
 
-export const getMyCourses = () => {
-  return api.get('/courses/my_courses/');
-};
+export default courseService;
 
-export const getCourseDetail = (id) => {
-  return api.get(`/courses/${id}/`);
-};
-
-export const createCourse = (courseData) => {
-  return api.post('/courses/', courseData);
-};
-
-export const updateCourse = (id, courseData) => {
-  return api.put(`/courses/${id}/`, courseData);
-};
-
-export const deleteCourse = (id) => {
-  return api.delete(`/courses/${id}/`);
-};
-
-export const enrollCourse = (courseId) => {
-  return api.post(`/courses/${courseId}/enroll/`);
-};
+// Exports nommés pour la compatibilité avec le code existant
+export const getCourses = courseService.getCourses;
+export const getMyCourses = courseService.getMyCourses;
+export const getCourseDetail = courseService.getCourseDetail;
+export const createCourse = courseService.createCourse;
+export const updateCourse = courseService.updateCourse;
+export const deleteCourse = courseService.deleteCourse;
+export const enrollCourse = courseService.enrollCourse;

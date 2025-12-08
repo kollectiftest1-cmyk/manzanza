@@ -10,7 +10,7 @@ const Step2_AcademicChoice = ({ formData, handleChange }) => {
   useEffect(() => {
     const fetchFilieres = async () => {
       try {
-        const res = await api.get("/auditoires/filieres/")
+        const res = await api.get("/filieres/")
         setFilieres(res.data.results || res.data)
       } catch (err) {
         console.error("Failed to fetch filieres", err)

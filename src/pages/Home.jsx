@@ -1,150 +1,495 @@
-import { Container, Row, Col, Button, Card } from "react-bootstrap"
+import { Container, Row, Col, Button } from "react-bootstrap"
 import { LinkContainer } from "react-router-bootstrap"
 import { useSelector } from "react-redux"
 import { Link } from "react-router-dom"
+import { motion } from "framer-motion"
+import { FiBookOpen, FiUsers, FiAward, FiTrendingUp, FiShield, FiZap, FiGlobe, FiArrowRight } from "react-icons/fi"
 
 const Home = () => {
   const { isAuthenticated } = useSelector((state) => state.auth)
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0 }
+  }
+
+  const features = [
+    { icon: FiBookOpen, title: "Gestion Académique", desc: "Cours, examens, notes centralisés", color: "var(--color-primary)" },
+    { icon: FiUsers, title: "Collaboration", desc: "Étudiants, enseignants connectés", color: "var(--color-success)" },
+    { icon: FiAward, title: "Certifications", desc: "Diplômes et attestations", color: "var(--color-warning)" },
+    { icon: FiTrendingUp, title: "Analytics", desc: "Statistiques en temps réel", color: "var(--color-info)" },
+    { icon: FiShield, title: "Sécurité", desc: "Données protégées & cryptées", color: "var(--color-danger)" },
+    { icon: FiZap, title: "Performance", desc: "Ultra rapide & optimisé", color: "var(--color-secondary)" }
+  ]
+
+  const services = [
+    {
+      icon: "🎓",
+      title: "Administrateurs & Directeurs",
+      desc: "Gestion complète de votre établissement en quelques clics. Rapports, finances, inscriptions automatisées.",
+      gradient: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))"
+    },
+    {
+      icon: "👨‍🏫",
+      title: "Enseignants",
+      desc: "Gérez vos cours, partagez des ressources, évaluez vos étudiants. Tout en un seul endroit.",
+      gradient: "linear-gradient(135deg, var(--color-success), var(--color-info))"
+    },
+    {
+      icon: "👩‍🎓",
+      title: "Étudiants & Parents",
+      desc: "Suivez les performances, accédez aux cours, communiquez avec les enseignants 24/7.",
+      gradient: "linear-gradient(135deg, var(--color-warning), var(--color-danger))"
+    }
+  ]
+
   return (
-    <>
+    <div style={{ background: 'var(--color-bodyBg)', overflow: 'hidden' }}>
       {/* Hero Section */}
-      <section className="hero-section gradient-bg">
-        <Container>
-          <Row className="align-items-center min-vh-100">
-            <Col lg={6} className="hero-content">
-              <h1 className="hero-title">Simplifiez la gestion de votre université avec DASH</h1>
-              <p className="hero-subtitle">
-                Une application tout-en-un qui est rapide, intuitive et complète pour la gestion académique et
-                administrative.
-              </p>
-              <div className="d-flex gap-3 flex-wrap">
-                {!isAuthenticated ? (
-                  <>
-                    <LinkContainer to="/login">
-                      <Button size="lg" className="btn-primary-custom">
-                        Se Connecter
+      <section style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        position: 'relative',
+        paddingTop: '100px',
+        paddingBottom: '80px'
+      }}>
+        {/* Background decoration */}
+        <div style={{
+          position: 'absolute',
+          top: '0',
+          right: '-10%',
+          width: '50%',
+          height: '50%',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+          opacity: '0.08',
+          filter: 'blur(100px)',
+          zIndex: 0
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '0',
+          left: '-10%',
+          width: '40%',
+          height: '40%',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, var(--color-success), var(--color-info))',
+          opacity: '0.08',
+          filter: 'blur(100px)',
+          zIndex: 0
+        }} />
+
+        <Container style={{ position: 'relative', zIndex: 1 }}>
+          <Row className="align-items-center">
+            <Col lg={6}>
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8 }}
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  style={{
+                    display: 'inline-block',
+                    padding: '8px 20px',
+                    borderRadius: '50px',
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1))',
+                    border: '1px solid var(--color-primary)',
+                    marginBottom: '24px'
+                  }}
+                >
+                  <small style={{ color: 'var(--color-primary)', fontWeight: '600' }}>
+                    🚀 Plateforme Universitaire N°1 en RDC
+                  </small>
+                </motion.div>
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  style={{
+                    fontSize: '3.5rem',
+                    fontWeight: '800',
+                    lineHeight: '1.2',
+                    color: 'var(--color-textPrimary)',
+                    marginBottom: '24px'
+                  }}
+                >
+                  Simplifiez la gestion{' '}
+                  <span style={{
+                    background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}>
+                    universitaire
+                  </span>
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  style={{
+                    fontSize: '1.25rem',
+                    color: 'var(--color-textSecondary)',
+                    marginBottom: '32px',
+                    lineHeight: '1.8'
+                  }}
+                >
+                  Une plateforme tout-en-un, rapide et intuitive pour la gestion académique et administrative de votre établissement.
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="d-flex gap-3 flex-wrap"
+                >
+                  {!isAuthenticated ? (
+                    <>
+                      <LinkContainer to="/login">
+                        <Button
+                          size="lg"
+                          style={{
+                            background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                            border: 'none',
+                            padding: '14px 32px',
+                            borderRadius: '12px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          Se Connecter <FiArrowRight />
+                        </Button>
+                      </LinkContainer>
+                      <Link to="/inscription">
+                        <Button
+                          size="lg"
+                          style={{
+                            background: 'linear-gradient(135deg, var(--color-success), var(--color-info))',
+                            border: 'none',
+                            padding: '14px 32px',
+                            borderRadius: '12px',
+                            fontWeight: '600'
+                          }}
+                        >
+                          S'inscrire
+                        </Button>
+                      </Link>
+                      <Button
+                        size="lg"
+                        variant="outline-primary"
+                        style={{
+                          padding: '14px 32px',
+                          borderRadius: '12px',
+                          fontWeight: '600',
+                          borderWidth: '2px'
+                        }}
+                      >
+                        Demander une démo
+                      </Button>
+                    </>
+                  ) : (
+                    <LinkContainer to="/dashboard">
+                      <Button
+                        size="lg"
+                        style={{
+                          background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                          border: 'none',
+                          padding: '14px 32px',
+                          borderRadius: '12px',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        Accéder au tableau de bord <FiArrowRight />
                       </Button>
                     </LinkContainer>
-                    <Link to="/inscription">
-                      <Button size="lg" variant="success">
-                        S'inscrire
-                      </Button>
-                    </Link>
-                    <Button size="lg" variant="outline-light" className="btn-outline-custom">
-                      Demander une démo
-                    </Button>
-                  </>
-                ) : (
-                  <LinkContainer to="/dashboard">
-                    <Button size="lg" className="btn-primary-custom">
-                      Accéder au tableau de bord
-                    </Button>
-                  </LinkContainer>
-                )}
-              </div>
-            </Col>
-            <Col lg={6} className="text-center">
-              <div className="hero-image">
-                <img src="/modern-university-dashboard-interface.png" alt="Interface DASH" className="img-fluid rounded shadow-lg" />
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+                  )}
+                </motion.div>
 
-      {/* Services Section */}
-      <section className="py-5">
-        <Container>
-          <Row className="text-center mb-5">
-            <Col>
-              <h2 className="display-5 fw-bold text-primary mb-3">
-                DASH offre une gamme complète de services pour les gestionnaires d'université, enseignants, parents et
-                étudiants.
-              </h2>
-            </Col>
-          </Row>
-
-          <Row>
-            <Col md={4} className="mb-4">
-              <Card className="card-custom h-100 text-center">
-                <Card.Body className="p-4">
-                  <div className="mb-4">
-                    <img src="/administrator-working-on-laptop.png" alt="Administrateur" className="img-fluid rounded mb-3" />
-                  </div>
-                  <Card.Title className="h4 mb-3">Administrateur et directeurs</Card.Title>
-                  <Card.Text className="text-muted mb-4">
-                    Simplifiez votre vie avec la gestion numérique de votre établissement - tous vos rapports
-                    administratifs en un seul clic.
-                  </Card.Text>
-                  <Button className="btn-primary-custom">Explorer Schoolap →</Button>
-                </Card.Body>
-              </Card>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                  style={{ marginTop: '32px' }}
+                >
+                  <Row className="g-4">
+                    <Col xs={4}>
+                      <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-primary)', marginBottom: '4px' }}>5000+</h3>
+                      <small style={{ color: 'var(--color-textSecondary)' }}>Étudiants actifs</small>
+                    </Col>
+                    <Col xs={4}>
+                      <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-success)', marginBottom: '4px' }}>200+</h3>
+                      <small style={{ color: 'var(--color-textSecondary)' }}>Enseignants</small>
+                    </Col>
+                    <Col xs={4}>
+                      <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-warning)', marginBottom: '4px' }}>98%</h3>
+                      <small style={{ color: 'var(--color-textSecondary)' }}>Satisfaction</small>
+                    </Col>
+                  </Row>
+                </motion.div>
+              </motion.div>
             </Col>
 
-            <Col md={4} className="mb-4">
-              <Card className="card-custom h-100 text-center">
-                <Card.Body className="p-4">
-                  <div className="mb-4">
-                    <img src="/teacher-in-classroom-with-students.png" alt="Éducateur" className="img-fluid rounded mb-3" />
-                  </div>
-                  <Card.Title className="h4 mb-3">Éducateur</Card.Title>
-                  <Card.Text className="text-muted mb-4">
-                    Adoptez une gestion moderne pour vos classes et étudiants. Publiez et partagez du contenu éducatif,
-                    économisant temps et énergie.
-                  </Card.Text>
-                  <Button className="btn-primary-custom">Essayer avec Schoolap →</Button>
-                </Card.Body>
-              </Card>
-            </Col>
-
-            <Col md={4} className="mb-4">
-              <Card className="card-custom h-100 text-center">
-                <Card.Body className="p-4">
-                  <div className="mb-4">
-                    <img
-                      src="/students-learning-together-with-laptops.png"
-                      alt="Apprenants et parents"
-                      className="img-fluid rounded mb-3"
-                    />
-                  </div>
-                  <Card.Title className="h4 mb-3">Apprenants et parents</Card.Title>
-                  <Card.Text className="text-muted mb-4">
-                    Suivez les performances des apprenants en temps réel et utilisez l'activité électronique pour
-                    améliorer leur parcours académique.
-                  </Card.Text>
-                  <Button className="btn-primary-custom">Découvrir Schoolap →</Button>
-                </Card.Body>
-              </Card>
+            <Col lg={6} className="d-none d-lg-block">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                style={{ position: 'relative' }}
+              >
+                <motion.div
+                  animate={{ y: [0, -20, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, repeatType: "reverse" }}
+                  style={{
+                    padding: '40px',
+                    borderRadius: '24px',
+                    background: 'var(--color-cardBg)',
+                    border: '1px solid var(--color-border)',
+                    boxShadow: '0 30px 60px rgba(0,0,0,0.15)'
+                  }}
+                >
+                  <div style={{ fontSize: '8rem', textAlign: 'center', marginBottom: '20px' }}>🎓</div>
+                  <h4 style={{ textAlign: 'center', color: 'var(--color-textPrimary)', fontWeight: '700' }}>Syntax GU</h4>
+                  <p style={{ textAlign: 'center', color: 'var(--color-textSecondary)', marginBottom: 0 }}>Excellence Académique</p>
+                </motion.div>
+              </motion.div>
             </Col>
           </Row>
         </Container>
       </section>
 
       {/* Features Section */}
-      <section className="py-5 gradient-bg">
+      <section style={{ padding: '80px 0', background: 'var(--color-cardBg)' }}>
         <Container>
-          <Row className="align-items-center">
-            <Col lg={6} className="text-white">
-              <h2 className="display-5 fw-bold mb-4">
-                Accédez à votre compte de n'importe où, avec ou sans connectivité Internet.
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.div variants={itemVariants} className="text-center mb-5">
+              <h2 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                color: 'var(--color-textPrimary)',
+                marginBottom: '16px'
+              }}>
+                Pourquoi choisir Syntax GU ?
               </h2>
-              <p className="lead mb-4">
-                Découvrez DASH, une application qui fonctionne parfaitement sur ordinateurs, tablettes ou téléphones,
-                offrant une expérience utilisateur optimale en ligne et hors ligne.
+              <p style={{ fontSize: '1.1rem', color: 'var(--color-textSecondary)', maxWidth: '700px', margin: '0 auto' }}>
+                Une solution complète et moderne pour transformer votre gestion universitaire
               </p>
-              <div className="d-flex gap-3">
-                <img src="/app-store-badge.png" alt="App Store" />
-                <img src="/google-play-badge.png" alt="Google Play" />
-              </div>
-            </Col>
-            <Col lg={6} className="text-center">
-              <img src="/responsive-devices-showing-university-app.png" alt="Appareils responsifs" className="img-fluid" />
-            </Col>
-          </Row>
+            </motion.div>
+
+            <Row className="g-4">
+              {features.map((feature, index) => (
+                <Col key={index} md={6} lg={4}>
+                  <motion.div
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    style={{
+                      padding: '32px',
+                      borderRadius: '16px',
+                      background: 'var(--color-bodyBg)',
+                      border: '1px solid var(--color-border)',
+                      height: '100%',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <feature.icon style={{
+                      fontSize: '3rem',
+                      color: feature.color,
+                      marginBottom: '16px'
+                    }} />
+                    <h5 style={{
+                      fontWeight: '600',
+                      color: 'var(--color-textPrimary)',
+                      marginBottom: '8px'
+                    }}>
+                      {feature.title}
+                    </h5>
+                    <p style={{ color: 'var(--color-textSecondary)', marginBottom: 0 }}>
+                      {feature.desc}
+                    </p>
+                  </motion.div>
+                </Col>
+              ))}
+            </Row>
+          </motion.div>
         </Container>
       </section>
-    </>
+
+      {/* Services Section */}
+      <section style={{ padding: '80px 0' }}>
+        <Container>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.div variants={itemVariants} className="text-center mb-5">
+              <h2 style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                color: 'var(--color-textPrimary)',
+                marginBottom: '16px'
+              }}>
+                Pour tous les acteurs universitaires
+              </h2>
+              <p style={{ fontSize: '1.1rem', color: 'var(--color-textSecondary)' }}>
+                Des outils adaptés à chaque rôle dans votre établissement
+              </p>
+            </motion.div>
+
+            <Row className="g-4">
+              {services.map((service, index) => (
+                <Col key={index} lg={4}>
+                  <motion.div
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.03 }}
+                    style={{
+                      padding: '40px',
+                      borderRadius: '20px',
+                      background: 'var(--color-cardBg)',
+                      border: '1px solid var(--color-border)',
+                      height: '100%',
+                      textAlign: 'center',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div style={{
+                      position: 'absolute',
+                      top: '-50px',
+                      right: '-50px',
+                      width: '150px',
+                      height: '150px',
+                      borderRadius: '50%',
+                      background: service.gradient,
+                      opacity: 0.1,
+                      filter: 'blur(40px)'
+                    }} />
+
+                    <div style={{
+                      fontSize: '4rem',
+                      marginBottom: '20px',
+                      position: 'relative'
+                    }}>
+                      {service.icon}
+                    </div>
+
+                    <h4 style={{
+                      fontWeight: '700',
+                      color: 'var(--color-textPrimary)',
+                      marginBottom: '16px',
+                      position: 'relative'
+                    }}>
+                      {service.title}
+                    </h4>
+
+                    <p style={{
+                      color: 'var(--color-textSecondary)',
+                      lineHeight: '1.7',
+                      marginBottom: '24px',
+                      position: 'relative'
+                    }}>
+                      {service.desc}
+                    </p>
+
+                    <Button
+                      variant="outline-primary"
+                      style={{
+                        borderRadius: '10px',
+                        fontWeight: '600',
+                        position: 'relative',
+                        borderWidth: '2px'
+                      }}
+                    >
+                      En savoir plus <FiArrowRight style={{ marginLeft: '8px' }} />
+                    </Button>
+                  </motion.div>
+                </Col>
+              ))}
+            </Row>
+          </motion.div>
+        </Container>
+      </section>
+
+      {/* CTA Section */}
+      <section style={{
+        padding: '80px 0',
+        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+          opacity: 0.3
+        }} />
+
+        <Container style={{ position: 'relative', zIndex: 1 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center"
+            style={{ color: 'white' }}
+          >
+            <FiGlobe style={{ fontSize: '4rem', marginBottom: '24px' }} />
+            <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '16px' }}>
+              Accessible partout, tout le temps
+            </h2>
+            <p style={{ fontSize: '1.2rem', marginBottom: '32px', maxWidth: '700px', margin: '0 auto 32px' }}>
+              Ordinateur, tablette ou smartphone - Une expérience optimale sur tous vos appareils, en ligne ou hors ligne
+            </p>
+
+            {!isAuthenticated && (
+              <div className="d-flex gap-3 justify-content-center">
+                <LinkContainer to="/login">
+                  <Button
+                    size="lg"
+                    style={{
+                      background: 'white',
+                      color: 'var(--color-primary)',
+                      border: 'none',
+                      padding: '14px 32px',
+                      borderRadius: '12px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Commencer maintenant
+                  </Button>
+                </LinkContainer>
+              </div>
+            )}
+          </motion.div>
+        </Container>
+      </section>
+    </div>
   )
 }
 

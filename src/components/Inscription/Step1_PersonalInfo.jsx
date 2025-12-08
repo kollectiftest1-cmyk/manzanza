@@ -87,17 +87,61 @@ const Step1_PersonalInfo = ({ formData, handleChange, setFormData }) => {
       <hr className="my-4" />
       <h5 className="text-muted mb-4">Informations des Parents</h5>
       <Col md={6}><Form.Group className="mb-3"><Form.Label>Nom complet du Père</Form.Label><Form.Control type="text" name="nom_complet_pere" value={formData.nom_complet_pere} onChange={handleChange} /></Form.Group></Col>
-      <Col md={6}><Form.Group className="mb-3"><Form.Label>Contact du Père</Form.Label><Form.Control type="text" name="contact_pere" value={formData.contact_pere} onChange={handleChange} /></Form.Group></Col>
+      <Col md={6}>
+        <Form.Group className="mb-3">
+          <Form.Label>Contact du Père</Form.Label>
+          <PhoneInput
+            international
+            defaultCountry="CD"
+            value={formData.contact_pere}
+            onChange={(value) => setFormData(prev => ({ ...prev, contact_pere: value || '' }))}
+            className="form-control"
+          />
+        </Form.Group>
+      </Col>
       <Col md={6}><Form.Group className="mb-3"><Form.Label>Nom complet de la Mère</Form.Label><Form.Control type="text" name="nom_complet_mere" value={formData.nom_complet_mere} onChange={handleChange} /></Form.Group></Col>
-      <Col md={6}><Form.Group className="mb-3"><Form.Label>Contact de la Mère</Form.Label><Form.Control type="text" name="contact_mere" value={formData.contact_mere} onChange={handleChange} /></Form.Group></Col>
+      <Col md={6}>
+        <Form.Group className="mb-3">
+          <Form.Label>Contact de la Mère</Form.Label>
+          <PhoneInput
+            international
+            defaultCountry="CD"
+            value={formData.contact_mere}
+            onChange={(value) => setFormData(prev => ({ ...prev, contact_mere: value || '' }))}
+            className="form-control"
+          />
+        </Form.Group>
+      </Col>
 
       <hr className="my-4" />
       <h5 className="text-muted mb-4">Tuteur (si différent des parents)</h5>
       <Col md={4}><Form.Group className="mb-3"><Form.Label>Nom du Tuteur</Form.Label><Form.Control type="text" name="nom_tuteur" value={formData.nom_tuteur} onChange={handleChange} /></Form.Group></Col>
       <Col md={4}><Form.Group className="mb-3"><Form.Label>Post-nom du Tuteur</Form.Label><Form.Control type="text" name="postnom_tuteur" value={formData.postnom_tuteur} onChange={handleChange} /></Form.Group></Col>
       <Col md={4}><Form.Group className="mb-3"><Form.Label>Prénom du Tuteur</Form.Label><Form.Control type="text" name="prenom_tuteur" value={formData.prenom_tuteur} onChange={handleChange} /></Form.Group></Col>
-      <Col md={6}><Form.Group className="mb-3"><Form.Label>Téléphone Tuteur</Form.Label><Form.Control type="tel" name="telephone_tuteur" value={formData.telephone_tuteur} onChange={handleChange} /></Form.Group></Col>
-      <Col md={6}><Form.Group className="mb-3"><Form.Label>WhatsApp Tuteur</Form.Label><Form.Control type="tel" name="whatsapp_tuteur" value={formData.whatsapp_tuteur} onChange={handleChange} /></Form.Group></Col>
+      <Col md={6}>
+        <Form.Group className="mb-3">
+          <Form.Label>Téléphone Tuteur</Form.Label>
+          <PhoneInput
+            international
+            defaultCountry="CD"
+            value={formData.telephone_tuteur}
+            onChange={(value) => setFormData(prev => ({ ...prev, telephone_tuteur: value || '' }))}
+            className="form-control"
+          />
+        </Form.Group>
+      </Col>
+      <Col md={6}>
+        <Form.Group className="mb-3">
+          <Form.Label>WhatsApp Tuteur</Form.Label>
+          <PhoneInput
+            international
+            defaultCountry="CD"
+            value={formData.whatsapp_tuteur}
+            onChange={(value) => setFormData(prev => ({ ...prev, whatsapp_tuteur: value || '' }))}
+            className="form-control"
+          />
+        </Form.Group>
+      </Col>
       <Col md={6}><Form.Group className="mb-3"><Form.Label>Email Tuteur</Form.Label><Form.Control type="email" name="email_tuteur" value={formData.email_tuteur} onChange={handleChange} /></Form.Group></Col>
       <Col md={6}><Form.Group className="mb-3"><Form.Label>Adresse Tuteur</Form.Label><Form.Control type="text" name="adresse_tuteur" value={formData.adresse_tuteur} onChange={handleChange} /></Form.Group></Col>
     </Row>

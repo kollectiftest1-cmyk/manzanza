@@ -6,6 +6,12 @@ import { store } from "./store/store"
 import App from "./App"
 import "./App.css"
 import "bootstrap/dist/css/bootstrap.min.css"
+import "@fortawesome/fontawesome-free/css/all.min.css"
+import "./styles/modern-design.css"
+import { applyTheme, getCurrentThemeName } from "./config/theme"
+
+// Appliquer le thème au démarrage
+applyTheme(getCurrentThemeName())
 
 const root = ReactDOM.createRoot(document.getElementById("root"))
 root.render(

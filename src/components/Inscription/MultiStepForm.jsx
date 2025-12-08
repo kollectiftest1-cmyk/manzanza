@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from 'react'
-import { ProgressBar, Button, Alert, Spinner } from 'react-bootstrap'
+import { Button, Alert, Spinner } from 'react-bootstrap'
 import Step1_PersonalInfo from './Step1_PersonalInfo'
 import Step2_AcademicChoice from './Step2_AcademicChoice'
 import Step3_Documents from './Step3_Documents'
+import StepIndicator from './StepIndicator'
 import api from '../../services/api'
 import { useNavigate } from 'react-router-dom'
 
@@ -122,40 +123,120 @@ const MultiStepForm = () => {
     }
   }
 
-  const progress = ((currentStep + 1) / steps.length) * 100
   const CurrentStepComponent = steps[currentStep].component
 
   if (success) {
     return (
-      <Alert variant="success">
-        <Alert.Heading>Demande envoyée avec succès !</Alert.Heading>
-        <p>Votre demande a été enregistrée. Vous recevrez un e-mail de confirmation une fois qu'elle aura été validée par l'administration.</p>
+      <Alert variant="success" style={{
+        borderRadius: '12px',
+        border: '2px solid #28a745',
+        padding: '24px'
+      }}>
+        <Alert.Heading style={{ fontSize: '24px', fontWeight: '600' }}>
+          ✓ Demande envoyée avec succès !
+        </Alert.Heading>
+        <p style={{ fontSize: '16px', marginTop: '16px' }}>
+          Votre demande a été enregistrée. Vous recevrez un e-mail de confirmation une fois qu'elle aura été validée par l'administration.
+        </p>
         <hr />
-        <p className="mb-0">Vous allez être redirigé vers la page de connexion.</p>
+        <p className="mb-0" style={{ fontStyle: 'italic' }}>
+          Vous allez être redirigé vers la page de connexion dans quelques instants...
+        </p>
       </Alert>
     )
   }
 
   return (
-    <div>
-      <ProgressBar now={progress} label={`${Math.round(progress)}%`} className="mb-4" />
-      <h5 className="text-muted mb-4">{steps[currentStep].title}</h5>
-      
-      {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
+    <div style={{ position: 'relative', minHeight: '500px' }}>
+      {/* Step Indicator */}
+      <StepIndicator steps={steps} currentStep={currentStep} />
 
-      <CurrentStepComponent formData={formData} files={files} handleChange={handleChange} setFormData={setFormData} />
+      {/* Error Alert */}
+      {error && (
+        <Alert
+          variant="danger"
+          onClose={() => setError(null)}
+          dismissible
+          style={{
+            borderRadius: '8px',
+            marginTop: '100px',
+            marginBottom: '20px'
+          }}
+        >
+          {error}
+        </Alert>
+      )}
 
-      <div className="d-flex justify-content-between mt-4">
-        <Button variant="secondary" onClick={handlePrev} disabled={currentStep === 0 || loading}>
-          Précédent
+      {/* Form Content */}
+      <div style={{ marginTop: error ? '20px' : '100px' }}>
+        <CurrentStepComponent
+          formData={formData}
+          files={files}
+          handleChange={handleChange}
+          setFormData={setFormData}
+        />
+      </div>
+
+      {/* Navigation Buttons */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginTop: '32px',
+        paddingTop: '24px',
+        borderTop: '1px solid var(--color-border)',
+        gap: '12px',
+        flexWrap: 'wrap'
+      }}>
+        <Button
+          variant="secondary"
+          onClick={handlePrev}
+          disabled={currentStep === 0 || loading}
+          style={{
+            minWidth: '140px',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            fontWeight: '500'
+          }}
+        >
+          ← Précédent
         </Button>
         {currentStep < steps.length - 1 ? (
-          <Button variant="primary" onClick={handleNext} disabled={loading}>
-            Suivant
+          <Button
+            variant="primary"
+            onClick={handleNext}
+            disabled={loading}
+            style={{
+              minWidth: '140px',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontWeight: '500',
+              background: 'linear-gradient(135deg, var(--color-primary), #667eea)',
+              border: 'none'
+            }}
+          >
+            Suivant →
           </Button>
         ) : (
-          <Button variant="success" onClick={handleSubmit} disabled={loading}>
-            {loading ? <Spinner as="span" animation="border" size="sm" /> : "Soumettre ma demande"}
+          <Button
+            variant="success"
+            onClick={handleSubmit}
+            disabled={loading}
+            style={{
+              minWidth: '180px',
+              padding: '12px 32px',
+              borderRadius: '8px',
+              fontWeight: '600',
+              fontSize: '16px'
+            }}
+          >
+            {loading ? (
+              <>
+                <Spinner as="span" animation="border" size="sm" style={{ marginRight: '8px' }} />
+                Envoi en cours...
+              </>
+            ) : (
+              "✓ Soumettre ma demande"
+            )}
           </Button>
         )}
       </div>

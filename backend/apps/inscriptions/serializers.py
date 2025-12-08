@@ -69,12 +69,44 @@ class PreInscriptionSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Une demande d'inscription avec cette adresse e-mail est déjà en cours.")
         return value
 
+    def _validate_and_normalize_phone(self, value, required=True):
+        """
+        Helper method to validate and normalize phone numbers.
+        """
+        from apps.core.validators import validate_international_phone, normalize_phone_number
+
+        if not value:
+            if required:
+                raise serializers.ValidationError("Le numéro de téléphone est requis.")
+            return value
+
+        # Normalize the phone number
+        normalized = normalize_phone_number(value)
+
+        # Validate the normalized number
+        try:
+            validate_international_phone(normalized)
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
+
+        return normalized
+
     def validate_phone(self, value):
-        """
-        Custom validation for the phone number to remove length constraint if using react-phone-number-input
-        """
-        # The frontend now handles formatting, so we might not need strict validation here.
-        # However, we can check for a reasonable length.
-        if len(value) < 9:
-            raise serializers.ValidationError("Le numéro de téléphone semble trop court.")
-        return value
+        """Validate main phone number (required)"""
+        return self._validate_and_normalize_phone(value, required=True)
+
+    def validate_contact_pere(self, value):
+        """Validate father's contact (optional)"""
+        return self._validate_and_normalize_phone(value, required=False)
+
+    def validate_contact_mere(self, value):
+        """Validate mother's contact (optional)"""
+        return self._validate_and_normalize_phone(value, required=False)
+
+    def validate_telephone_tuteur(self, value):
+        """Validate tutor's phone (optional)"""
+        return self._validate_and_normalize_phone(value, required=False)
+
+    def validate_whatsapp_tuteur(self, value):
+        """Validate tutor's WhatsApp (optional)"""
+        return self._validate_and_normalize_phone(value, required=False)
