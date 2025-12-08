@@ -58,6 +58,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff')
     filiere = models.ForeignKey(Filiere, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff')
 
+    # Avatar
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+
     # System fields
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -74,6 +77,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def name(self):
         return f"{self.first_name} {self.last_name}"
+
+    def get_avatar_url(self):
+        """Return the URL of the user's avatar"""
+        if self.avatar:
+            return self.avatar.url
+        return None
 
     def get_full_name(self):
         """Return the full name of the user"""

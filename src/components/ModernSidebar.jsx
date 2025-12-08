@@ -13,7 +13,7 @@ import { checkPermission } from "../utils/permissions"
 import {
   FiHome, FiBook, FiUsers, FiMessageSquare, FiBookOpen,
   FiDollarSign, FiSettings, FiFileText, FiHelpCircle,
-  FiChevronRight, FiChevronDown, FiGrid, FiUserCheck
+  FiChevronRight, FiChevronDown, FiGrid, FiUserCheck, FiX
 } from "react-icons/fi"
 
 const ModernSidebar = () => {
@@ -71,14 +71,14 @@ const ModernSidebar = () => {
       ],
     },
     {
-      title: "Ma Section",
+      title: "Ma Faculté",
       roles: ["chef_section"],
       condition: user?.section,
       items: [
-        { path: `/auditoires?section=${user?.section}`, icon: "grid", text: "Auditoires de ma section" },
-        { path: `/courses?section=${user?.section}`, icon: "book", text: "Cours de ma section" },
-        { path: `/students?section=${user?.section}`, icon: "users", text: "Étudiants de ma section" },
-        { path: `/teachers?section=${user?.section}`, icon: "users", text: "Enseignants de ma section" },
+        { path: `/auditoires?section=${user?.section}`, icon: "grid", text: "Auditoires de ma faculté" },
+        { path: `/courses?section=${user?.section}`, icon: "book", text: "Cours de ma faculté" },
+        { path: `/students?section=${user?.section}`, icon: "users", text: "Étudiants de ma faculté" },
+        { path: `/teachers?section=${user?.section}`, icon: "users", text: "Enseignants de ma faculté" },
       ],
     },
     {
@@ -335,6 +335,9 @@ const ModernSidebar = () => {
             position: sticky;
             top: 0;
             z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
           }
 
           .sidebar-logo {
@@ -377,10 +380,68 @@ const ModernSidebar = () => {
           .nav-group {
             margin-bottom: 16px;
           }
+
+          .sidebar-close-btn {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, rgba(255, 59, 59, 0.1) 0%, rgba(255, 59, 59, 0.05) 100%);
+            color: var(--color-danger);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: auto;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(255, 59, 59, 0.15);
+          }
+
+          .sidebar-close-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--color-danger) 0%, #e74c3c 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+          }
+
+          .sidebar-close-btn:hover {
+            color: white;
+            transform: rotate(90deg) scale(1.05);
+            box-shadow: 0 4px 16px rgba(255, 59, 59, 0.4);
+          }
+
+          .sidebar-close-btn:hover::before {
+            opacity: 1;
+          }
+
+          .sidebar-close-btn:active {
+            transform: scale(0.9) rotate(90deg);
+            box-shadow: 0 2px 8px rgba(255, 59, 59, 0.3);
+          }
+
+          /* Mobile Only */
+          @media (max-width: 991px) {
+            .sidebar-close-btn {
+              display: flex;
+            }
+          }
+
+          /* Desktop - Force Hide */
+          @media (min-width: 992px) {
+            .sidebar-close-btn {
+              display: none !important;
+            }
+          }
         `}
       </style>
 
-      <div className="modern-sidebar">
+      <div className="modern-sidebar" id="modernSidebar">
         {/* Logo / Header */}
         <div className="sidebar-header">
           <Link to="/dashboard" className="sidebar-logo">
@@ -396,6 +457,33 @@ const ModernSidebar = () => {
             />
             <h4 className="sidebar-logo-text">MANZANZA</h4>
           </Link>
+
+          {/* Close Button - Mobile Only */}
+          <motion.button
+            className="sidebar-close-btn"
+            onClick={() => {
+              const sidebar = document.getElementById('modernSidebar')
+              const overlay = document.querySelector('.sidebar-overlay-backdrop')
+              if (sidebar) sidebar.classList.remove('show')
+              if (overlay) overlay.classList.remove('show')
+            }}
+            whileHover={{
+              rotate: 90,
+              scale: 1.05
+            }}
+            whileTap={{
+              scale: 0.9,
+              rotate: 90
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 20
+            }}
+            title="Fermer le menu"
+          >
+            <FiX size={22} strokeWidth={2.5} />
+          </motion.button>
         </div>
 
         {/* Navigation */}

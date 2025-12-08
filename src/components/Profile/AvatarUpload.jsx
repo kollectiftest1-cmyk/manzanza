@@ -52,23 +52,20 @@ const AvatarUpload = ({ user, onSave, onClose }) => {
       setUploading(true)
       setError(null)
 
-      const formData = new FormData()
-      formData.append('avatar', selectedFile)
+      // Import dynamique de l'API
+      const { uploadAvatar } = await import('../../api/avatarAPI')
 
-      // TODO: Implémenter l'appel API pour uploader l'avatar
-      // const response = await usersAPI.uploadAvatar(user.id, formData)
-
-      // Simuler l'upload pour le moment
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Upload de l'avatar
+      const response = await uploadAvatar(user.id, selectedFile)
 
       if (onSave) {
-        onSave(preview) // Passer l'URL de prévisualisation temporairement
+        onSave(response.avatar_url || preview)
       }
 
       onClose()
     } catch (err) {
       console.error("Erreur lors de l'upload:", err)
-      setError("Erreur lors de l'upload de l'image. Veuillez réessayer.")
+      setError(err.response?.data?.message || "Erreur lors de l'upload de l'image. Veuillez réessayer.")
     } finally {
       setUploading(false)
     }

@@ -112,14 +112,14 @@ const ChefDepartementDashboard = () => {
           color: 'var(--color-textPrimary)',
           marginBottom: '8px',
         }}>
-          Chef de Département 🏛️
+          Chef de Filière 🏛️
         </h2>
         <p style={{
           fontSize: '0.95rem',
           color: 'var(--color-textSecondary)',
           margin: 0,
         }}>
-          Département: {user?.departement?.nom || user?.filiere_name || "Sciences Économiques et de Gestion"}
+          Filière: {user?.departement?.nom || user?.filiere_name || "Sciences Économiques et de Gestion"}
         </p>
       </motion.div>
 

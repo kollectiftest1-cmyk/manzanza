@@ -344,7 +344,7 @@ const Auditoires = () => {
                     }}
                   >
                     <FiLayers size={18} />
-                    Gérer les Sections
+                    Gérer les Facultés
                   </Nav.Link>
                 </Nav.Item>
               )}
@@ -608,7 +608,7 @@ const Auditoires = () => {
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <h5 style={{ margin: 0, color: 'var(--color-text)', fontWeight: '600' }}>Sections</h5>
+              <h5 style={{ margin: 0, color: 'var(--color-text)', fontWeight: '600' }}>Facultés</h5>
               <Button
                 onClick={() => { setCurrentSection(null); setShowSectionModal(true); }}
                 style={{
@@ -623,7 +623,7 @@ const Auditoires = () => {
                 }}
               >
                 <FiPlus size={18} />
-                Nouvelle Section
+                Nouvelle Faculté
               </Button>
             </div>
             <div style={{ padding: '24px', overflowX: 'auto' }}>
@@ -631,7 +631,7 @@ const Auditoires = () => {
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                     <th style={{ padding: '12px' }}>Nom</th>
-                    <th style={{ padding: '12px' }}>Chef de Section</th>
+                    <th style={{ padding: '12px' }}>Chef de Faculté</th>
                     <th style={{ padding: '12px' }}>Actions</th>
                   </tr>
                 </thead>
@@ -741,7 +741,7 @@ const Auditoires = () => {
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                     <th style={{ padding: '12px' }}>Nom</th>
-                    <th style={{ padding: '12px' }}>Section</th>
+                    <th style={{ padding: '12px' }}>Faculté</th>
                     <th style={{ padding: '12px' }}>Chef de Filière</th>
                     <th style={{ padding: '12px' }}>Actions</th>
                   </tr>
@@ -917,7 +917,7 @@ const Auditoires = () => {
               <Row>
                 <Col md={6}>
                   <Form.Group style={{ marginBottom: '20px' }}>
-                    <Form.Label style={{ color: 'var(--color-text)', fontWeight: '600', marginBottom: '8px' }}>Section</Form.Label>
+                    <Form.Label style={{ color: 'var(--color-text)', fontWeight: '600', marginBottom: '8px' }}>Faculté</Form.Label>
                     <Form.Select
                       name="section"
                       value={newAuditoire.section}

@@ -183,14 +183,14 @@ const ChefSectionDashboard = () => {
           color: 'var(--color-textPrimary)',
           marginBottom: '8px',
         }}>
-          Chef de Section 📚
+          Chef de Faculté 📚
         </h2>
         <p style={{
           fontSize: '0.95rem',
           color: 'var(--color-textSecondary)',
           margin: 0,
         }}>
-          Section: {user?.section_name || "Chargement..."}
+          Faculté: {user?.section_name || "Chargement..."}
         </p>
       </motion.div>
 

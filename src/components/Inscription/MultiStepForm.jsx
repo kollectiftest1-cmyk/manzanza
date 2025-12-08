@@ -43,12 +43,14 @@ const MultiStepForm = () => {
     email_tuteur: "",
     adresse_tuteur: "",
     // Step 2
+    section: "",
     filiere: "",
     niveau: "L1",
     vacation: "",
     points_diplome_etat: "",
   })
   const [files, setFiles] = useState({
+    avatar: null,
     carte_identite: null,
     certificat_naissance: null,
     certificat_etude_primaire: null,

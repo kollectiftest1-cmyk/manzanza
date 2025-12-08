@@ -2,16 +2,19 @@
 User views
 """
 import logging
+import os
 from rest_framework import viewsets, status, generics, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from django_filters import CharFilter
 from django.contrib.auth import authenticate, get_user_model
 from django.db.models import Q
+from django.core.files.storage import default_storage
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     ChangePasswordSerializer, LoginSerializer, UserProfileSerializer
@@ -123,6 +126,92 @@ class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
         user.save()
 
         return Response({'detail': 'Mot de passe changé avec succès.'})
+
+    @action(detail=True, methods=['post', 'delete', 'get'])
+    def avatar(self, request, pk=None):
+        """
+        Upload, delete or get user avatar
+        POST: Upload avatar
+        DELETE: Delete avatar
+        GET: Get avatar URL
+        """
+        user = self.get_object()
+
+        # Check permissions - user can only modify their own avatar or admin can modify any
+        if user != request.user and not request.user.is_staff and request.user.role not in ['iadmin', 'admin', 'pdg']:
+            return Response(
+                {'detail': 'Vous n\'avez pas la permission de modifier cet avatar.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if request.method == 'POST':
+            # Set parsers for multipart data
+            self.parser_classes = [MultiPartParser, FormParser]
+            # Upload avatar
+            avatar_file = request.FILES.get('avatar')
+
+            if not avatar_file:
+                return Response(
+                    {'detail': 'Aucun fichier fourni.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Validate file type
+            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+            if avatar_file.content_type not in allowed_types:
+                return Response(
+                    {'detail': 'Type de fichier non supporté. Utilisez JPG, PNG, GIF ou WebP.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Validate file size (5MB max)
+            if avatar_file.size > 5 * 1024 * 1024:
+                return Response(
+                    {'detail': 'Fichier trop volumineux. Taille maximale: 5MB.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Delete old avatar if exists
+            if user.avatar:
+                try:
+                    if os.path.isfile(user.avatar.path):
+                        os.remove(user.avatar.path)
+                except Exception as e:
+                    logger.warning(f"Could not delete old avatar: {e}")
+
+            # Save new avatar
+            user.avatar = avatar_file
+            user.save()
+
+            return Response({
+                'detail': 'Avatar uploadé avec succès.',
+                'avatar_url': request.build_absolute_uri(user.avatar.url) if user.avatar else None
+            })
+
+        elif request.method == 'DELETE':
+            # Delete avatar
+            if user.avatar:
+                try:
+                    if os.path.isfile(user.avatar.path):
+                        os.remove(user.avatar.path)
+                except Exception as e:
+                    logger.warning(f"Could not delete avatar file: {e}")
+
+                user.avatar = None
+                user.save()
+
+                return Response({'detail': 'Avatar supprimé avec succès.'})
+            else:
+                return Response(
+                    {'detail': 'Aucun avatar à supprimer.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+        elif request.method == 'GET':
+            # Get avatar URL
+            return Response({
+                'avatar_url': request.build_absolute_uri(user.avatar.url) if user.avatar else None
+            })
 
 
 class LoginView(generics.GenericAPIView):

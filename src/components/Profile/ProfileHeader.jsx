@@ -12,7 +12,7 @@ const getRoleBadge = (role) => {
     etudiant: { color: "#4e73df", text: "Étudiant" },
     enseignant: { color: "#1cc88a", text: "Enseignant" },
     admin: { color: "#e74a3b", text: "Administrateur" },
-    chef_departement: { color: "#f6c23e", text: "Chef de Département" },
+    chef_departement: { color: "#f6c23e", text: "Chef de Filière" },
     sga: { color: "#36b9cc", text: "SGA" },
     sgad: { color: "#36b9cc", text: "SGAD" },
     iadmin: { color: "#e74a3b", text: "Super Admin" },

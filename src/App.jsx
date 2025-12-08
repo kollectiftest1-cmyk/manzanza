@@ -136,6 +136,17 @@ function App() {
               </div>
             </Col>
           </Row>
+
+          {/* Sidebar Overlay for Mobile */}
+          <div
+            className="sidebar-overlay-backdrop"
+            onClick={() => {
+              const sidebar = document.getElementById('modernSidebar')
+              const overlay = document.querySelector('.sidebar-overlay-backdrop')
+              if (sidebar) sidebar.classList.remove('show')
+              if (overlay) overlay.classList.remove('show')
+            }}
+          />
         </div>
       ) : (
         <>
@@ -171,6 +182,20 @@ function App() {
             }}
           />
           <style>{`
+            .sidebar-overlay-backdrop {
+              display: none;
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(0, 0, 0, 0.5);
+              z-index: 1040;
+              opacity: 0;
+              pointer-events: none;
+              transition: opacity 0.3s ease;
+            }
+
             @media (max-width: 991px) {
               .sidebar-overlay-backdrop {
                 display: block !important;

@@ -6,9 +6,11 @@ import Select from 'react-select'
 import { useMemo, useState, useEffect } from 'react'
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
+import { FiCamera, FiUser } from 'react-icons/fi'
 
-const Step1_PersonalInfo = ({ formData, handleChange, setFormData }) => {
+const Step1_PersonalInfo = ({ formData, handleChange, setFormData, files }) => {
   const options = useMemo(() => countryList().getData(), [])
+  const [avatarPreview, setAvatarPreview] = useState(null)
 
   // State local pour gérer les composantes de la date de naissance
   const [birthDate, setBirthDate] = useState({ day: '', month: '', year: '' });
@@ -45,6 +47,18 @@ const Step1_PersonalInfo = ({ formData, handleChange, setFormData }) => {
     setFormData(prev => ({ ...prev, phone: value || '' }))
   }
 
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      handleChange(e)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   // Options pour les sélecteurs de date
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
@@ -61,6 +75,66 @@ const Step1_PersonalInfo = ({ formData, handleChange, setFormData }) => {
   return (
     <Row>
       <h5 className="text-muted mb-4">Identité du candidat</h5>
+
+      {/* Avatar Upload */}
+      <Col xs={12} className="mb-4">
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <div style={{
+              width: '120px',
+              height: '120px',
+              borderRadius: '12px',
+              border: '3px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: avatarPreview ? `url(${avatarPreview})` : 'var(--color-bodyBg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              margin: '0 auto',
+              cursor: 'pointer',
+              overflow: 'hidden'
+            }} onClick={() => document.getElementById('avatar-input').click()}>
+              {!avatarPreview && (
+                <FiUser size={48} style={{ color: 'var(--color-textSecondary)' }} />
+              )}
+            </div>
+            <label
+              htmlFor="avatar-input"
+              style={{
+                position: 'absolute',
+                bottom: '0',
+                right: '0',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'var(--color-primary)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                border: '3px solid var(--color-cardBg)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}
+            >
+              <FiCamera size={16} />
+            </label>
+          </div>
+          <input
+            id="avatar-input"
+            type="file"
+            name="avatar"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            style={{ display: 'none' }}
+          />
+          <p style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--color-textSecondary)' }}>
+            Photo de profil (optionnel)
+          </p>
+        </div>
+      </Col>
+
       <Col md={4}><Form.Group className="mb-3"><Form.Label>Nom</Form.Label><Form.Control type="text" name="last_name" value={formData.last_name} onChange={handleChange} required /></Form.Group></Col>
       <Col md={4}><Form.Group className="mb-3"><Form.Label>Post-nom</Form.Label><Form.Control type="text" name="post_nom" value={formData.post_nom} onChange={handleChange} /></Form.Group></Col>
       <Col md={4}><Form.Group className="mb-3"><Form.Label>Prénom</Form.Label><Form.Control type="text" name="first_name" value={formData.first_name} onChange={handleChange} required /></Form.Group></Col>

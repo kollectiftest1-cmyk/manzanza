@@ -5,22 +5,65 @@ import { Form, Row, Col } from 'react-bootstrap'
 import api from '../../services/api'
 
 const Step2_AcademicChoice = ({ formData, handleChange }) => {
-  const [filieres, setFilieres] = useState([])
+  const [sections, setSections] = useState([])
+  const [allFilieres, setAllFilieres] = useState([])
+  const [filteredFilieres, setFilteredFilieres] = useState([])
 
   useEffect(() => {
-    const fetchFilieres = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get("/filieres/")
-        setFilieres(res.data.results || res.data)
+        const [sectionsRes, filieresRes] = await Promise.all([
+          api.get("/sections/"),
+          api.get("/filieres/")
+        ])
+        setSections(sectionsRes.data.results || sectionsRes.data)
+        setAllFilieres(filieresRes.data.results || filieresRes.data)
       } catch (err) {
-        console.error("Failed to fetch filieres", err)
+        console.error("Failed to fetch sections/filieres", err)
       }
     }
-    fetchFilieres()
+    fetchData()
   }, [])
+
+  useEffect(() => {
+    if (formData.section) {
+      const filtered = allFilieres.filter(f => f.section == formData.section)
+      setFilteredFilieres(filtered)
+    } else {
+      setFilteredFilieres([])
+    }
+  }, [formData.section, allFilieres])
 
   return (
     <Row>
+      <Col md={6}>
+        <Form.Group className="mb-3">
+          <Form.Label>Faculté</Form.Label>
+          <Form.Select name="section" value={formData.section} onChange={handleChange} required>
+            <option value="">Choisir une faculté...</option>
+            {sections.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
+          </Form.Select>
+          <Form.Text className="text-muted">Sélectionnez d'abord votre faculté</Form.Text>
+        </Form.Group>
+      </Col>
+      <Col md={6}>
+        <Form.Group className="mb-3">
+          <Form.Label>Filière (Département)</Form.Label>
+          <Form.Select
+            name="filiere"
+            value={formData.filiere}
+            onChange={handleChange}
+            required
+            disabled={!formData.section}
+          >
+            <option value="">Choisir une filière...</option>
+            {filteredFilieres.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
+          </Form.Select>
+          <Form.Text className="text-muted">
+            {!formData.section ? 'Sélectionnez d\'abord une faculté' : `${filteredFilieres.length} filière(s) disponible(s)`}
+          </Form.Text>
+        </Form.Group>
+      </Col>
       <Col md={6}>
         <Form.Group className="mb-3">
           <Form.Label>Niveau d'Étude</Form.Label>
@@ -30,15 +73,6 @@ const Step2_AcademicChoice = ({ formData, handleChange }) => {
             <option value="L3">Licence 3</option>
             <option value="M1">Master 1</option>
             <option value="M2">Master 2</option>
-          </Form.Select>
-        </Form.Group>
-      </Col>
-      <Col md={6}>
-        <Form.Group className="mb-3">
-          <Form.Label>Filière Souhaitée</Form.Label>
-          <Form.Select name="filiere" value={formData.filiere} onChange={handleChange} required>
-            <option value="">Choisir...</option>
-            {filieres.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
           </Form.Select>
         </Form.Group>
       </Col>

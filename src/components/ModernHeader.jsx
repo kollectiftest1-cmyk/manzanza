@@ -4,7 +4,7 @@
  * Header professionnel avec search, notifications, et profil
  */
 
-import { useState,useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -13,6 +13,7 @@ import { logout } from "../store/slices/authSlice"
 import { markAllAsRead } from "../store/slices/notificationsSlice"
 import ThemeSwitcher from "./ThemeSwitcher"
 import UserAvatar from "./UserAvatar"
+import SearchModal from "./SearchModal"
 import {
   FiSearch, FiBell, FiUser, FiMail, FiCalendar,
   FiSettings, FiLogOut, FiChevronDown, FiMenu
@@ -42,15 +43,29 @@ const ModernHeader = () => {
   }, [])
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen)
-    const sidebar = document.querySelector('.modern-sidebar')
+    const newState = !sidebarOpen
+    setSidebarOpen(newState)
+
+    const sidebar = document.getElementById('modernSidebar')
     const overlay = document.querySelector('.sidebar-overlay-backdrop')
-    if (sidebar) {
-      sidebar.classList.toggle('show')
+
+    if (sidebar && overlay) {
+      if (newState) {
+        sidebar.classList.add('show')
+        overlay.classList.add('show')
+      } else {
+        sidebar.classList.remove('show')
+        overlay.classList.remove('show')
+      }
     }
-    if (overlay) {
-      overlay.classList.toggle('show')
-    }
+  }
+
+  const closeSidebar = () => {
+    setSidebarOpen(false)
+    const sidebar = document.getElementById('modernSidebar')
+    const overlay = document.querySelector('.sidebar-overlay-backdrop')
+    if (sidebar) sidebar.classList.remove('show')
+    if (overlay) overlay.classList.remove('show')
   }
 
   const handleLogout = () => {
@@ -319,6 +334,56 @@ const ModernHeader = () => {
             color: var(--color-textMuted);
           }
 
+          .menu-toggle-btn {
+            display: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: none;
+            background: var(--color-sidebarHover);
+            color: var(--color-textPrimary);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+          }
+
+          .menu-toggle-btn:hover {
+            background: var(--color-primary);
+            color: white;
+            transform: scale(1.05);
+          }
+
+          .menu-toggle-btn:active {
+            transform: scale(0.95);
+          }
+
+          .menu-toggle-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+          }
+
+          .menu-toggle-btn:hover::before {
+            width: 100%;
+            height: 100%;
+          }
+
+          @media (max-width: 991px) {
+            .menu-toggle-btn {
+              display: flex;
+            }
+          }
+
           @media (max-width: 768px) {
             .header-search {
               display: none;
@@ -329,6 +394,9 @@ const ModernHeader = () => {
             .user-info {
               display: none;
             }
+            .modern-header {
+              padding: 12px 16px;
+            }
           }
         `}
       </style>
@@ -338,9 +406,15 @@ const ModernHeader = () => {
           {/* Left Section */}
           <div className="header-left">
             {/* Mobile Menu Toggle */}
-            <button className="menu-toggle-btn" onClick={toggleSidebar}>
+            <motion.button
+              className="menu-toggle-btn"
+              onClick={toggleSidebar}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Menu"
+            >
               <FiMenu size={22} />
-            </button>
+            </motion.button>
             <div>
               <h1 className="header-title">Dashboard</h1>
               <div className="header-date">
