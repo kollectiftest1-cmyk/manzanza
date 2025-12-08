@@ -17,6 +17,8 @@ const QuizList = ({ onEdit, onCreate, onViewAttempts }) => {
     try {
       setLoading(true);
       const response = await quizService.getMyQuizzes();
+      console.log('quiz :',response.data.results);
+      
       setQuizzes(Array.isArray(response.data.results) ? response.data.results : []);
     } catch (error) {
       console.error('Erreur lors du chargement des quiz:', error);
@@ -318,7 +320,7 @@ const QuizList = ({ onEdit, onCreate, onViewAttempts }) => {
                     </h3>
                     <p style={{ color: 'var(--color-textSecondary)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Award size={16} />
-                      {quiz.course?.name || quiz.course?.nom || 'Cours non défini'}
+                      {quiz.course_name || quiz.course?.nom || 'Cours non défini'}
                     </p>
                   </div>
 
