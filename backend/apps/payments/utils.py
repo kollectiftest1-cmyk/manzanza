@@ -138,7 +138,7 @@ def generate_payment_voucher_pdf(voucher):
     # Payment details
     elements.append(Paragraph("DÉTAILS DU PAIEMENT", heading_style))
     payment_data = [
-        ['Type de frais:', voucher.student_fee.fee_type.name],
+        ['Type de frais:', voucher.student_fee.fee_type.name if voucher.student_fee.fee_type else 'N/A'],
         ['Description:', voucher.description],
         ['Montant à payer:', f"{voucher.amount:,.2f} FCFA"],
     ]
@@ -311,8 +311,8 @@ def generate_payment_receipt_pdf(receipt):
     payment_data = [
         ['Type de frais:', receipt.fee_type_name],
         ['Méthode de paiement:', receipt.payment_method],
-        ['N° Bordereau bancaire:', receipt.bank_slip_number],
-        ['Date bordereau:', receipt.bank_slip_date.strftime('%d/%m/%Y')],
+        ['N° Bordereau bancaire:', receipt.bank_slip_number or '—'],
+        ['Date bordereau:', receipt.bank_slip_date.strftime('%d/%m/%Y') if receipt.bank_slip_date else '—'],
         ['Montant payé:', f"{receipt.amount_paid:,.2f} FCFA"],
     ]
 

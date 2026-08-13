@@ -1,10 +1,14 @@
 """
 Signals for automatic enrollment and other course-related automation
 """
-from django.db.models.signals import post_save, m2m_changed
+import logging
+
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from apps.users.models import User
 from .models import Course, CourseEnrollment
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=User)
@@ -26,7 +30,7 @@ def auto_enroll_student_to_auditoire_courses(sender, instance, created, **kwargs
             )
 
             if created:
-                print(f"✅ Étudiant {instance.get_full_name()} auto-inscrit au cours {course.name}")
+                logger.debug("Student %s auto-enrolled in course %s", instance.get_full_name(), course.name)
 
 
 @receiver(post_save, sender=Course)
@@ -54,4 +58,4 @@ def auto_enroll_auditoire_students_to_new_course(sender, instance, created, **kw
                 enrollments_created += 1
 
         if enrollments_created > 0:
-            print(f"✅ {enrollments_created} étudiant(s) auto-inscrit(s) au nouveau cours {instance.name}")
+            logger.debug("%s student(s) auto-enrolled in new course %s", enrollments_created, instance.name)

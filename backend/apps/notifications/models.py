@@ -17,6 +17,8 @@ class Notification(models.Model):
         ('bibliotheque', 'Bibliothèque'),
         ('rh', 'RH'),
         ('systeme', 'Système'),
+        ('calendrier', 'Calendrier Académique'),
+        ('horaire', 'Horaire'),
     ]
 
     PRIORITY_CHOICES = [

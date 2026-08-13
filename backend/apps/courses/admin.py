@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Course, CourseEnrollment, CourseMaterial
+from .attendance_models import Attendance, AttendanceSession
 
 
 class CourseMaterialInline(admin.TabularInline):
@@ -57,3 +58,21 @@ class CourseMaterialAdmin(admin.ModelAdmin):
     list_display = ['title', 'course', 'material_type', 'is_public', 'uploaded_by', 'uploaded_at']
     list_filter = ['material_type', 'is_public', 'uploaded_at']
     search_fields = ['title', 'course__name']
+
+
+@admin.register(Attendance)
+class AttendanceAdmin(admin.ModelAdmin):
+    """Admin configuration for Attendance model"""
+    list_display = ['student', 'course', 'date', 'status', 'session', 'recorded_by']
+    list_filter = ['status', 'date', 'course']
+    search_fields = ['student__first_name', 'student__last_name', 'course__name']
+    raw_id_fields = ['student', 'course', 'session', 'recorded_by']
+
+
+@admin.register(AttendanceSession)
+class AttendanceSessionAdmin(admin.ModelAdmin):
+    """Admin configuration for AttendanceSession model"""
+    list_display = ['course', 'date', 'start_time', 'end_time', 'is_finalized', 'created_by']
+    list_filter = ['is_finalized', 'date', 'course']
+    search_fields = ['course__name', 'title']
+    raw_id_fields = ['course', 'created_by']

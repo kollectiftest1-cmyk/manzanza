@@ -19,6 +19,7 @@ from .serializers import (
     QuizAttemptSerializer, QuizAnswerSerializer,
     QuizCreateSerializer, QuizSubmitAnswerSerializer
 )
+from apps.grades.models import GradeCategory, Grade
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -113,6 +114,70 @@ class QuizViewSet(viewsets.ModelViewSet):
             student=request.user
         )
         serializer = QuizAttemptSerializer(attempts, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def submit_attempt(self, request, pk=None):
+        """Submit the student's active attempt for this quiz.
+        Convenience endpoint that finds the in-progress attempt and submits it.
+        """
+        quiz = self.get_object()
+        user = request.user
+
+        # Find the user's in-progress attempt
+        attempt = QuizAttempt.objects.filter(
+            quiz=quiz,
+            student=user,
+            status='in_progress'
+        ).first()
+
+        if not attempt:
+            return Response(
+                {'error': 'Aucune tentative en cours trouvée.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Process and save answers
+        answers_data = request.data.get('answers', [])
+
+        for answer_data in answers_data:
+            question_id = answer_data.get('question_id')
+            if not question_id:
+                continue
+
+            try:
+                question = QuizQuestion.objects.get(id=question_id, quiz=quiz)
+
+                answer, created = QuizAnswer.objects.update_or_create(
+                    attempt=attempt,
+                    question=question,
+                    defaults={
+                        'answer_text': answer_data.get('answer_text', ''),
+                    }
+                )
+
+                selected_choice_ids = answer_data.get('selected_choices', [])
+                if selected_choice_ids:
+                    choices = QuizChoice.objects.filter(id__in=selected_choice_ids)
+                    answer.selected_choices.set(choices)
+
+                    is_correct = answer.is_correct()
+                    if is_correct is not None:
+                        answer.is_correct_auto = is_correct
+                        answer.points_earned = question.points if is_correct else 0
+                        answer.save()
+
+            except QuizQuestion.DoesNotExist:
+                continue
+
+        # Mark as submitted
+        attempt.submitted_at = timezone.now()
+        attempt.status = 'submitted'
+        attempt.time_spent_seconds = int((attempt.submitted_at - attempt.started_at).total_seconds())
+        attempt.calculate_auto_grade()
+        attempt.save()
+
+        serializer = QuizAttemptSerializer(attempt, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
@@ -535,6 +600,39 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
         attempt.status = 'graded'
         attempt.feedback = feedback
         attempt.save()
+
+        # ── Propagate to grades app ────────────────────────────────────────
+        quiz = attempt.quiz
+        course = quiz.course if hasattr(quiz, 'course') else None
+        if course and attempt.student:
+            quiz_cat, _ = GradeCategory.objects.get_or_create(
+                name='Quiz / Interro',
+                defaults={
+                    'description': 'Quiz et interrogations',
+                    'weight': 20,
+                    'category_type': 'quiz',
+                }
+            )
+            if not quiz_cat.category_type:
+                quiz_cat.category_type = 'quiz'
+                quiz_cat.save(update_fields=['category_type'])
+
+            max_pts = quiz.max_points or 20
+            final_score = attempt.score if attempt.score is not None else 0
+            normalized = round((float(final_score) / float(max_pts)) * 20, 2)
+
+            Grade.objects.update_or_create(
+                student=attempt.student,
+                course=course,
+                category=quiz_cat,
+                session_number=quiz.id,
+                defaults={
+                    'value': normalized,
+                    'max_value': 20,
+                    'label': quiz.title or 'Quiz',
+                }
+            )
+        # ─────────────────────────────────────────────────────────────────
 
         serializer = QuizAttemptSerializer(attempt)
         return Response({

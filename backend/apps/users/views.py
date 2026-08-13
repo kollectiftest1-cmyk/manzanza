@@ -84,7 +84,7 @@ class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     def get_permissions(self):
         """Set permissions based on action"""
         if self.action == 'create':
-            return [AllowAny()]
+            return [IsAdminUser()]
         elif self.action == 'list':
             return [OR(IsAdminUser(), CanViewUsers())]
         elif self.action == 'destroy':

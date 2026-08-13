@@ -9,13 +9,31 @@ from decouple import config
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def config_bool(name, default=False):
+    """Read boolean env values, accepting common deployment labels."""
+    value = config(name, default=None)
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized in {'1', 'true', 'yes', 'y', 'on', 'debug', 'dev', 'development', 'local'}:
+        return True
+    if normalized in {'0', 'false', 'no', 'n', 'off', 'release', 'prod', 'production'}:
+        return False
+    raise ValueError(f"Invalid truth value for {name}: {value}")
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config_bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [host.strip() for host in config(
+    'ALLOWED_HOSTS', default='localhost,127.0.0.1'
+).split(',') if host.strip()]
 
 # Application definition
 INSTALLED_APPS = [
@@ -47,6 +65,8 @@ INSTALLED_APPS = [
     'apps.stats',
     'apps.core',
     'apps.inscriptions', # New
+    'apps.schedules',
+    'apps.grades',
 ]
 
 MIDDLEWARE = [

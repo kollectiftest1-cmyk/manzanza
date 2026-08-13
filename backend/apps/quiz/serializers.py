@@ -71,6 +71,7 @@ class QuizSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = [
             'id', 'title', 'description', 'course', 'course_name',
+            'quiz_type',
             'start_date', 'end_date', 'duration_minutes', 'max_points',
             'shuffle_questions', 'shuffle_choices', 'show_correct_answers',
             'allow_multiple_attempts', 'max_attempts', 'status',

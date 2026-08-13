@@ -21,6 +21,7 @@ class AttendanceSerializer(serializers.ModelSerializer):
             'id', 'student', 'student_name', 'student_matricule',
             'course', 'course_name', 'course_code',
             'date', 'status', 'status_display', 'comments',
+            'session',
             'recorded_by', 'recorded_by_name',
             'recorded_at', 'updated_at'
         ]
@@ -54,6 +55,7 @@ class BulkAttendanceSerializer(serializers.Serializer):
     """Serializer for bulk attendance creation"""
     course = serializers.IntegerField(help_text="ID du cours")
     date = serializers.DateField()
+    session_id = serializers.IntegerField(required=False, allow_null=True, help_text="ID de la séance (optionnel)")
     attendances = AttendanceItemSerializer(many=True, help_text="List of {student_id, status, comments}")
 
     def validate_course(self, value):

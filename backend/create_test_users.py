@@ -101,7 +101,7 @@ def create_test_users():
             'password': 'password123',
             'first_name': 'Robert',
             'last_name': 'Bonnet',
-            'role': 'caisse_comptabilite',
+            'role': 'caisse',
             'is_active': True,
         },
         {
@@ -142,6 +142,7 @@ def create_test_users():
 
     created_count = 0
     skipped_count = 0
+    updated_count = 0
 
     print("=" * 60)
     print("Création des utilisateurs de test")
@@ -152,23 +153,38 @@ def create_test_users():
         email = user_data['email']
 
         # Vérifier si l'utilisateur existe déjà
-        if User.objects.filter(email=email).exists():
-            print(f"❌ {email:40s} - Existe déjà")
-            skipped_count += 1
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user:
+            changed = False
+            for field in ['first_name', 'last_name', 'role', 'is_active', 'is_staff', 'is_superuser']:
+                if field in user_data and getattr(existing_user, field) != user_data[field]:
+                    setattr(existing_user, field, user_data[field])
+                    changed = True
+
+            existing_user.set_password(user_data['password'])
+            existing_user.save()
+
+            if changed:
+                print(f"UPD  {email:40s} - Mis a jour ({user_data['role']})")
+                updated_count += 1
+            else:
+                print(f"SKIP {email:40s} - Existe deja")
+                skipped_count += 1
             continue
 
         # Créer l'utilisateur
         try:
             User.objects.create_user(**user_data)
-            print(f"✅ {email:40s} - Créé ({user_data['role']})")
+            print(f"OK   {email:40s} - Cree ({user_data['role']})")
             created_count += 1
         except Exception as e:
-            print(f"⚠️  {email:40s} - Erreur: {str(e)}")
+            print(f"WARN {email:40s} - Erreur: {str(e)}")
 
     print()
     print("=" * 60)
     print(f"Résumé:")
     print(f"  - Utilisateurs créés: {created_count}")
+    print(f"  - Utilisateurs corriges: {updated_count}")
     print(f"  - Utilisateurs existants: {skipped_count}")
     print("=" * 60)
     print()

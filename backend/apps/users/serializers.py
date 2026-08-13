@@ -37,11 +37,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
     filiere = serializers.SerializerMethodField() # ID of managed filiere for chef_filiere
     student_stats = serializers.SerializerMethodField()
     teacher_stats = serializers.SerializerMethodField()
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'name', 'phone', 'role', 'status', 
+            'role_display',
             'matricule', 'auditoire', 'auditoire_details', 
             'sections', 'filieres', 'section', 'filiere',
             'is_active', 'date_joined', 'courses',
@@ -198,11 +200,13 @@ class UserSerializer(serializers.ModelSerializer):
     auditoire_name = serializers.SerializerMethodField()
     filiere = SimpleFiliereSerializer(source='auditoire.filiere', read_only=True)
     section = SimpleSectionSerializer(source='auditoire.filiere.section', read_only=True)
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'name', 'phone', 'role', 'status', 
+            'role_display',
             'matricule', 'auditoire', 'auditoire_name',
             'filiere', 'section',
             'is_active', 'date_joined'

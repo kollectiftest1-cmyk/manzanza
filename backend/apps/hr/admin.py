@@ -7,8 +7,8 @@ class EmployeeAdmin(admin.ModelAdmin):
     """Admin configuration for Employee model"""
 
     list_display = ['user', 'employee_id', 'position', 'department', 'hire_date',
-                   'base_salary', 'status']
-    list_filter = ['position', 'status', 'department', 'hire_date']
+                   'prestation_type', 'status']
+    list_filter = ['position', 'status', 'department', 'prestation_type', 'hire_date']
     search_fields = ['user__first_name', 'user__last_name', 'employee_id']
 
     fieldsets = (
@@ -18,8 +18,8 @@ class EmployeeAdmin(admin.ModelAdmin):
         ('Détails de l\'emploi', {
             'fields': ('employee_id', 'position', 'department', 'hire_date', 'end_date')
         }),
-        ('Salaire', {
-            'fields': ('base_salary', 'currency')
+        ('Rémunération', {
+            'fields': ('prestation_type', 'salaire_journalier', 'salaire_horaire', 'currency')
         }),
         ('Statut', {
             'fields': ('status',)
@@ -46,11 +46,11 @@ class ContractAdmin(admin.ModelAdmin):
 class PayrollAdmin(admin.ModelAdmin):
     """Admin configuration for Payroll model"""
 
-    list_display = ['employee', 'period_start', 'period_end', 'base_salary', 'bonuses',
-                   'deductions', 'net_salary', 'status', 'payment_date']
-    list_filter = ['status', 'payment_date', 'period_end']
+    list_display = ['employee', 'mois', 'annee', 'jours_prestes',
+                   'heures_prestees', 'base_salary', 'net_salary', 'status', 'payment_date']
+    list_filter = ['status', 'payment_date', 'annee', 'mois']
     search_fields = ['employee__user__first_name', 'employee__user__last_name']
-    readonly_fields = ['net_salary']
+    readonly_fields = ['base_salary', 'net_salary']
 
 
 @admin.register(Leave)

@@ -39,9 +39,18 @@ class UserFilter(filters.FilterSet):
             ('etudiant', 'Étudiant'),
             ('enseignant', 'Enseignant'),
             ('assistant', 'Assistant'),
+            ('apparitorat', 'Apparitorat'),
             ('chef_section', 'Chef de Section'),
             ('chef_departement', 'Chef de Département'),
             ('sga', 'SGA'),
+            ('sgad', 'SGAD'),
+            ('bibliothecaire', 'Bibliothecaire'),
+            ('caisse', 'Caisse'),
+            ('service_it', 'Service IT'),
+            ('jury', 'Jury'),
+            ('pdg', 'PDG'),
+            ('directeur_general', 'Directeur General'),
+            ('iadmin', 'IAdmin'),
         ]
     )
 

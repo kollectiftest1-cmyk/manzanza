@@ -57,6 +57,7 @@ class PreInscription(models.Model):
     filiere = models.ForeignKey(Filiere, on_delete=models.SET_NULL, null=True, verbose_name="Filière souhaitée")
     niveau = models.CharField(max_length=10, choices=NIVEAU_CHOICES, default='L1', verbose_name="Niveau d'étude")
     vacation = models.CharField(max_length=10, choices=VACATION_CHOICES, verbose_name="Vacation", default='jour')
+    academic_year = models.CharField(max_length=20, blank=True, default='', verbose_name="Année académique choisie")
     points_diplome_etat = models.PositiveIntegerField(verbose_name="Points au diplôme d'état (%)", null=True, blank=True)
 
     # --- Attachments ---
@@ -86,22 +87,34 @@ class PreInscription(models.Model):
         # If the object is new, it won't have an id yet.
         # The file path depends on the id, so we need to save the model first,
         # then save the files if they exist.
-        if not self.pk:
-            # Temporarily remove files to save the model instance first
+        is_new = not self.pk
+        old_status = None
+        if not is_new:
+            old = type(self).objects.get(pk=self.pk)
+            old_status = old.status
+        # File handling (unchanged)
+        if is_new:
             _files = {}
             for field in self._meta.get_fields():
                 if isinstance(field, models.FileField):
                     if getattr(self, field.name):
                         _files[field.name] = getattr(self, field.name)
                         setattr(self, field.name, None)
-            
-            super().save(*args, **kwargs) # Save model instance to get a PK
-
-            # Now, set the files back and save again
+            super().save(*args, **kwargs)
             for field_name, file_obj in _files.items():
                 setattr(self, field_name, file_obj)
-            
-            # This second save will now have the PK for the upload_to path
             super().save(update_fields=_files.keys())
         else:
             super().save(*args, **kwargs)
+        # Automate User creation if status changed to 'validee'
+        if old_status != 'validee' and self.status == 'validee':
+            from apps.users.models import User
+            if not User.objects.filter(email=self.email).exists():
+                user = User.objects.create(
+                    email=self.email,
+                    first_name=self.first_name,
+                    last_name=self.last_name,
+                    phone=self.phone,
+                    role='etudiant',
+                    status='actif',
+                )

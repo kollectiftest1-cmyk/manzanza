@@ -1,8 +1,37 @@
 """
 Auditoire models
 """
+import re
+
+from django.apps import apps
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
+
+
+def normalize_academic_year_label(label):
+    match = re.fullmatch(r'\s*(\d{4})\s*-\s*(\d{4})\s*', str(label or ''))
+    if match:
+        return f"{match.group(1)}-{match.group(2)}"
+    return str(label or '').strip()
+
+
+def default_academic_year_label():
+    """
+    Return the configured current academic year when available, otherwise infer
+    the active academic cycle from today's date.
+    """
+    try:
+        AcademicYear = apps.get_model('schedules', 'AcademicYear')
+        current = AcademicYear.objects.filter(is_current=True).order_by('-start_date').first()
+        if current:
+            return normalize_academic_year_label(current.name)
+    except Exception:
+        pass
+
+    today = timezone.localdate()
+    start_year = today.year if today.month >= 9 else today.year - 1
+    return f"{start_year}-{start_year + 1}"
 
 class Section(models.Model):
     """
@@ -73,7 +102,11 @@ class Auditoire(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name='Description')
 
     # Metadata
-    annee_academique = models.CharField(max_length=20, default='2024-2025', verbose_name='Année académique')
+    annee_academique = models.CharField(
+        max_length=20,
+        default=default_academic_year_label,
+        verbose_name='Année académique'
+    )
     capacite_max = models.IntegerField(default=50, verbose_name='Capacité maximale')
     is_active = models.BooleanField(default=True, verbose_name='Actif')
 

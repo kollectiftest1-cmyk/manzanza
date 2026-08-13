@@ -58,6 +58,8 @@ urlpatterns = [
     path('api/hr/', include('apps.hr.urls')),
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/stats/', include('apps.stats.urls')),
+    path('api/schedules/', include('apps.schedules.urls')),
+    path('api/grades/', include('apps.grades.urls')),
     path('api/core/', include('apps.core.urls')),
 ]
 

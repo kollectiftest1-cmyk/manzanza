@@ -39,7 +39,111 @@ class FeeType(models.Model):
         ordering = ['name']
 
     def __str__(self):
-        return f"{self.name} - {self.amount} FCFA"
+        return f"{self.name} - {self.amount}"
+
+
+class Fee(models.Model):
+    """
+    Fee Campaign — Created by SGAD and targeted to a group of students.
+    Calling generate_student_fees() auto-creates StudentFee records for every
+    matching student.
+    """
+    TARGET_TYPES = [
+        ('tous', 'Tous les étudiants'),
+        ('section', 'Section'),
+        ('filiere', 'Filière'),
+        ('auditoire', 'Auditoire'),
+        ('etudiant', 'Étudiant spécifique'),
+    ]
+    CURRENCY_CHOICES = [
+        ('USD', 'Dollar américain (USD)'),
+        ('CDF', 'Franc Congolais (CDF)'),
+    ]
+
+    fee_type = models.ForeignKey(
+        FeeType, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='fee_campaigns', verbose_name='Catégorie'
+    )
+    name = models.CharField(max_length=200, verbose_name='Intitulé')
+    description = models.TextField(blank=True, verbose_name='Description')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Montant')
+    currency = models.CharField(max_length=5, choices=CURRENCY_CHOICES, default='USD', verbose_name='Devise')
+
+    # Targeting
+    target_type = models.CharField(max_length=20, choices=TARGET_TYPES, verbose_name='Cible')
+    target_section = models.ForeignKey(
+        'auditoires.Section', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='fees', verbose_name='Section cible'
+    )
+    target_filiere = models.ForeignKey(
+        'auditoires.Filiere', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='fees', verbose_name='Filière cible'
+    )
+    target_auditoire = models.ForeignKey(
+        'auditoires.Auditoire', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='fees', verbose_name='Auditoire cible'
+    )
+    target_student = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='targeted_fees', verbose_name='Étudiant cible'
+    )
+
+    academic_year = models.CharField(max_length=20, default='2024-2025', verbose_name='Année académique')
+    due_date = models.DateField(verbose_name='Date limite de paiement')
+    is_active = models.BooleanField(default=True, verbose_name='Actif')
+    students_count = models.IntegerField(default=0, verbose_name="Étudiants concernés")
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        related_name='fees_created_by', verbose_name='Créé par'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Frais (campagne)'
+        verbose_name_plural = 'Frais (campagnes)'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} — {self.amount} {self.currency}"
+
+    def get_target_students(self):
+        """Return queryset of all active students targeted by this fee."""
+        from apps.users.models import User
+        qs = User.objects.filter(role='etudiant', is_active=True)
+        if self.target_type == 'tous':
+            return qs
+        elif self.target_type == 'section' and self.target_section_id:
+            return qs.filter(auditoire__filiere__section_id=self.target_section_id)
+        elif self.target_type == 'filiere' and self.target_filiere_id:
+            return qs.filter(auditoire__filiere_id=self.target_filiere_id)
+        elif self.target_type == 'auditoire' and self.target_auditoire_id:
+            return qs.filter(auditoire_id=self.target_auditoire_id)
+        elif self.target_type == 'etudiant' and self.target_student_id:
+            return qs.filter(id=self.target_student_id)
+        return qs.none()
+
+    def generate_student_fees(self):
+        """Auto-create StudentFee records for all targeted students (idempotent)."""
+        students = self.get_target_students()
+        created = 0
+        for student in students:
+            _, is_new = StudentFee.objects.get_or_create(
+                student=student,
+                fee_campaign=self,
+                defaults={
+                    'fee_type': self.fee_type,
+                    'total_amount': self.amount,
+                    'due_date': self.due_date,
+                    'status': 'impaye',
+                }
+            )
+            if is_new:
+                created += 1
+        self.students_count = StudentFee.objects.filter(fee_campaign=self).count()
+        Fee.objects.filter(pk=self.pk).update(students_count=self.students_count)
+        return created
 
 
 class StudentFee(models.Model):
@@ -54,8 +158,12 @@ class StudentFee(models.Model):
 
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                                related_name='fees', verbose_name='Étudiant')
-    fee_type = models.ForeignKey(FeeType, on_delete=models.CASCADE,
-                                related_name='student_fees', verbose_name='Type de frais')
+    fee_type = models.ForeignKey(FeeType, on_delete=models.SET_NULL,
+                                null=True, blank=True,
+                                related_name='student_fees', verbose_name='Catégorie de frais')
+    fee_campaign = models.ForeignKey(Fee, on_delete=models.SET_NULL,
+                                    null=True, blank=True,
+                                    related_name='student_fees', verbose_name='Campagne de frais')
 
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Montant total')
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0,
@@ -107,7 +215,7 @@ class Payment(models.Model):
         ('especes', 'Espèces'),
         ('virement', 'Virement bancaire'),
         ('cheque', 'Chèque'),
-        ('mobile', 'Paiement mobile'),
+        ('mobile', 'Mobile Money'),
         ('carte', 'Carte bancaire'),
     ]
 
@@ -118,11 +226,24 @@ class Payment(models.Model):
         ('annule', 'Annulé'),
     ]
 
+    MM_PROVIDERS = [
+        ('mtn', 'MTN Mobile Money'),
+        ('vodacom', 'Vodacom M-Pesa'),
+        ('airtel', 'Airtel Money'),
+        ('orange', 'Orange Money'),
+    ]
+
     student_fee = models.ForeignKey(StudentFee, on_delete=models.CASCADE,
                                    related_name='payments', verbose_name='Frais')
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Montant')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS,
                                      verbose_name='Méthode de paiement')
+
+    # Mobile Money specific fields
+    mobile_money_provider = models.CharField(max_length=20, choices=MM_PROVIDERS,
+                                             null=True, blank=True, verbose_name='Opérateur Mobile Money')
+    mobile_money_number = models.CharField(max_length=20, null=True, blank=True,
+                                           verbose_name='Numéro Mobile Money')
 
     reference = models.CharField(max_length=100, unique=True, verbose_name='Référence')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='en_attente',
@@ -201,6 +322,13 @@ class PaymentVoucher(models.Model):
     # Payment details
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Montant')
     description = models.TextField(verbose_name='Description')
+    payment_method = models.CharField(
+        max_length=50,
+        blank=True,
+        default='especes',
+        verbose_name='Moyen de paiement',
+        help_text='Moyen choisi par l\'étudiant: especes, virement, cheque, mobile_money'
+    )
 
     # Banking information
     beneficiary_account = models.CharField(
@@ -325,8 +453,8 @@ class PaymentReceipt(models.Model):
     payment_method = models.CharField(max_length=50, verbose_name='Méthode de paiement')
 
     # Bank slip details
-    bank_slip_number = models.CharField(max_length=100, verbose_name='Numéro de bordereau')
-    bank_slip_date = models.DateField(verbose_name='Date du bordereau')
+    bank_slip_number = models.CharField(max_length=100, blank=True, default='', verbose_name='Numéro de bordereau')
+    bank_slip_date = models.DateField(null=True, blank=True, verbose_name='Date du bordereau')
 
     # Transaction reference
     transaction_reference = models.CharField(

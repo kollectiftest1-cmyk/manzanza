@@ -3,6 +3,8 @@ Serializers for the inscriptions app.
 """
 from rest_framework import serializers
 from .models import PreInscription
+from apps.auditoires.models import normalize_academic_year_label
+from apps.auditoires.utils import get_public_academic_year_options
 
 class PreInscriptionSerializer(serializers.ModelSerializer):
     """
@@ -20,7 +22,7 @@ class PreInscriptionSerializer(serializers.ModelSerializer):
             'nom_tuteur', 'postnom_tuteur', 'prenom_tuteur', 'telephone_tuteur',
             'whatsapp_tuteur', 'email_tuteur', 'adresse_tuteur',
             
-            'filiere', 'filiere_name', 'niveau', 'vacation', 'points_diplome_etat',
+            'filiere', 'filiere_name', 'niveau', 'vacation', 'academic_year', 'points_diplome_etat',
             
             'carte_identite', 'certificat_naissance', 'certificat_etude_primaire',
             'bulletin_5', 'bulletin_6', 'diplome_etat',
@@ -45,6 +47,7 @@ class PreInscriptionSerializer(serializers.ModelSerializer):
             'email_tuteur': {'required': False, 'allow_blank': True},
             'adresse_tuteur': {'required': False, 'allow_blank': True},
             'vacation': {'required': True, 'allow_blank': False},
+            'academic_year': {'required': True, 'allow_blank': False},
             'points_diplome_etat': {'required': False, 'allow_null': True},
             'carte_identite': {'required': True},
             'certificat_etude_primaire': {'required': True},
@@ -67,6 +70,22 @@ class PreInscriptionSerializer(serializers.ModelSerializer):
                 pass
             else:
                 raise serializers.ValidationError("Une demande d'inscription avec cette adresse e-mail est déjà en cours.")
+        return value
+
+    def validate_academic_year(self, value):
+        value = normalize_academic_year_label(value)
+        parts = value.split('-')
+        if len(parts) != 2 or not all(part.isdigit() for part in parts):
+            raise serializers.ValidationError("Format attendu: AAAA-AAAA.")
+
+        start, end = [int(part) for part in parts]
+        if end != start + 1:
+            raise serializers.ValidationError("L'année académique doit couvrir deux années consécutives.")
+
+        allowed = {option['value'] for option in get_public_academic_year_options()}
+        if value not in allowed:
+            raise serializers.ValidationError("Choisissez l'année académique en cours ou la prochaine année.")
+
         return value
 
     def _validate_and_normalize_phone(self, value, required=True):

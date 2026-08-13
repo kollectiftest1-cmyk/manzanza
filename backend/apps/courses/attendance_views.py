@@ -30,13 +30,60 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     serializer_class = AttendanceSerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['course', 'student', 'date', 'status']
+    filterset_fields = ['course', 'student', 'date', 'status', 'session']
     search_fields = ['student__first_name', 'student__last_name', 'student__matricule']
     ordering_fields = ['date', 'student__last_name']
 
     def perform_create(self, serializer):
         """Set recorded_by to current user"""
         serializer.save(recorded_by=self.request.user)
+
+    @action(detail=False, methods=['get'], url_path='my_attendances')
+    def my_attendances(self, request):
+        """Get attendance records for the current student"""
+        if request.user.role != 'etudiant':
+            return Response({'error': 'Réservé aux étudiants.'}, status=status.HTTP_403_FORBIDDEN)
+        qs = Attendance.objects.filter(student=request.user).select_related('course', 'recorded_by')
+        serializer = AttendanceSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='statistics')
+    def statistics(self, request):
+        """Get attendance statistics for the current user's courses"""
+        user = request.user
+        if user.role == 'etudiant':
+            attendances = Attendance.objects.filter(student=user)
+        elif user.role in ['enseignant', 'assistant']:
+            attendances = Attendance.objects.filter(
+                Q(course__titulaire=user) | Q(course__assistants=user)
+            )
+        else:
+            attendances = Attendance.objects.all()
+
+        total = attendances.count()
+        present = attendances.filter(status='present').count()
+        absent = attendances.filter(status='absent').count()
+        late = attendances.filter(status='retard').count()
+        excused = attendances.filter(status='excuse').count()
+        rate = round((present / total * 100), 2) if total > 0 else 0
+
+        return Response({
+            'total_sessions': total,
+            'present_count': present,
+            'absent_count': absent,
+            'late_count': late,
+            'excused_count': excused,
+            'attendance_rate': rate,
+        })
+
+    @action(detail=False, methods=['get'], url_path='course_statistics')
+    def course_statistics(self, request):
+        """Get attendance statistics for a specific course — alias for course-report"""
+        course_id = request.query_params.get('course_id')
+        if not course_id:
+            return Response({'error': 'course_id est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Delegate to course_report
+        return self.course_report(request)
 
     @action(detail=False, methods=['post'], url_path='bulk_create')
     def bulk_create(self, request):
@@ -63,11 +110,26 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         course_id = serializer.validated_data['course']
         date = serializer.validated_data['date']
         attendances_data = serializer.validated_data['attendances']
+        session_id = serializer.validated_data.get('session_id')
 
         try:
             course = Course.objects.get(id=course_id)
         except Course.DoesNotExist:
             return Response({'error': 'Cours non trouvé.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Resolve session if provided
+        session_obj = None
+        if session_id:
+            try:
+                session_obj = AttendanceSession.objects.get(id=session_id)
+                # Block edits on finalized sessions
+                if session_obj.is_finalized:
+                    return Response(
+                        {'error': 'Cette séance est clôturée. Impossible de modifier les présences.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except AttendanceSession.DoesNotExist:
+                pass
 
         created_count = 0
         updated_count = 0
@@ -85,7 +147,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     defaults={
                         'status': att_data['status'],
                         'comments': att_data.get('comments', ''),
-                        'recorded_by': request.user
+                        'recorded_by': request.user,
+                        'session': session_obj,
                     }
                 )
 
@@ -266,6 +329,13 @@ class AttendanceSessionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set created_by to current user"""
         serializer.save(created_by=self.request.user)
+
+    @action(detail=False, methods=['get'], url_path='my_sessions')
+    def my_sessions(self, request):
+        """Get sessions relevant to the current user (alias — uses role-filtered queryset)"""
+        qs = self.get_queryset().order_by('-date', '-start_time')
+        serializer = AttendanceSessionSerializer(qs, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'], url_path='finalize')
     def finalize(self, request, pk=None):

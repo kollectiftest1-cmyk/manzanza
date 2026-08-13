@@ -18,7 +18,7 @@ from .payment_serializers import (
     CreateVoucherSerializer, ValidatePaymentSerializer, ReceiptVerificationSerializer
 )
 from .utils import generate_payment_voucher_pdf, generate_payment_receipt_pdf, generate_qr_code
-from apps.users.permissions import IsAdminUser, IsSGAOrAdmin
+from apps.users.permissions import IsAdminUser, IsSGAOrAdmin, IsCaisseOrAdmin, IsDGOrIAdmin
 
 
 class PaymentVoucherViewSet(viewsets.ModelViewSet):
@@ -47,6 +47,65 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set created_by to current user"""
         serializer.save(created_by=self.request.user)
+
+    @action(detail=False, methods=['get'], url_path='lookup', permission_classes=[IsCaisseOrAdmin])
+    def lookup(self, request):
+        """
+        Lookup a voucher by its exact voucher_number (for cashier workflow).
+        GET /payments/vouchers/lookup/?code=BON-XXXXXXXX-XXXXX
+        """
+        code = request.query_params.get('code', '').strip()
+        if not code:
+            return Response({'error': 'Le paramètre "code" est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            voucher = PaymentVoucher.objects.select_related(
+                'student', 'student_fee__fee_type', 'created_by', 'validated_by'
+            ).get(voucher_number=code)
+        except PaymentVoucher.DoesNotExist:
+            return Response({'error': 'Aucun bon trouvé avec ce numéro.'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(PaymentVoucherSerializer(voucher).data)
+
+    @action(detail=False, methods=['get'], url_path='caisse-stats', permission_classes=[IsCaisseOrAdmin])
+    def caisse_stats(self, request):
+        """
+        Dashboard stats for the cashier.
+        """
+        from django.db.models import Sum, Count, Q
+        today = timezone.now().date()
+
+        # Today's validated payments
+        today_validated = PaymentVoucher.objects.filter(
+            paid_date__date=today, status='paid'
+        )
+        today_count = today_validated.count()
+        today_total = today_validated.aggregate(t=Sum('amount'))['t'] or 0
+
+        # Pending vouchers
+        pending = PaymentVoucher.objects.filter(status='pending')
+        pending_count = pending.count()
+        pending_total = pending.aggregate(t=Sum('amount'))['t'] or 0
+
+        # Recent vouchers (last 10)
+        recent = PaymentVoucher.objects.select_related(
+            'student', 'student_fee__fee_type'
+        ).order_by('-created_at')[:10]
+
+        # Overall stats
+        all_paid = PaymentVoucher.objects.filter(status='paid')
+        total_collected = all_paid.aggregate(t=Sum('amount'))['t'] or 0
+        total_validated_count = all_paid.count()
+
+        return Response({
+            'today_count': today_count,
+            'today_total': float(today_total),
+            'pending_count': pending_count,
+            'pending_total': float(pending_total),
+            'total_collected': float(total_collected),
+            'total_validated_count': total_validated_count,
+            'recent_vouchers': PaymentVoucherSerializer(recent, many=True).data,
+        })
 
     @action(detail=False, methods=['post'], url_path='create-voucher')
     @transaction.atomic
@@ -87,6 +146,7 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
             description=description,
             beneficiary_account=serializer.validated_data['beneficiary_account'],
             beneficiary_name=serializer.validated_data.get('beneficiary_name', 'SYNTAX GU'),
+            payment_method=serializer.validated_data.get('payment_method', 'especes'),
             expiry_date=expiry_date,
             created_by=request.user
         )
@@ -112,7 +172,7 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
             'voucher': PaymentVoucherSerializer(voucher).data
         }, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'], url_path='validate-payment', permission_classes=[IsSGAOrAdmin])
+    @action(detail=True, methods=['post'], url_path='validate-payment', permission_classes=[IsDGOrIAdmin])
     @transaction.atomic
     def validate_payment(self, request, pk=None):
         """
@@ -130,17 +190,20 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
 
         # Update voucher
         voucher.status = 'paid'
-        voucher.bank_slip_number = serializer.validated_data['bank_slip_number']
-        voucher.bank_slip_date = serializer.validated_data['bank_slip_date']
+        voucher.bank_slip_number = serializer.validated_data.get('bank_slip_number', '') or ''
+        voucher.bank_slip_date = serializer.validated_data.get('bank_slip_date')
         voucher.paid_date = timezone.now()
         voucher.validated_by = request.user
         voucher.save()
+
+        # Use payment method chosen by the student on the voucher
+        method = voucher.payment_method or 'especes'
 
         # Create payment record
         payment = Payment.objects.create(
             student_fee=voucher.student_fee,
             amount=voucher.amount,
-            payment_method=serializer.validated_data.get('payment_method', 'virement'),
+            payment_method=method,
             status='confirme',
             transaction_id=serializer.validated_data.get('transaction_reference', ''),
             processed_by=request.user,
@@ -152,14 +215,15 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
         voucher.student_fee.update_status()
 
         # Create receipt
+        fee_type_name = voucher.student_fee.fee_type.name if voucher.student_fee.fee_type else 'N/A'
         receipt = PaymentReceipt.objects.create(
             voucher=voucher,
             payment=payment,
             student=voucher.student,
             amount_paid=voucher.amount,
-            fee_type_name=voucher.student_fee.fee_type.name,
+            fee_type_name=fee_type_name,
             payment_date=timezone.now(),
-            payment_method=serializer.validated_data.get('payment_method', 'virement'),
+            payment_method=method,
             bank_slip_number=voucher.bank_slip_number,
             bank_slip_date=voucher.bank_slip_date,
             transaction_reference=serializer.validated_data.get('transaction_reference', ''),
@@ -211,7 +275,7 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
             'receipt': PaymentReceiptSerializer(receipt).data
         }, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], url_path='cancel', permission_classes=[IsSGAOrAdmin])
+    @action(detail=True, methods=['post'], url_path='cancel', permission_classes=[IsDGOrIAdmin])
     def cancel_voucher(self, request, pk=None):
         """Cancel a pending voucher"""
         voucher = self.get_object()

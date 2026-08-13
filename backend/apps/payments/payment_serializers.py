@@ -11,6 +11,7 @@ class PaymentVoucherSerializer(serializers.ModelSerializer):
     student_matricule = serializers.CharField(source='student.matricule', read_only=True)
     student_email = serializers.CharField(source='student.email', read_only=True)
     fee_type_name = serializers.CharField(source='student_fee.fee_type.name', read_only=True)
+    currency = serializers.CharField(source='student_fee.fee_campaign.currency', read_only=True, default='USD')
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True, allow_null=True)
     validated_by_name = serializers.CharField(source='validated_by.get_full_name', read_only=True, allow_null=True)
@@ -20,7 +21,7 @@ class PaymentVoucherSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'voucher_number',
             'student', 'student_name', 'student_matricule', 'student_email',
-            'student_fee', 'fee_type_name',
+            'student_fee', 'fee_type_name', 'currency',
             'amount', 'description',
             'beneficiary_account', 'beneficiary_name',
             'status', 'status_display',
@@ -28,6 +29,7 @@ class PaymentVoucherSerializer(serializers.ModelSerializer):
             'bank_slip_number', 'bank_slip_date',
             'created_by', 'created_by_name',
             'validated_by', 'validated_by_name',
+            'payment_method',
             'notes',
             'created_at', 'updated_at'
         ]
@@ -91,6 +93,7 @@ class CreateVoucherSerializer(serializers.Serializer):
     beneficiary_account = serializers.CharField(max_length=100)
     beneficiary_name = serializers.CharField(max_length=200, default='SYNTAX GU')
     expiry_days = serializers.IntegerField(default=30, help_text='Nombre de jours avant expiration')
+    payment_method = serializers.CharField(max_length=50, default='especes')
 
     def validate_student_fee_id(self, value):
         """Validate that student_fee exists"""
@@ -102,23 +105,11 @@ class CreateVoucherSerializer(serializers.Serializer):
 
 
 class ValidatePaymentSerializer(serializers.Serializer):
-    """Serializer for validating a payment"""
-    voucher_id = serializers.IntegerField()
-    bank_slip_number = serializers.CharField(max_length=100)
-    bank_slip_date = serializers.DateField()
-    payment_method = serializers.CharField(max_length=50, default='virement')
+    """Serializer for validating a payment by the cashier"""
+    bank_slip_number = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    bank_slip_date = serializers.DateField(required=False, allow_null=True)
     transaction_reference = serializers.CharField(max_length=200, required=False, allow_blank=True)
     send_email = serializers.BooleanField(default=True)
-
-    def validate_voucher_id(self, value):
-        """Validate that voucher exists and is pending"""
-        try:
-            voucher = PaymentVoucher.objects.get(id=value)
-            if voucher.status != 'pending':
-                raise serializers.ValidationError(f"Ce bon est déjà {voucher.get_status_display().lower()}.")
-        except PaymentVoucher.DoesNotExist:
-            raise serializers.ValidationError("Bon de paiement non trouvé.")
-        return value
 
 
 class ReceiptVerificationSerializer(serializers.Serializer):

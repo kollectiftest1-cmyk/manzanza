@@ -5,6 +5,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Count, Q # Import Count and Q
@@ -16,6 +17,14 @@ from .serializers import (
 from .filters import AuditoireFilter, FiliereFilter, SectionFilter
 from apps.users.permissions import IsAdminUser, IsSGAOrAdmin, CanViewAcademicData
 from apps.users.mixins import RoleBasedFilterMixin
+
+
+def _is_sga_or_admin_user(user):
+    return user.is_staff or user.role in ['sga', 'sgad', 'caisse', 'iadmin', 'pdg', 'directeur_general']
+
+
+def _managed_section_for(user):
+    return getattr(user, 'managed_section', None) or getattr(user, 'section', None)
 
 class SectionViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     """
@@ -80,7 +89,43 @@ class FiliereViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
             return [AllowAny()]
         elif self.request.method in ['GET', 'HEAD', 'OPTIONS']:
             return [CanViewAcademicData()]
-        return [IsSGAOrAdmin()]
+        return [IsAuthenticated()]
+
+    def _assert_can_manage_filiere(self, target_section=None):
+        user = self.request.user
+        if _is_sga_or_admin_user(user):
+            return None
+
+        if user.role == 'chef_section':
+            section = _managed_section_for(user)
+            if not section:
+                raise PermissionDenied("Aucune section n'est affectée à ce chef de section.")
+            if target_section and target_section != section:
+                raise PermissionDenied("Vous ne pouvez gérer que les filières de votre section.")
+            return section
+
+        raise PermissionDenied("Permission refusée pour gérer les filières.")
+
+    def perform_create(self, serializer):
+        target_section = serializer.validated_data.get('section')
+        forced_section = self._assert_can_manage_filiere(target_section)
+        if forced_section:
+            serializer.save(section=forced_section)
+        else:
+            serializer.save()
+
+    def perform_update(self, serializer):
+        current = self.get_object()
+        target_section = serializer.validated_data.get('section', current.section)
+        forced_section = self._assert_can_manage_filiere(target_section)
+        if forced_section:
+            serializer.save(section=forced_section)
+        else:
+            serializer.save()
+
+    def perform_destroy(self, instance):
+        self._assert_can_manage_filiere(instance.section)
+        instance.delete()
 
 
 class AuditoireViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):

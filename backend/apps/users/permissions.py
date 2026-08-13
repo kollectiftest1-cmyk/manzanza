@@ -25,11 +25,11 @@ class IsAdminUser(permissions.BasePermission):
 
 class IsSGAOrAdmin(permissions.BasePermission):
     """
-    Permission for SGA and Admin users.
+    Permission for SGA, SGAD, Caisse and Admin users.
     """
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and \
-               (request.user.is_staff or request.user.role == 'sga')
+               (request.user.is_staff or request.user.role in ['sga', 'sgad', 'caisse', 'iadmin', 'pdg', 'directeur_general'])
 
 class CanManageCourses(permissions.BasePermission):
     """
@@ -41,11 +41,14 @@ class CanManageCourses(permissions.BasePermission):
 
 class IsTeacherOrAdmin(permissions.BasePermission):
     """
-    Permission for teachers and admin users
+    Permission for teachers and admin users (including SGA and other admin roles)
     """
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and \
-               (request.user.is_staff or request.user.role in ['enseignant', 'assistant', 'chef_section', 'chef_departement'])
+               (request.user.is_staff or request.user.role in [
+                   'enseignant', 'assistant', 'chef_section', 'chef_departement',
+                   'sga', 'sgad', 'iadmin', 'pdg', 'directeur_general'
+               ])
 
 class IsStudentUser(permissions.BasePermission):
     """
@@ -68,7 +71,7 @@ class IsHROrAdmin(permissions.BasePermission):
     """
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and \
-               (request.user.is_staff or request.user.role in ['sgad', 'directeur_general'])
+               (request.user.is_staff or request.user.role in ['sgad', 'iadmin', 'pdg', 'directeur_general'])
 
 class IsCaisseOrAdmin(permissions.BasePermission):
     """
@@ -76,22 +79,38 @@ class IsCaisseOrAdmin(permissions.BasePermission):
     """
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and \
-               (request.user.is_staff or request.user.role in ['caisse', 'sgad'])
+               (request.user.is_staff or request.user.role in [
+                   'caisse', 'sgad', 'iadmin', 'pdg', 'directeur_general'
+               ])
+
+class IsDGOrIAdmin(permissions.BasePermission):
+    """
+    Permission for DG and iadmin only — full financial management.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and \
+               (request.user.is_staff or request.user.role in ['iadmin', 'directeur_general'])
 
 class CanViewUsers(permissions.BasePermission):
     """
-    Permission to allow specific roles (iadmin, sga, chef_section, chef_departement) to view users.
+    Permission to allow specific roles to view users (including SGAD for fee assignment).
     """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement', 'enseignant'])
+                   (request.user.is_staff or request.user.role in [
+                       'iadmin', 'sga', 'sgad', 'caisse', 'pdg', 'directeur_general',
+                       'chef_section', 'chef_departement', 'enseignant'
+                   ])
         return False
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated and \
-                   (request.user.is_staff or request.user.role in ['iadmin', 'sga', 'chef_section', 'chef_departement', 'enseignant'])
+                   (request.user.is_staff or request.user.role in [
+                       'iadmin', 'sga', 'sgad', 'caisse', 'pdg', 'directeur_general',
+                       'chef_section', 'chef_departement', 'enseignant'
+                   ])
         return False
 
 class CanViewAcademicData(permissions.BasePermission):

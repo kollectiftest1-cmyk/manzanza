@@ -12,6 +12,7 @@ from .models import (
     Assignment, AssignmentQuestion, AssignmentSubmission,
     AssignmentAnswer, AssignmentChoice
 )
+from apps.grades.models import Grade, GradeCategory
 from .serializers import (
     AssignmentSerializer, AssignmentQuestionSerializer,
     AssignmentSubmissionSerializer, AssignmentAnswerSerializer,
@@ -310,28 +311,61 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def grade(self, request, pk=None):
-        """Grade a submission"""
+        """Grade a submission and sync to Grade model (tp_td category)"""
         submission = self.get_object()
         score = request.data.get('score')
         feedback = request.data.get('feedback', '')
 
-        if score is not None:
-            submission.score = score
-            submission.graded_by = request.user
-            submission.graded_at = timezone.now()
-            submission.status = 'graded'
-            submission.feedback = feedback
-            submission.save()
+        if score is None:
+            return Response(
+                {'error': 'Score is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-            return Response({
-                'status': 'Submission graded',
-                'score': score
-            })
+        submission.score = score
+        submission.graded_by = request.user
+        submission.graded_at = timezone.now()
+        submission.status = 'graded'
+        submission.feedback = feedback
+        submission.save()
 
-        return Response(
-            {'error': 'Score is required'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        # ── Propagate to grades app ────────────────────────────────────────
+        course = submission.assignment.course if hasattr(submission.assignment, 'course') else None
+        if course and submission.student:
+            # Get or create the TP/TD grade category
+            tp_td_cat, _ = GradeCategory.objects.get_or_create(
+                name='TP / TD',
+                defaults={
+                    'description': 'Travaux pratiques et dirigés',
+                    'weight': 30,
+                    'category_type': 'tp_td',
+                }
+            )
+            if not tp_td_cat.category_type:
+                tp_td_cat.category_type = 'tp_td'
+                tp_td_cat.save(update_fields=['category_type'])
+
+            # Normalize score out of 20
+            max_pts = submission.assignment.max_points or 20
+            normalized = round((float(score) / float(max_pts)) * 20, 2)
+
+            Grade.objects.update_or_create(
+                student=submission.student,
+                course=course,
+                category=tp_td_cat,
+                session_number=submission.assignment.id,  # use assignment id as session
+                defaults={
+                    'value': normalized,
+                    'max_value': 20,
+                    'label': submission.assignment.title or 'TP',
+                }
+            )
+        # ─────────────────────────────────────────────────────────────────
+
+        return Response({
+            'status': 'Submission graded',
+            'score': score
+        })
 
     @action(detail=True, methods=['post'])
     def submit_answer(self, request, pk=None):

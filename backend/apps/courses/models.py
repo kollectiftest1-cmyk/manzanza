@@ -23,8 +23,8 @@ class Course(models.Model):
         related_name='courses',
         verbose_name='Auditoire',
         help_text='Auditoire dans lequel ce cours est donné',
-        null=True,  # Temporaire pour la migration - À remplir puis retirer null=True
-        blank=True
+        null=False,
+        blank=False
     )
 
     # Un cours a UN enseignant titulaire
@@ -46,13 +46,31 @@ class Course(models.Model):
         limit_choices_to={'role': 'assistant'}
     )
 
+    # Prerequisites: cours prérequis pour ce cours
+    prerequisites = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        blank=True,
+        related_name='dependent_courses',
+        verbose_name='Cours prérequis',
+        help_text="Cours que l'étudiant doit avoir validé avant de suivre celui-ci"
+    )
+
+    # Durée en trimestres (un cours peut s'étaler sur 1, 2 ou 3 trimestres)
+    duration_terms = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Nombre de trimestres sur lesquels le cours s'étale (1, 2 ou 3)",
+        verbose_name='Durée (en trimestres)'
+    )
+
     # Course content
     syllabus = models.FileField(upload_to='syllabi/', blank=True, null=True, verbose_name='Syllabus')
     resources = models.TextField(blank=True, null=True, verbose_name='Ressources')
 
     # Settings
     is_active = models.BooleanField(default=True, verbose_name='Actif')
-    semester = models.CharField(max_length=20, default='Semestre 1', verbose_name='Semestre')
+    semester = models.CharField(max_length=200, default='Semestre 1', verbose_name='Semestre(s)',
+                               help_text='Un ou plusieurs semestres/trimestres, séparés par des virgules')
     annee_academique = models.CharField(max_length=20, default='2024-2025', verbose_name='Année académique')
 
     created_at = models.DateTimeField(auto_now_add=True)

@@ -6,7 +6,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('auditoires', '0001_initial'),
+        ('auditoires', '0004_alter_section_options_alter_auditoire_section_and_more'),
         ('courses', '0004_remove_course_teacher_course_titulaire'),
     ]
 

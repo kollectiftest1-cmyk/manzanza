@@ -19,6 +19,12 @@ class Quiz(models.Model):
         ('closed', 'Fermé'),
     ]
 
+    QUIZ_TYPE_CHOICES = [
+        ('quiz', 'Quiz (exercice libre)'),
+        ('interro', 'Interrogation'),
+        ('examen', 'Examen / Épreuve'),
+    ]
+
     # Basic Information
     title = models.CharField(max_length=255, verbose_name="Titre du quiz")
     description = models.TextField(blank=True, null=True, verbose_name="Description")
@@ -64,6 +70,14 @@ class Quiz(models.Model):
         verbose_name="Nombre max de tentatives"
     )
 
+    # Quiz type
+    quiz_type = models.CharField(
+        max_length=10,
+        choices=QUIZ_TYPE_CHOICES,
+        default='quiz',
+        verbose_name="Type d'évaluation"
+    )
+
     # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
 
@@ -81,9 +95,15 @@ class Quiz(models.Model):
         return f"{self.title} - {self.course.name}"
 
     def is_active(self):
-        """Check if quiz is currently active"""
+        """Check if quiz is currently active (safe against None dates)."""
+        if self.status != 'published':
+            return False
         now = timezone.now()
-        return self.status == 'published' and self.start_date <= now <= self.end_date
+        if self.start_date and now < self.start_date:
+            return False
+        if self.end_date and now > self.end_date:
+            return False
+        return True
 
     def get_total_points(self):
         """Calculate total points from all questions"""

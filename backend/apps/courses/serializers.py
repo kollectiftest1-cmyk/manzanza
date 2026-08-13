@@ -99,6 +99,9 @@ class CourseSerializer(serializers.ModelSerializer):
     section = serializers.SerializerMethodField()
     auditoire_detail = serializers.SerializerMethodField()
 
+    # Prerequisites info
+    prerequisites_detail = serializers.SerializerMethodField()
+
     class Meta:
         model = Course
         fields = [
@@ -108,18 +111,20 @@ class CourseSerializer(serializers.ModelSerializer):
             'section', 'filiere', 'auditoire', 'auditoire_detail',
             'syllabus', 'resources', 'is_active',
             'semester', 'annee_academique',
+            'prerequisites', 'prerequisites_detail', 'duration_terms',
             'students_count', 'progress_percentage',
             'materials', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'code', 'created_at', 'updated_at', 'students_count',
             'progress_percentage', 'titulaire_name', 'section', 'filiere', 'auditoire_detail',
-            'titulaire_detail', 'assistants_detail'
+            'titulaire_detail', 'assistants_detail', 'prerequisites_detail'
         ]
         extra_kwargs = {
             'titulaire': {'required': True, 'allow_null': False, 'write_only': False},
             'assistants': {'required': False, 'write_only': False},
             'auditoire': {'required': False, 'allow_null': True},
+            'prerequisites': {'required': False},
         }
 
     def get_filiere(self, obj):
@@ -139,6 +144,13 @@ class CourseSerializer(serializers.ModelSerializer):
         if obj.auditoire:
             return SimpleAuditoireSerializer(obj.auditoire).data
         return None
+
+    def get_prerequisites_detail(self, obj):
+        """Get prerequisites as [{ id, code, name }]"""
+        return [
+            {'id': c.id, 'code': c.code, 'name': c.name}
+            for c in obj.prerequisites.all()
+        ]
 
 
 class CourseDetailSerializer(CourseSerializer):

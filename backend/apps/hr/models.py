@@ -29,8 +29,15 @@ class Employee(models.Model):
         ('retraite', 'Retraité'),
     ]
 
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-                               related_name='employee_profile', verbose_name='Utilisateur')
+    PRESTATION_CHOICES = [
+        ('permanent', 'Permanent'),
+        ('charge_horaire', 'Par charge horaire'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                            related_name='employee_profiles', verbose_name='Utilisateur')
+
+    MAX_PROFILES = 3  # Maximum number of employee profiles per user
 
     # Employment details
     employee_id = models.CharField(max_length=50, unique=True, verbose_name='Matricule employé')
@@ -40,8 +47,15 @@ class Employee(models.Model):
     hire_date = models.DateField(verbose_name='Date d\'embauche')
     end_date = models.DateField(blank=True, null=True, verbose_name='Date de fin')
 
-    # Salary
-    base_salary = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Salaire de base')
+    # Prestation type
+    prestation_type = models.CharField(max_length=20, choices=PRESTATION_CHOICES,
+                                       default='permanent', verbose_name='Type de prestation')
+
+    # Salary: permanent → salaire_journalier, charge_horaire → salaire_horaire
+    salaire_journalier = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True,
+                                              verbose_name='Salaire journalier (permanent)')
+    salaire_horaire = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True,
+                                           verbose_name='Salaire horaire (charge horaire)')
     currency = models.CharField(max_length=10, default='USD', verbose_name='Devise')
 
     # Status
@@ -63,6 +77,32 @@ class Employee(models.Model):
         verbose_name = 'Employé'
         verbose_name_plural = 'Employés'
         ordering = ['user__last_name', 'user__first_name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'position'],
+                name='unique_user_position',
+            ),
+        ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        # Max 3 profiles per user
+        if self.user_id:
+            existing = Employee.objects.filter(user=self.user).exclude(pk=self.pk).count()
+            if existing >= self.MAX_PROFILES:
+                raise ValidationError(
+                    f'Un utilisateur ne peut avoir que {self.MAX_PROFILES} profils employé maximum.'
+                )
+            # Same position check
+            if self.position and Employee.objects.filter(user=self.user, position=self.position).exclude(pk=self.pk).exists():
+                raise ValidationError(
+                    f'Cet utilisateur a déjà un profil avec le poste "{self.get_position_display()}".'
+                )
+
+    def save(self, *args, **kwargs):
+        # Run clean() but skip full field validation (DRF handles that)
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.get_position_display()}"
@@ -128,14 +168,34 @@ class Payroll(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE,
                                 related_name='payrolls', verbose_name='Employé')
 
-    period_start = models.DateField(verbose_name='Début de période')
-    period_end = models.DateField(verbose_name='Fin de période')
+    MONTH_CHOICES = [
+        (1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'),
+        (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'),
+        (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre'),
+    ]
 
-    # Salary components
-    base_salary = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Salaire de base')
+    mois = models.PositiveSmallIntegerField(
+        choices=MONTH_CHOICES, verbose_name='Mois', default=1
+    )
+    annee = models.PositiveIntegerField(verbose_name='Année', default=2025)
+
+    # Work quantity
+    jours_prestes = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name='Nombre de jours prestés',
+        help_text='Pour les employés permanents'
+    )
+    heures_prestees = models.DecimalField(
+        max_digits=8, decimal_places=2, blank=True, null=True,
+        verbose_name='Nombre d\'heures prestées',
+        help_text='Pour les employés à charge horaire'
+    )
+
+    # Salary components (auto-calculated)
+    base_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+                                       verbose_name='Salaire de base (calculé)')
     bonuses = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Primes')
     deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Déductions')
-    net_salary = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Salaire net')
+    net_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Salaire net')
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='en_attente',
                             verbose_name='Statut')
@@ -153,14 +213,33 @@ class Payroll(models.Model):
     class Meta:
         verbose_name = 'Paie'
         verbose_name_plural = 'Paies'
-        ordering = ['-period_end']
+        ordering = ['-annee', '-mois']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['employee', 'mois', 'annee'],
+                name='unique_payroll_employee_period',
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.employee.user.get_full_name()} - {self.period_start} to {self.period_end}"
+        month_name = dict(self.MONTH_CHOICES).get(self.mois, self.mois)
+        return f"{self.employee.user.get_full_name()} - {month_name} {self.annee}"
+
+    @property
+    def period_label(self):
+        month_name = dict(self.MONTH_CHOICES).get(self.mois, self.mois)
+        return f"{month_name} {self.annee}"
 
     def save(self, *args, **kwargs):
-        """Override save to calculate net salary"""
-        self.net_salary = self.base_salary + self.bonuses - self.deductions
+        """Auto-calculate base_salary and net_salary from employee rate × quantity."""
+        from decimal import Decimal
+        emp = self.employee
+        if emp.prestation_type == 'permanent' and self.jours_prestes and emp.salaire_journalier:
+            self.base_salary = Decimal(str(self.jours_prestes)) * emp.salaire_journalier
+        elif emp.prestation_type == 'charge_horaire' and self.heures_prestees and emp.salaire_horaire:
+            self.base_salary = self.heures_prestees * emp.salaire_horaire
+
+        self.net_salary = (self.base_salary or Decimal('0')) + (self.bonuses or Decimal('0')) - (self.deductions or Decimal('0'))
         super().save(*args, **kwargs)
 
 

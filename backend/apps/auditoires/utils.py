@@ -1,7 +1,40 @@
 """
 Utility functions for auditoires management
 """
-from .models import Auditoire
+from .models import Auditoire, default_academic_year_label, normalize_academic_year_label
+
+
+def _parse_academic_year_start(label):
+    try:
+        return int(str(label).split('-', 1)[0])
+    except (TypeError, ValueError):
+        return None
+
+
+def get_public_academic_year_options():
+    """
+    Options exposed to public applicants: current academic year and next one.
+    The current year comes from AcademicYear.is_current when configured.
+    """
+    current = normalize_academic_year_label(default_academic_year_label())
+    start_year = _parse_academic_year_start(current)
+    if start_year is None:
+        next_year = default_academic_year_label()
+    else:
+        next_year = f"{start_year + 1}-{start_year + 2}"
+
+    return [
+        {
+            'value': current,
+            'label': f"Année en cours ({current})",
+            'type': 'current',
+        },
+        {
+            'value': next_year,
+            'label': f"Année prochaine ({next_year})",
+            'type': 'next',
+        },
+    ]
 
 
 def generate_auditoire_name(niveau, filiere, vacation):
@@ -52,7 +85,8 @@ def find_or_create_auditoire(filiere, niveau, vacation, annee_academique=None, c
         tuple: (auditoire, created) where created is a boolean
     """
     if not annee_academique:
-        annee_academique = '2024-2025'  # Default, could be dynamic
+        annee_academique = default_academic_year_label()
+    annee_academique = normalize_academic_year_label(annee_academique)
 
     # Try to find existing auditoire
     try:

@@ -40,11 +40,6 @@ class CourseViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at']
     pagination_class = CustomPageNumberPagination
 
-    def get_queryset(self):
-        """Apply intelligent role-based filtering"""
-        queryset = super().get_queryset()
-        return self.filter_queryset_by_role(queryset, self.request.user, 'course')
-
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return CourseDetailSerializer

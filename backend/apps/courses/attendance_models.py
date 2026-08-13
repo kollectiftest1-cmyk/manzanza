@@ -44,6 +44,15 @@ class Attendance(models.Model):
         verbose_name='Commentaire'
     )
 
+    session = models.ForeignKey(
+        'AttendanceSession',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='attendances',
+        verbose_name='Séance'
+    )
+
     # Metadata
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -123,8 +132,7 @@ class AttendanceSession(models.Model):
     def present_count(self):
         """Count of students marked as present"""
         return Attendance.objects.filter(
-            course=self.course,
-            date=self.date,
+            session=self,
             status='present'
         ).count()
 
@@ -132,8 +140,7 @@ class AttendanceSession(models.Model):
     def absent_count(self):
         """Count of students marked as absent"""
         return Attendance.objects.filter(
-            course=self.course,
-            date=self.date,
+            session=self,
             status='absent'
         ).count()
 
@@ -141,8 +148,7 @@ class AttendanceSession(models.Model):
     def late_count(self):
         """Count of students marked as late"""
         return Attendance.objects.filter(
-            course=self.course,
-            date=self.date,
+            session=self,
             status='retard'
         ).count()
 
