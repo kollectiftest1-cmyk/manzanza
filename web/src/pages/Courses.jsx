@@ -46,6 +46,7 @@ import { getSections } from "../services/sectionService";
 import { getFilieres } from "../services/filiereService";
 import scheduleService from "../services/scheduleService";
 import { useNavigate } from "react-router-dom";
+import { notifyError } from "../utils/notify"
 const Courses = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -175,7 +176,7 @@ const Courses = () => {
         );
         setTeacherOptions(teachers);
       }).catch(err => {
-        console.error("Erreur lors du chargement des enseignants:", err);
+        notifyError(err, "Impossible de charger la liste des enseignants : le choix du titulaire sera vide. Rechargez la page.");
       });
     }
   }, [user]);
@@ -238,7 +239,7 @@ const Courses = () => {
       setShowCourseModal(false);
       loadCourses();
     } catch (err) {
-      alert("Erreur: " + err.message);
+      notifyError(err, "Erreur: " + err.message);
     }
   };
 

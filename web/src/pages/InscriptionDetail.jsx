@@ -11,6 +11,7 @@ import api from '../services/api';
 import AdmissionCircuit from '../components/Admission/AdmissionCircuit';
 import { hasAnyRole } from '../utils/permissions';
 import { useSelector } from 'react-redux';
+import { notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -46,7 +47,7 @@ const InscriptionDetail = () => {
                 const res = await api.get(`/inscriptions/${id}/`);
                 setInscription(res.data);
             } catch (err) {
-                setError("Impossible de charger les détails de l'inscription.");
+                notifyError(err, "Impossible de charger les détails de l'inscription.");
             } finally {
                 setLoading(false);
             }
@@ -63,7 +64,7 @@ const InscriptionDetail = () => {
             setInscription(prev => ({ ...prev, status: 'validee' }));
             setActionSuccess(res.data.message || "Inscription validée avec succès.");
         } catch (err) {
-            setActionError(err.response?.data?.error || "Erreur lors de la validation.");
+            notifyError(err, err.response?.data?.error || "Erreur lors de la validation.");
         } finally {
             setActionLoading(false);
         }
@@ -78,7 +79,7 @@ const InscriptionDetail = () => {
             setActionSuccess("Inscription rejetée.");
             setShowRejectModal(false);
         } catch (err) {
-            setActionError(err.response?.data?.error || "Erreur lors du rejet.");
+            notifyError(err, err.response?.data?.error || "Erreur lors du rejet.");
         } finally {
             setActionLoading(false);
         }

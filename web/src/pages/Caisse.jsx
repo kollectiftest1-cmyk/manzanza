@@ -15,6 +15,7 @@ import { toast } from "react-toastify"
 import { paymentService } from "../services/paymentService"
 import { Link } from "react-router-dom"
 import { financeAPI } from "../services/api"
+import { notifyError } from "../utils/notify"
 
 const Caisse = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -79,7 +80,7 @@ const Caisse = () => {
       setSearchParams({ code: c })
     } catch (err) {
       const msg = err.response?.data?.error || 'BON introuvable'
-      setError(msg)
+      notifyError(err, msg)
     } finally {
       setSearching(false)
     }
@@ -112,7 +113,7 @@ const Caisse = () => {
       setTransactionRef('')
       loadHistory()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Erreur de validation')
+      notifyError(err, err.response?.data?.error || 'Erreur de validation')
     } finally {
       setValidating(false)
     }
@@ -126,7 +127,7 @@ const Caisse = () => {
       setVoucher(res.data.voucher)
       loadHistory()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Erreur')
+      notifyError(err, err.response?.data?.error || 'Erreur')
     }
   }
 

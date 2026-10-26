@@ -16,6 +16,7 @@ import {
 } from 'react-icons/fi'
 import { useSelector } from 'react-redux'
 import gradeService from '../services/gradeService'
+import { notifyError } from "../utils/notify"
 
 const CATEGORY_TYPES = [
   { value: 'interro', label: 'Interrogation', color: '#f0ad4e', description: 'Interrogation orale/écrite en classe' },
@@ -102,7 +103,7 @@ const ConfigurationAcademique = () => {
       const res = await gradeService.getCategories()
       setCategories(res.data?.results || res.data || [])
     } catch (err) {
-      setError('Erreur lors du chargement des catégories.')
+      notifyError(err, 'Erreur lors du chargement des catégories.')
     } finally {
       setLoading(false)
     }
@@ -131,9 +132,9 @@ const ConfigurationAcademique = () => {
       const msg = err.response?.data
       if (msg && typeof msg === 'object') {
         const first = Object.values(msg).flat()[0]
-        setError(typeof first === 'string' ? first : JSON.stringify(msg))
+        notifyError(err, typeof first === 'string' ? first : JSON.stringify(msg))
       } else {
-        setError('Erreur lors de la sauvegarde de la configuration.')
+        notifyError(err, 'Erreur lors de la sauvegarde de la configuration.')
       }
     } finally {
       setSavingConfig(false)
@@ -182,9 +183,9 @@ const ConfigurationAcademique = () => {
       const msg = err.response?.data
       if (msg && typeof msg === 'object') {
         const first = Object.values(msg).flat()[0]
-        setCategoryError(typeof first === 'string' ? first : JSON.stringify(msg))
+        notifyError(err, typeof first === 'string' ? first : JSON.stringify(msg))
       } else {
-        setCategoryError('Erreur lors de la sauvegarde.')
+        notifyError(err, 'Erreur lors de la sauvegarde.')
       }
     } finally {
       setSavingCategory(false)
@@ -198,7 +199,7 @@ const ConfigurationAcademique = () => {
       setSuccess(`Catégorie "${cat.name}" supprimée.`)
       loadCategories()
     } catch (err) {
-      setError('Erreur lors de la suppression. Vérifiez qu\'aucune note n\'utilise cette catégorie.')
+      notifyError(err, 'Erreur lors de la suppression. Vérifiez qu\'aucune note n\'utilise cette catégorie.')
     }
   }
 

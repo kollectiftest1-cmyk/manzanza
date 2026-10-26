@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User, Clock, CheckCircle, XCircle, Calendar, Star, Award, Save, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import quizService from '../../services/quizService';
+import { notify, notifyError } from "../../utils/notify"
 
 // Modern color palette
 const colors = {
@@ -106,12 +107,12 @@ const QuizGrading = ({ quiz, onBack }) => {
       };
 
       await quizService.gradeAttempt(selectedAttempt.id, gradeData);
-      alert('Note enregistrée avec succès!');
+      notify.info('Note enregistrée avec succès!');
       loadAttempts();
       setSelectedAttempt(null);
     } catch (error) {
       console.error('Erreur lors de la notation:', error);
-      alert('Erreur lors de l\'enregistrement de la note');
+      notifyError(error, 'Erreur lors de l\'enregistrement de la note');
     } finally {
       setGrading(false);
     }

@@ -6,6 +6,7 @@ import { FiCheckCircle, FiXCircle, FiTrash2 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { approveLeave, rejectLeave, deleteLeave } from '../../services/hrService';
 import { toast } from 'react-toastify';
+import { notifyError } from "../../utils/notify"
 
 export default function LeaveList({ leaves, onRefresh }) {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function LeaveList({ leaves, onRefresh }) {
         toast.success('Congé approuvé.');
         onRefresh();
       } catch (error) {
-        toast.error('Erreur lors de l\'approbation.');
+        notifyError(error, 'Erreur lors de l\'approbation.');
         console.error(error);
       }
     }
@@ -32,7 +33,7 @@ export default function LeaveList({ leaves, onRefresh }) {
         toast.success('Congé rejeté.');
         onRefresh();
       } catch (error) {
-        toast.error('Erreur lors du rejet.');
+        notifyError(error, 'Erreur lors du rejet.');
         console.error(error);
       }
     }
@@ -45,7 +46,7 @@ export default function LeaveList({ leaves, onRefresh }) {
         toast.success('Demande supprimée.');
         onRefresh();
       } catch (error) {
-        toast.error('Erreur lors de la suppression.');
+        notifyError(error, 'Erreur lors de la suppression.');
         console.error(error);
       }
     }

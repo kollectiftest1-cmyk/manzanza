@@ -6,6 +6,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getFiliereDetail } from '../services/filiereService';
 import { motion } from "framer-motion"
 import { FiGrid, FiUsers, FiHome, FiBook, FiUserCheck, FiArrowLeft } from "react-icons/fi"
+import { notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -34,7 +35,7 @@ const FiliereDetail = () => {
                 const res = await getFiliereDetail(id);
                 setFiliere(res.data);
             } catch (err) {
-                setError("Impossible de charger les détails de la filière.");
+                notifyError(err, "Impossible de charger les détails de la filière.");
                 console.error(err);
             } finally {
                 setLoading(false);

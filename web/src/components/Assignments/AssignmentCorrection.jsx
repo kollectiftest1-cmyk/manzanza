@@ -3,6 +3,7 @@ import { ArrowLeft, User, Calendar, Clock, CheckCircle, FileText, Download, Save
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchSubmissionsByAssignment, gradeSubmission } from '../../store/slices/assignmentsSlice';
+import { notify, notifyError } from "../../utils/notify"
 
 // Modern color palette
 const colors = {
@@ -54,7 +55,7 @@ const AssignmentCorrection = ({ assignment, onBack }) => {
 
   const handleSubmitGrade = async () => {
     if (!selectedSubmission || !gradeData.grade) {
-      alert('Veuillez saisir une note');
+      notify.warning('Veuillez saisir une note');
       return;
     }
 
@@ -66,12 +67,12 @@ const AssignmentCorrection = ({ assignment, onBack }) => {
         feedback: gradeData.feedback
       })).unwrap();
 
-      alert('Note enregistrée avec succès!');
+      notify.info('Note enregistrée avec succès!');
       dispatch(fetchSubmissionsByAssignment(assignment.id));
       setSelectedSubmission(null);
     } catch (error) {
       console.error('Erreur lors de la notation:', error);
-      alert('Erreur lors de l\'enregistrement de la note');
+      notifyError(error, 'Erreur lors de l\'enregistrement de la note');
     } finally {
       setSaving(false);
     }

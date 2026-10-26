@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.core.validation import check
+
 from .models import AcademicCalendarEvent, AuditLog, InstitutionSettings, SupportTicket, TrashItem
 
 
@@ -7,6 +9,10 @@ class AcademicCalendarEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = AcademicCalendarEvent
         fields = ['id', 'title', 'start_date', 'end_date', 'description']
+
+    def validate(self, attrs):
+        check(self, attrs, order=[('start_date', 'end_date')])
+        return attrs
 
 
 class InstitutionSettingsSerializer(serializers.ModelSerializer):

@@ -5,6 +5,7 @@ import { Container, Row, Col, Card, Form, Button, Spinner, Alert } from 'react-b
 import { useNavigate, useParams } from 'react-router-dom';
 import { getLeave, createLeave, updateLeave, getEmployees } from '../../services/hrService';
 import { toast } from 'react-toastify';
+import { notifyError } from "../../utils/notify"
 
 export default function LeaveForm() {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ export default function LeaveForm() {
           });
         }
       } catch (err) {
-        setError('Erreur lors du chargement des données.');
+        notifyError(err, 'Erreur lors du chargement des données.');
         console.error(err);
       } finally {
         setLoading(false);
@@ -68,8 +69,8 @@ export default function LeaveForm() {
       }
       navigate('/rh/leaves');
     } catch (err) {
-      setError('Une erreur est survenue lors de la soumission.');
-      toast.error('Échec de l\'opération.');
+      notifyError(err, 'Une erreur est survenue lors de la soumission.');
+      notifyError(err, 'Échec de l\'opération.');
       console.error(err);
     } finally {
       setLoading(false);

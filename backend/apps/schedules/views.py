@@ -439,21 +439,21 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 existing = module_qs.filter(room=room).select_related('course', 'room').first()
                 hard_conflicts.append(
                     f"La salle '{existing.room.name}' est déjà réservée pendant cette période "
-                    f"(cours: {existing.course.name}, {existing.module_start_date} → {existing.module_end_date})."
+                    f"(cours: {existing.course.name}, du {existing.module_start_date:%d/%m/%Y} au {existing.module_end_date:%d/%m/%Y})."
                 )
 
             if auditoire and module_qs.filter(auditoire=auditoire).exists():
                 existing = module_qs.filter(auditoire=auditoire).select_related('course', 'auditoire').first()
                 hard_conflicts.append(
                     f"L'auditoire '{existing.auditoire.nom}' a déjà un module pendant cette période "
-                    f"(cours: {existing.course.name}, {existing.module_start_date} → {existing.module_end_date})."
+                    f"(cours: {existing.course.name}, du {existing.module_start_date:%d/%m/%Y} au {existing.module_end_date:%d/%m/%Y})."
                 )
 
             if teacher and module_qs.filter(teacher=teacher).exists():
                 existing = module_qs.filter(teacher=teacher).select_related('course').first()
                 warnings.append(
                     f"L'enseignant a déjà un module pendant cette période: {existing.course.name} "
-                    f"({existing.module_start_date} → {existing.module_end_date})."
+                    f"(du {existing.module_start_date:%d/%m/%Y} au {existing.module_end_date:%d/%m/%Y})."
                 )
 
             return hard_conflicts, warnings

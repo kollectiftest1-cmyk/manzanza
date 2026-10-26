@@ -26,6 +26,7 @@ import gradeService from '../services/gradeService'
 import { getAuditoires } from '../services/auditoireService'
 import { getSections } from '../services/sectionService'
 import { getFilieres } from '../services/filiereService'
+import { notifyError } from "../utils/notify"
 
 const EMPTY_STUDENT = {
   first_name: '',
@@ -94,7 +95,7 @@ const GestionEtudiants = () => {
       const list = res.data?.results || res.data || []
       setStudents(Array.isArray(list) ? list : [])
     } catch (err) {
-      setError('Erreur lors du chargement des étudiants.')
+      notifyError(err, 'Erreur lors du chargement des étudiants.')
       console.error(err)
     } finally {
       setLoading(false)
@@ -206,9 +207,9 @@ const GestionEtudiants = () => {
       const msg = err.response?.data
       if (msg && typeof msg === 'object') {
         const first = Object.values(msg).flat()[0]
-        setFormError(typeof first === 'string' ? first : JSON.stringify(msg))
+        notifyError(err, typeof first === 'string' ? first : JSON.stringify(msg))
       } else {
-        setFormError('Erreur lors de la sauvegarde.')
+        notifyError(err, 'Erreur lors de la sauvegarde.')
       }
     } finally {
       setSaving(false)
@@ -222,7 +223,7 @@ const GestionEtudiants = () => {
       setSuccess('Étudiant supprimé.')
       loadStudents()
     } catch (err) {
-      setError('Erreur lors de la suppression.')
+      notifyError(err, 'Erreur lors de la suppression.')
     }
   }
 
@@ -278,7 +279,7 @@ const GestionEtudiants = () => {
       loadStudents()
     } catch (err) {
       const msg = err.response?.data?.error || 'Erreur lors de la validation.'
-      setError(msg)
+      notifyError(err, msg)
     } finally {
       setValidating(false)
     }
@@ -293,7 +294,7 @@ const GestionEtudiants = () => {
       setShowValidateModal(false)
       loadInscriptions()
     } catch (err) {
-      setError('Erreur lors du rejet.')
+      notifyError(err, 'Erreur lors du rejet.')
     } finally {
       setValidating(false)
     }

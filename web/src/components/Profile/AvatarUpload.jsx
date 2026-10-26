@@ -9,6 +9,7 @@ import { Modal, Button, Form, Alert } from "react-bootstrap"
 import { motion } from "framer-motion"
 import { FiCamera, FiUpload, FiX, FiCheck } from "react-icons/fi"
 import UserAvatar from "../UserAvatar"
+import { notifyError } from "../../utils/notify"
 
 const AvatarUpload = ({ user, onSave, onClose }) => {
   const [selectedFile, setSelectedFile] = useState(null)
@@ -65,7 +66,7 @@ const AvatarUpload = ({ user, onSave, onClose }) => {
       onClose()
     } catch (err) {
       console.error("Erreur lors de l'upload:", err)
-      setError(err.response?.data?.message || "Erreur lors de l'upload de l'image. Veuillez réessayer.")
+      notifyError(err, err.response?.data?.message || "Erreur lors de l'upload de l'image. Veuillez réessayer.")
     } finally {
       setUploading(false)
     }

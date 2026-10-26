@@ -9,6 +9,7 @@ import axios from "axios"
 import { motion } from "framer-motion"
 import { FiBook, FiBookOpen, FiDownload, FiX, FiChevronLeft, FiChevronRight, FiPlay, FiVideo, FiArrowLeft, FiCalendar, FiMapPin, FiTag, FiFileText, FiUser, FiGlobe } from "react-icons/fi"
 import BookCover from "../components/BookCover"
+import { notify, notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -50,7 +51,7 @@ const BookDetail = () => {
           setCurrentPage(1) // Reset to first page when content loads
         } catch (err) {
           console.error("Error fetching book content:", err)
-          alert("Erreur lors du chargement du contenu du livre.")
+          notifyError(err, "Erreur lors du chargement du contenu du livre.")
           setShowReader(false)
         }
       }
@@ -61,20 +62,20 @@ const BookDetail = () => {
   const handleBorrow = async (bookId) => {
     try {
       await dispatch(borrowBook(bookId)).unwrap()
-      alert("Demande d'emprunt envoyée avec succès!")
+      notify.info("Demande d'emprunt envoyée avec succès!")
       dispatch(fetchBookById(id)) // Refresh book details
     } catch (err) {
-      alert("Erreur lors de l'emprunt: " + (err.detail || err.message || "Une erreur est survenue."))
+      notifyError(err, "Erreur lors de l'emprunt: " + (err.detail || err.message || "Une erreur est survenue."))
     }
   }
 
   const handleReturn = async (loanId) => {
     try {
       await dispatch(returnBook(loanId)).unwrap()
-      alert("Livre retourné avec succès!")
+      notify.info("Livre retourné avec succès!")
       dispatch(fetchBookById(id)) // Refresh book details
     } catch (err) {
-      alert("Erreur lors du retour: " + (err.detail || err.message || "Une erreur est survenue."))
+      notifyError(err, "Erreur lors du retour: " + (err.detail || err.message || "Une erreur est survenue."))
     }
   }
 

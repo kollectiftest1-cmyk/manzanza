@@ -6,6 +6,7 @@ import { FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { deleteEmployee } from '../../services/hrService';
 import { toast } from 'react-toastify';
+import { notifyError } from "../../utils/notify"
 
 export default function EmployeeList({ employees, onRefresh }) {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function EmployeeList({ employees, onRefresh }) {
         toast.success('Employé supprimé avec succès.');
         onRefresh();
       } catch (error) {
-        toast.error('Erreur lors de la suppression de l\'employé.');
+        notifyError(error, 'Erreur lors de la suppression de l\'employé.');
         console.error(error);
       }
     }

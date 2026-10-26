@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit, Trash2, Eye, FileText, Clock, Users, CheckCircle, Search, Filter, Calendar, BookOpen } from 'lucide-react';
 import assignmentService from '../../services/assignmentService';
+import { notify, notifyError } from "../../utils/notify"
 
 const AssignmentList = ({ onEdit, onCreate, onViewSubmissions }) => {
   const [assignments, setAssignments] = useState([]);
@@ -34,10 +35,10 @@ const AssignmentList = ({ onEdit, onCreate, onViewSubmissions }) => {
     try {
       await assignmentService.deleteAssignment(id);
       setAssignments(prev => prev.filter(a => a.id !== id));
-      alert('Devoir supprimé avec succès');
+      notify.info('Devoir supprimé avec succès');
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
-      alert('Erreur lors de la suppression du devoir');
+      notifyError(error, 'Erreur lors de la suppression du devoir');
     }
   };
 
@@ -45,10 +46,10 @@ const AssignmentList = ({ onEdit, onCreate, onViewSubmissions }) => {
     try {
       await assignmentService.publishAssignment(id);
       loadAssignments();
-      alert('Devoir publié avec succès');
+      notify.info('Devoir publié avec succès');
     } catch (error) {
       console.error('Erreur lors de la publication:', error);
-      alert('Erreur lors de la publication du devoir');
+      notifyError(error, 'Erreur lors de la publication du devoir');
     }
   };
 

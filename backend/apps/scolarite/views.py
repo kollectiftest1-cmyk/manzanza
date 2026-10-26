@@ -618,12 +618,19 @@ class MemoireViewSet(viewsets.ModelViewSet):
         if not self._can_manage(m):
             raise PermissionDenied("Programmation : chef de filière ou SGA.")
         if m.statut not in ('depose', 'programme'):
-            raise ValidationError({'detail': "La soutenance se programme après le dépôt."})
+            raise ValidationError({'detail': f"La soutenance se programme après le dépôt du travail "
+                                             f"(statut actuel : {m.get_statut_display().lower()})."})
         when = parse_datetime(str(request.data.get('date_soutenance') or ''))
         president = User.objects.filter(pk=request.data.get('president_jury')).first()
         membres = list(User.objects.filter(pk__in=request.data.get('membres_jury') or []))
         if not when or not president:
-            raise ValidationError({'detail': 'Date et président du jury obligatoires.'})
+            missing = [x for x, ok in (("la date et l'heure de soutenance", when), ("le président du jury", president)) if not ok]
+            raise ValidationError({'detail': f"Indiquez {' et '.join(missing)}."})
+        if timezone.is_naive(when):
+            when = timezone.make_aware(when)
+        if when < timezone.now():
+            raise ValidationError({'detail': f"La date de soutenance ({timezone.localtime(when):%d/%m/%Y %H:%M}) est déjà passée : "
+                                             "choisissez une date à venir."})
         if president.id == m.student_id or any(u.id == m.student_id for u in membres):
             raise ValidationError({'detail': "L'étudiant ne peut pas siéger dans son jury."})
         m.date_soutenance = when

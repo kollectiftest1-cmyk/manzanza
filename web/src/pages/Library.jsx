@@ -9,6 +9,7 @@ import { fetchBooks, fetchMyBorrowings, borrowBook, returnBook, createBook } fro
 import debounce from "lodash.debounce"
 import { Link } from "react-router-dom"
 import BookCover from "../components/BookCover"
+import { notify, notifyError } from "../utils/notify"
 
 
 const Library = () => {
@@ -70,18 +71,18 @@ const Library = () => {
   const handleBorrow = async (bookId) => {
     try {
       await dispatch(borrowBook(bookId)).unwrap()
-      alert("Demande d'emprunt envoyée avec succès!")
+      notify.info("Demande d'emprunt envoyée avec succès!")
     } catch (err) {
-      alert("Erreur lors de l'emprunt: " + (err.detail || err.message || "Une erreur est survenue."))
+      notifyError(err, "Erreur lors de l'emprunt: " + (err.detail || err.message || "Une erreur est survenue."))
     }
   }
 
   const handleReturn = async (loanId) => {
     try {
       await dispatch(returnBook(loanId)).unwrap()
-      alert("Livre retourné avec succès!")
+      notify.info("Livre retourné avec succès!")
     } catch (err) {
-      alert("Erreur lors du retour: " + (err.detail || err.message || "Une erreur est survenue."))
+      notifyError(err, "Erreur lors du retour: " + (err.detail || err.message || "Une erreur est survenue."))
     }
   }
 
@@ -157,7 +158,7 @@ const Library = () => {
       handleCloseAddModal()
       fetchLibraryData(1, { search: '', category: 'all' }) // Refresh list
     } catch (err) {
-      alert("Erreur lors de la création du livre: " + (err.detail || err.message || "Vérifiez les champs."))
+      notifyError(err, "Erreur lors de la création du livre: " + (err.detail || err.message || "Vérifiez les champs."))
     }
   }
 

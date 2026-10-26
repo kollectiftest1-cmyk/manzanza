@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { notifyIfUnhandled } from '../utils/notify';
 
 // Configuration de base
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -67,6 +68,12 @@ api.interceptors.response.use(
       }
     }
 
+    // Toute modification (POST/PUT/PATCH/DELETE) refusée est signalée à l'utilisateur,
+    // même si l'écran ne traite pas l'erreur (connexion exclue : l'écran affiche son message).
+    const method = String(originalRequest?.method || '').toLowerCase();
+    if (['post', 'put', 'patch', 'delete'].includes(method) && !String(originalRequest?.url).includes('/auth/')) {
+      notifyIfUnhandled(error);
+    }
     return Promise.reject(error);
   }
 );

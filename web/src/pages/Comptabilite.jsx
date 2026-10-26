@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 import { FiDollarSign, FiTrendingUp, FiTrendingDown, FiCreditCard, FiUsers, FiEdit, FiTrash2, FiEye, FiPlus, FiCheckCircle, FiRefreshCw, FiXCircle } from "react-icons/fi"
 import paymentService from "../services/paymentService"
 import { toast } from "react-toastify"
+import { notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -71,7 +72,7 @@ const Comptabilite = () => {
       toast.success('Paiement confirmé !')
       loadData()
     } catch (err) {
-      toast.error('Erreur confirmation')
+      notifyError(err, 'Erreur confirmation')
     } finally {
       setProcessingId(null)
     }
@@ -84,7 +85,7 @@ const Comptabilite = () => {
       toast.info('Paiement rejeté')
       loadData()
     } catch (err) {
-      toast.error('Erreur rejet')
+      notifyError(err, 'Erreur rejet')
     } finally {
       setProcessingId(null)
     }

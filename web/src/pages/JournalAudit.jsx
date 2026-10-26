@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Spinner } from "react-bootstrap"
 import { FiSearch, FiShield } from "react-icons/fi"
 import { trashAPI } from "../services/api"
+import { notifyError } from "../utils/notify"
 
 const ACTIONS = [
   { key: "", label: "Tout" },
@@ -59,7 +60,7 @@ export default function JournalAudit() {
       setRows(data.results || [])
       setCount(data.count || 0)
     } catch (err) {
-      setError(err?.response?.data?.detail || "Accès refusé ou journal indisponible.")
+      notifyError(err, err?.response?.data?.detail || "Accès refusé ou journal indisponible.")
     } finally {
       setLoading(false)
     }

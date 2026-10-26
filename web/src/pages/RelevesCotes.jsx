@@ -7,6 +7,7 @@ import {
 import { FiFileText, FiRefreshCw, FiSearch, FiTrendingUp } from 'react-icons/fi'
 import api from '../services/api'
 import gradeService from '../services/gradeService'
+import { notifyError } from "../utils/notify"
 
 const PAGE_ROLES = ['pdg', 'sga', 'sgad', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant']
 
@@ -70,7 +71,7 @@ const RelevesCotes = () => {
         return data[0] || null
       })
     } catch (err) {
-      setError(err.response?.data?.detail || "Impossible de charger les releves de cotes.")
+      notifyError(err, err.response?.data?.detail || "Impossible de charger les releves de cotes.")
       setTranscripts([])
       setSelectedTranscript(null)
     } finally {

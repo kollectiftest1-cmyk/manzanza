@@ -26,6 +26,7 @@ import assignmentService from "../services/assignmentService"
 import gradeService from "../services/gradeService"
 import { getUsers } from "../services/userService"
 import { useSelector } from "react-redux"
+import { notifyError } from "../utils/notify"
 
 const CATEGORY_TYPE_COLORS = {
   interro: { bg: '#fff3cd', text: '#856404', label: 'Interrogation' },
@@ -102,7 +103,7 @@ const CourseDetail = () => {
         const res = await getCourseDetail(id)
         setCourse(res.data)
       } catch (err) {
-        setError("Impossible de charger les détails du cours.")
+        notifyError(err, "Impossible de charger les détails du cours.")
         console.error(err)
       } finally {
         setLoading(false)
@@ -233,9 +234,9 @@ const CourseDetail = () => {
       const msg = e.response?.data
       if (msg && typeof msg === 'object') {
         const first = Object.values(msg)[0]
-        setGradeFormError(Array.isArray(first) ? first[0] : JSON.stringify(msg))
+        notifyError(e, Array.isArray(first) ? first[0] : JSON.stringify(msg))
       } else {
-        setGradeFormError("Erreur lors de la sauvegarde.")
+        notifyError(e, "Erreur lors de la sauvegarde.")
       }
     } finally {
       setSavingGrade(false)
@@ -320,7 +321,7 @@ const CourseDetail = () => {
       setShowBulkModal(false)
       await loadTeacherGradeWorkflow()
     } catch (err) {
-      setBulkError(err.response?.data?.error || "Erreur lors de l'enregistrement.")
+      notifyError(err, err.response?.data?.error || "Erreur lors de l'enregistrement.")
     } finally {
       setSavingBulk(false)
     }

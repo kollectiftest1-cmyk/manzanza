@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom"
 import { useSelector } from "react-redux"
 import { useEffect } from "react"
+import { ToastContainer } from "react-toastify"
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js'
 
 import Navbar from "./components/Layout/Navbar"
@@ -294,6 +295,9 @@ function App() {
           `}</style>
         </>
       )}
+      {/* Notifications : au-dessus de tout, y compris des fenêtres modales */}
+      <ToastContainer position="top-center" newestOnTop closeOnClick pauseOnHover limit={4}
+        theme="colored" style={{ zIndex: 20000, width: "min(560px, 94vw)" }} />
     </div>
   )
 }

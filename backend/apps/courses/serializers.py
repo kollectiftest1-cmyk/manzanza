@@ -136,7 +136,12 @@ class CourseSerializer(serializers.ModelSerializer):
         ue = attrs.get('ue', getattr(self.instance, 'ue', None))
         auditoire = attrs.get('auditoire', getattr(self.instance, 'auditoire', None))
         if ue and auditoire and (ue.filiere_id != auditoire.filiere_id or ue.niveau != auditoire.niveau):
-            raise serializers.ValidationError({'ue': "L'UE doit appartenir à la filière et au niveau du groupe du cours."})
+            raise serializers.ValidationError({'ue': (
+                f"L'UE « {ue} » n'appartient pas à la même filière/niveau que le groupe « {auditoire} ». "
+                "Choisissez une UE de la filière et du niveau de ce groupe, ou changez de groupe.")})
+        credits = attrs.get('credits')
+        if credits is not None and credits < 1:
+            raise serializers.ValidationError({'credits': f"Un cours vaut au moins 1 crédit (saisi : {credits})."})
         return attrs
 
     def get_filiere(self, obj):

@@ -7,6 +7,7 @@ import { FiShield, FiUser, FiLock, FiBell, FiSave, FiMail, FiPhone, FiMapPin, Fi
 import ProfileHeader from "../components/Profile/ProfileHeader"
 import StudentDashboard from "../components/Profile/StudentDashboard"
 import TeacherDashboard from "../components/Profile/TeacherDashboard"
+import { notify } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -206,7 +207,7 @@ const UserDetail = ({ user, currentUser, onProfileUpdate, onPasswordChange }) =>
   const handlePasswordSubmit = (e) => {
     e.preventDefault()
     if (formData.newPassword !== formData.confirmPassword) {
-      alert("Les mots de passe ne correspondent pas")
+      notify.info("Les mots de passe ne correspondent pas")
       return
     }
     onPasswordChange(formData)

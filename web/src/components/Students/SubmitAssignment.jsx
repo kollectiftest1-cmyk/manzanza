@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload, FileText, Send, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import assignmentService from '../../services/assignmentService';
+import { notify, notifyError } from "../../utils/notify"
 
 const SubmitAssignment = ({ assignment, onComplete, onCancel }) => {
   const [answers, setAnswers] = useState({});
@@ -97,11 +98,11 @@ const SubmitAssignment = ({ assignment, onComplete, onCancel }) => {
       setSubmitting(true);
       const answersList = Object.values(answers);
       await assignmentService.submitAssignment(assignment.id, { answers: answersList });
-      alert('Devoir soumis avec succès!');
+      notify.info('Devoir soumis avec succès!');
       if (onComplete) onComplete();
     } catch (error) {
       console.error('Erreur lors de la soumission:', error);
-      alert('Erreur lors de la soumission du devoir');
+      notifyError(error, 'Erreur lors de la soumission du devoir');
     } finally {
       setSubmitting(false);
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit, Trash2, Eye, Clock, Users, CheckCircle, Award, Search, Filter, Calendar, Trophy } from 'lucide-react';
 import quizService from '../../services/quizService';
+import { notify, notifyError } from "../../utils/notify"
 
 const QuizList = ({ onEdit, onCreate, onViewAttempts }) => {
   const [quizzes, setQuizzes] = useState([]);
@@ -36,10 +37,10 @@ const QuizList = ({ onEdit, onCreate, onViewAttempts }) => {
     try {
       await quizService.deleteQuiz(id);
       setQuizzes(prev => prev.filter(q => q.id !== id));
-      alert('Quiz supprimé avec succès');
+      notify.info('Quiz supprimé avec succès');
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
-      alert('Erreur lors de la suppression du quiz');
+      notifyError(error, 'Erreur lors de la suppression du quiz');
     }
   };
 
@@ -47,10 +48,10 @@ const QuizList = ({ onEdit, onCreate, onViewAttempts }) => {
     try {
       await quizService.publishQuiz(id);
       loadQuizzes();
-      alert('Quiz publié avec succès');
+      notify.info('Quiz publié avec succès');
     } catch (error) {
       console.error('Erreur lors de la publication:', error);
-      alert('Erreur lors de la publication du quiz');
+      notifyError(error, 'Erreur lors de la publication du quiz');
     }
   };
 

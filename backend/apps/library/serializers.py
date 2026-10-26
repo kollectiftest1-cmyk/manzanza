@@ -2,6 +2,8 @@
 Library serializers
 """
 from rest_framework import serializers
+
+from apps.core.validation import check
 from .models import Book, BookLoan, BookReservation
 
 
@@ -49,6 +51,10 @@ class BookLoanSerializer(serializers.ModelSerializer):
             'is_overdue', 'days_overdue'
         ]
         read_only_fields = ['id', 'borrow_date', 'is_overdue', 'days_overdue']
+
+    def validate(self, attrs):
+        check(self, attrs, order=[('borrow_date', 'due_date'), ('borrow_date', 'return_date')], not_past=['due_date'])
+        return attrs
 
 
 class BookReservationSerializer(serializers.ModelSerializer):

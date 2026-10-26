@@ -5,6 +5,7 @@ import { Container, Tabs, Tab, Row, Col, Spinner, Alert } from 'react-bootstrap'
 import EmployeeList from '../../components/rh/EmployeeList';
 import PotentialEmployeeList from '../../components/rh/PotentialEmployeeList';
 import { getEmployees, getPotentialEmployees } from '../../services/hrService';
+import { notifyError } from "../../utils/notify"
 
 export default function HrEmployeePage() {
   const [key, setKey] = useState('employees');
@@ -18,7 +19,7 @@ export default function HrEmployeePage() {
       const response = await getEmployees();
       setEmployees(response.data.results || response.data);
     } catch (err) {
-      setError('Erreur lors du chargement des employés.');
+      notifyError(err, 'Erreur lors du chargement des employés.');
       console.error(err);
     }
   };
@@ -28,7 +29,7 @@ export default function HrEmployeePage() {
       const response = await getPotentialEmployees();
       setPotentialEmployees(response.data);
     } catch (err) {
-      setError('Erreur lors du chargement des employés potentiels.');
+      notifyError(err, 'Erreur lors du chargement des employés potentiels.');
       console.error(err);
     }
   };

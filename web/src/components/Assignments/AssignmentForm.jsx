@@ -3,6 +3,7 @@ import { Plus, X, FileText, Upload, Trash2, GripVertical, CheckCircle } from 'lu
 import assignmentService from '../../services/assignmentService';
 import courseService from '../../services/courseService';
 import { motion, AnimatePresence } from 'framer-motion';
+import { notify, notifyError } from "../../utils/notify"
 
 const AssignmentForm = ({ assignment, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
@@ -102,12 +103,12 @@ const AssignmentForm = ({ assignment, onSuccess, onCancel }) => {
 
   const addQuestion = () => {
     if (!currentQuestion.question_text.trim()) {
-      alert('Veuillez entrer une question');
+      notify.warning('Veuillez entrer une question');
       return;
     }
 
     if (['multiple_choice', 'single_choice'].includes(currentQuestion.question_type) && currentQuestion.choices.length === 0) {
-      alert('Veuillez ajouter au moins un choix');
+      notify.warning('Veuillez ajouter au moins un choix');
       return;
     }
 
@@ -177,12 +178,12 @@ const AssignmentForm = ({ assignment, onSuccess, onCancel }) => {
         }
       }
 
-      alert(successMessage);
+      notify.info(successMessage);
       if (onSuccess) onSuccess(savedAssignment);
     } catch (error) {
       console.error('Erreur:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Erreur lors de la sauvegarde du devoir';
-      alert(`Erreur: ${errorMessage}`);
+      notifyError(error, `Erreur: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

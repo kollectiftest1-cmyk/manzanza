@@ -5,6 +5,7 @@ import { Container, Row, Col, Card, Tabs, Tab, Spinner, Alert, Badge, Table, But
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEmployee, getContracts, getPayrolls, getLeaves } from '../../services/hrService';
 import { FiEdit, FiArrowLeft } from 'react-icons/fi';
+import { notifyError } from "../../utils/notify"
 
 export default function EmployeeDetail() {
   const { id } = useParams();
@@ -32,7 +33,7 @@ export default function EmployeeDetail() {
         setPayrolls(payrollsRes.data.results || payrollsRes.data);
         setLeaves(leavesRes.data.results || leavesRes.data);
       } catch (err) {
-        setError('Erreur lors du chargement des détails de l\'employé.');
+        notifyError(err, 'Erreur lors du chargement des détails de l\'employé.');
         console.error(err);
       } finally {
         setLoading(false);

@@ -9,6 +9,7 @@ import { Container, Row, Col, Card, Badge, Table, Button, Alert } from 'react-bo
 import { FiBook, FiUsers, FiCheckCircle, FiAlertCircle, FiEdit } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import api from '../../services/api'
+import { notifyError } from "../../utils/notify"
 
 const AssistantDashboard = ({ user }) => {
   const [assignments, setAssignments] = useState([])
@@ -37,7 +38,7 @@ const AssistantDashboard = ({ user }) => {
       setLoading(false)
     } catch (err) {
       console.error('Error fetching assistant data:', err)
-      setError('Erreur lors du chargement des données')
+      notifyError(err, 'Erreur lors du chargement des données')
       setLoading(false)
     }
   }

@@ -52,9 +52,18 @@ class BaremeFraisSerializer(serializers.ModelSerializer):
         return obj.dettes.count()
 
     def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Le montant doit être positif.")
+        if value is None or value <= 0:
+            raise serializers.ValidationError(f"Le montant doit être supérieur à 0 (montant saisi : {value}).")
         return value
+
+    def validate(self, attrs):
+        year = attrs.get('academic_year', getattr(self.instance, 'academic_year', None))
+        due = attrs.get('due_date', getattr(self.instance, 'due_date', None))
+        if year and due and year.end_date and due > year.end_date:
+            raise serializers.ValidationError({'due_date': [
+                f"La date d'échéance ({due:%d/%m/%Y}) est après la fin de l'année académique {year.name} "
+                f"({year.end_date:%d/%m/%Y}). Choisissez une échéance pendant l'année."]})
+        return attrs
 
 
 class BaremeFraisViewSet(viewsets.ModelViewSet):

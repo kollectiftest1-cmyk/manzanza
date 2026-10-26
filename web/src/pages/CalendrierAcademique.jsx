@@ -20,6 +20,7 @@ import {
   FiChevronLeft, FiChevronRight, FiStar, FiClock, FiBookOpen, FiAlertCircle
 } from "react-icons/fi"
 import scheduleService from "../services/scheduleService"
+import { notifyError } from "../utils/notify"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const isAdminOrSGA = (role) =>
@@ -106,7 +107,7 @@ const CalendrierAcademique = () => {
       if (current && !selectedYear) setSelectedYear(current)
       else if (data.length > 0 && !selectedYear) setSelectedYear(data[0])
     } catch (e) {
-      setError("Impossible de charger les années académiques.")
+      notifyError(e, "Impossible de charger les années académiques.")
     }
   }, [selectedYear])
 
@@ -120,7 +121,7 @@ const CalendrierAcademique = () => {
       setTerms(Array.isArray(termsRaw) ? termsRaw : termsRaw?.results || [])
       setEvents(Array.isArray(eventsRaw) ? eventsRaw : eventsRaw?.results || [])
     } catch (e) {
-      setError("Impossible de charger les trimestres/événements.")
+      notifyError(e, "Impossible de charger les trimestres/événements.")
     }
   }, [selectedYear])
 
@@ -157,7 +158,7 @@ const CalendrierAcademique = () => {
       setEditingItem(null)
       await loadYears()
     } catch (e) {
-      setError(e.response?.data?.detail || "Erreur lors de la sauvegarde.")
+      notifyError(e, e.response?.data?.detail || "Erreur lors de la sauvegarde.")
     }
   }
 
@@ -169,7 +170,7 @@ const CalendrierAcademique = () => {
       if (selectedYear?.id === id) setSelectedYear(null)
       await loadYears()
     } catch (e) {
-      setError("Impossible de supprimer cette année.")
+      notifyError(e, "Impossible de supprimer cette année.")
     }
   }
 
@@ -180,7 +181,7 @@ const CalendrierAcademique = () => {
       await loadYears()
       setSelectedYear(updated)
     } catch (e) {
-      setError("Impossible de définir l'année en cours.")
+      notifyError(e, "Impossible de définir l'année en cours.")
     }
   }
 
@@ -199,7 +200,7 @@ const CalendrierAcademique = () => {
       setEditingItem(null)
       await loadTermsAndEvents()
     } catch (e) {
-      setError(e.response?.data?.detail || JSON.stringify(e.response?.data) || "Erreur lors de la sauvegarde.")
+      notifyError(e, e.response?.data?.detail || JSON.stringify(e.response?.data) || "Erreur lors de la sauvegarde.")
     }
   }
 
@@ -210,7 +211,7 @@ const CalendrierAcademique = () => {
       setSuccess("Trimestre/semestre supprimé.")
       await loadTermsAndEvents()
     } catch (e) {
-      setError("Impossible de supprimer ce trimestre.")
+      notifyError(e, "Impossible de supprimer ce trimestre.")
     }
   }
 
@@ -229,7 +230,7 @@ const CalendrierAcademique = () => {
       setEditingItem(null)
       await loadTermsAndEvents()
     } catch (e) {
-      setError(e.response?.data?.detail || JSON.stringify(e.response?.data) || "Erreur lors de la sauvegarde.")
+      notifyError(e, e.response?.data?.detail || JSON.stringify(e.response?.data) || "Erreur lors de la sauvegarde.")
     }
   }
 
@@ -240,7 +241,7 @@ const CalendrierAcademique = () => {
       setSuccess("Événement supprimé.")
       await loadTermsAndEvents()
     } catch (e) {
-      setError("Impossible de supprimer cet événement.")
+      notifyError(e, "Impossible de supprimer cet événement.")
     }
   }
 
@@ -251,7 +252,7 @@ const CalendrierAcademique = () => {
       setSuccess(result.message)
       setShowDuplicateModal(false)
     } catch (e) {
-      setError(e.response?.data?.error || "Erreur lors de la duplication.")
+      notifyError(e, e.response?.data?.error || "Erreur lors de la duplication.")
     }
   }
 
@@ -273,7 +274,7 @@ const CalendrierAcademique = () => {
       setSelectedYear(result.year)
       setAcademicYears(prev => prev.map(y => y.id === result.year.id ? result.year : y))
     } catch (e) {
-      setError(e.response?.data?.error || "Erreur lors de la publication.")
+      notifyError(e, e.response?.data?.error || "Erreur lors de la publication.")
     } finally {
       setPublishing(false)
     }

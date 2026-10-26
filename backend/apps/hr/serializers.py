@@ -4,6 +4,7 @@ HR serializers
 from rest_framework import serializers
 from .models import Contract, Employee, Leave, Payroll, PayrollSettings, StaffAttendance
 from apps.users.models import User
+from apps.core.validation import check
 
 
 class UserSimpleSerializer(serializers.ModelSerializer):
@@ -53,8 +54,13 @@ class EmployeeSerializer(serializers.ModelSerializer):
                 )
             if position and Employee.objects.filter(user=user, position=position).exclude(pk=instance_pk).exists():
                 raise serializers.ValidationError(
-                    f'Cet utilisateur a déjà un profil avec ce poste.'
+                    "Cet utilisateur a déjà un profil employé avec ce poste. Modifiez le profil existant au lieu d'en créer un nouveau."
                 )
+        check(self, attrs, order=[('hire_date', 'end_date')])
+        for f, lab in (('salaire_journalier', 'Le salaire journalier'), ('salaire_horaire', 'Le taux horaire')):
+            v = attrs.get(f)
+            if v is not None and v < 0:
+                raise serializers.ValidationError({f: f"{lab} ne peut pas être négatif ({v})."})
         return attrs
 
 
@@ -72,6 +78,13 @@ class ContractSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        check(self, attrs, order=[('start_date', 'end_date')])
+        salary = attrs.get('salary')
+        if salary is not None and salary < 0:
+            raise serializers.ValidationError({'salary': f"Le salaire ne peut pas être négatif ({salary})."})
+        return attrs
 
 
 class PayrollSerializer(serializers.ModelSerializer):
@@ -156,6 +169,23 @@ class LeaveSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'duration_days', 'approved_at', 'created_at', 'updated_at']
 
+    def validate(self, attrs):
+        check(self, attrs, order=[('start_date', 'end_date')])
+        g = lambda f: attrs.get(f, getattr(self.instance, f, None))  # noqa: E731
+        emp, start, end = g('employee'), g('start_date'), g('end_date')
+        if emp and start and end and g('status') not in ('rejete', 'annule'):
+            other = (Leave.objects.filter(employee=emp, start_date__lte=end, end_date__gte=start)
+                     .exclude(status__in=('rejete', 'annule')))
+            if self.instance:
+                other = other.exclude(pk=self.instance.pk)
+            o = other.first()
+            if o:
+                raise serializers.ValidationError({'start_date': [
+                    f"Cet employé a déjà un congé du {o.start_date:%d/%m/%Y} au {o.end_date:%d/%m/%Y} "
+                    f"({o.get_status_display().lower()}) qui chevauche la période demandée "
+                    f"(du {start:%d/%m/%Y} au {end:%d/%m/%Y})."]})
+        return attrs
+
 
 
 class PayrollSettingsSerializer(serializers.ModelSerializer):
@@ -199,6 +229,8 @@ class StaffAttendanceSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         ci = attrs.get('check_in', getattr(self.instance, 'check_in', None))
         co = attrs.get('check_out', getattr(self.instance, 'check_out', None))
-        if ci and co and co <= ci:
-            raise serializers.ValidationError({'check_out': "L'heure de sortie doit suivre l'heure d'arrivée."})
+        check(self, attrs, strict=[('check_in', 'check_out')], not_future=['date'], labels={'date': "la date du pointage"})
+        st = attrs.get('status', getattr(self.instance, 'status', None))
+        if st == 'retard' and not ci:
+            raise serializers.ValidationError({'check_in': "Pour un retard, indiquez l'heure d'arrivée réelle de l'agent."})
         return attrs

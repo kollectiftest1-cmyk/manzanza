@@ -2,6 +2,8 @@
 Serializers for academic schedules and calendar
 """
 from rest_framework import serializers
+
+from apps.core.validation import check
 from .models import (
     AcademicYear, Term, AcademicEvent,
     Room, RoomReservation, TimeSlot, Schedule, ScheduleException, TeacherAvailability
@@ -44,13 +46,13 @@ class AcademicEventSerializer(serializers.ModelSerializer):
         return _inclusive_days(obj.start_date, obj.end_date)
 
     def validate(self, attrs):
-        start = _attr_or_instance(attrs, self.instance, 'start_date')
-        end = _attr_or_instance(attrs, self.instance, 'end_date')
         term = _attr_or_instance(attrs, self.instance, 'term')
         academic_year = _attr_or_instance(attrs, self.instance, 'academic_year')
 
-        if start and end and end < start:
-            raise serializers.ValidationError("La date de fin doit être égale ou postérieure à la date de début.")
+        check(self, attrs, order=[('start_date', 'end_date')])
+        if academic_year:
+            check(self, attrs, within=(academic_year.start_date, academic_year.end_date,
+                                       f"l'année académique {academic_year.name}", ['start_date', 'end_date']))
         if term and academic_year and term.academic_year_id != academic_year.id:
             raise serializers.ValidationError("Le trimestre sélectionné n'appartient pas à cette année académique.")
         return attrs
@@ -94,32 +96,29 @@ class TermSerializer(serializers.ModelSerializer):
         return _inclusive_days(obj.rattrapage_start_date, obj.rattrapage_end_date)
 
     def validate(self, attrs):
-        start = _attr_or_instance(attrs, self.instance, 'start_date')
-        end = _attr_or_instance(attrs, self.instance, 'end_date')
-        end_courses = _attr_or_instance(attrs, self.instance, 'end_courses_date')
-        exam_start = _attr_or_instance(attrs, self.instance, 'exam_start_date')
-        exam_end = _attr_or_instance(attrs, self.instance, 'exam_end_date')
-        rattrapage_start = _attr_or_instance(attrs, self.instance, 'rattrapage_start_date')
-        rattrapage_end = _attr_or_instance(attrs, self.instance, 'rattrapage_end_date')
-
-        if start and end and end < start:
-            raise serializers.ValidationError("La fin de période doit être égale ou postérieure au début.")
-        if start and end_courses and end and not (start <= end_courses <= end):
-            raise serializers.ValidationError("La fin des cours doit rester dans la période du trimestre.")
-        if bool(exam_start) != bool(exam_end):
-            raise serializers.ValidationError("Les dates de début et fin d'examens doivent être renseignées ensemble.")
-        if exam_start and exam_end:
-            if exam_end < exam_start:
-                raise serializers.ValidationError("La fin des examens doit être égale ou postérieure au début.")
-            if start and end and not (start <= exam_start <= exam_end <= end):
-                raise serializers.ValidationError("La période d'examens doit rester dans la période du trimestre.")
-        if bool(rattrapage_start) != bool(rattrapage_end):
-            raise serializers.ValidationError("Les dates de début et fin de rattrapage doivent être renseignées ensemble.")
-        if rattrapage_start and rattrapage_end:
-            if rattrapage_end < rattrapage_start:
-                raise serializers.ValidationError("La fin du rattrapage doit être égale ou postérieure au début.")
-            if start and end and not (start <= rattrapage_start <= rattrapage_end <= end):
-                raise serializers.ValidationError("La période de rattrapage doit rester dans la période du trimestre.")
+        g = lambda f: _attr_or_instance(attrs, self.instance, f)  # noqa: E731
+        errors = {}
+        for a, b in (('exam_start_date', 'exam_end_date'), ('rattrapage_start_date', 'rattrapage_end_date')):
+            if bool(g(a)) != bool(g(b)):
+                errors[b if g(a) else a] = ["Renseignez à la fois le début et la fin de cette période."]
+        year = g('academic_year')
+        rules = [dict(order=[('start_date', 'end_date'), ('exam_start_date', 'exam_end_date'),
+                             ('rattrapage_start_date', 'rattrapage_end_date'), ('end_courses_date', 'exam_start_date'),
+                             ('exam_end_date', 'rattrapage_start_date')],
+                      within=(g('start_date'), g('end_date'), "la période (semestre ou trimestre)",
+                              ['end_courses_date', 'exam_start_date', 'exam_end_date', 'rattrapage_start_date',
+                               'rattrapage_end_date']))]
+        if year:
+            rules.append(dict(within=(year.start_date, year.end_date, f"l'année académique {year.name}",
+                                      ['start_date', 'end_date'])))
+        for rule in rules:
+            try:
+                check(self, attrs, **rule)
+            except serializers.ValidationError as exc:
+                for k, v in exc.detail.items():
+                    errors.setdefault(k, []).extend(v)
+        if errors:
+            raise serializers.ValidationError(errors)
         return attrs
 
 
@@ -178,10 +177,29 @@ class AcademicYearSerializer(serializers.ModelSerializer):
         return _inclusive_days(obj.start_date, obj.end_date)
 
     def validate(self, attrs):
+        import re
         start = _attr_or_instance(attrs, self.instance, 'start_date')
         end = _attr_or_instance(attrs, self.instance, 'end_date')
-        if start and end and end < start:
-            raise serializers.ValidationError("La date de fin doit être égale ou postérieure à la date de début.")
+        name = (_attr_or_instance(attrs, self.instance, 'name') or '').strip()
+        check(self, attrs, strict=[('start_date', 'end_date')])
+        m = re.fullmatch(r'(\d{4})\s*[-/]\s*(\d{4})', name)
+        errors = {}
+        if name and not m and 'name' in attrs:
+            errors['name'] = ["Utilisez le format AAAA-AAAA, par exemple 2026-2027."]
+        elif m:
+            y1, y2 = int(m[1]), int(m[2])
+            if y2 != y1 + 1:
+                errors['name'] = [f"Une année académique couvre deux années civiles qui se suivent : {y1}-{y1 + 1}."]
+            elif start and start.year != y1:
+                errors['start_date'] = [f"L'année « {name} » doit commencer en {y1} (date de début saisie : "
+                                        f"{start:%d/%m/%Y})."]
+            elif end and end.year not in (y1, y2):
+                errors['end_date'] = [f"L'année « {name} » doit se terminer en {y2} (date de fin saisie : {end:%d/%m/%Y})."]
+        if start and end and (end - start).days > 550:
+            errors.setdefault('end_date', []).append(
+                f"Une année académique ne dépasse pas 18 mois (du {start:%d/%m/%Y} au {end:%d/%m/%Y}, c'est trop long).")
+        if errors:
+            raise serializers.ValidationError(errors)
         return attrs
 
 
@@ -265,6 +283,7 @@ class RoomReservationSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = ['requested_by_name', 'room_name', 'created_at', 'updated_at']
+        extra_kwargs = {'requested_by': {'required': False}}
 
     def to_internal_value(self, data):
         if isinstance(data, dict) and isinstance(data.get('equipment_needs'), str):
@@ -284,8 +303,7 @@ class RoomReservationSerializer(serializers.ModelSerializer):
         date = data.get('date', getattr(self.instance, 'date', None))
         status = data.get('status', getattr(self.instance, 'status', 'pending'))
 
-        if start_time and end_time and start_time >= end_time:
-            raise serializers.ValidationError("L'heure de debut doit etre avant l'heure de fin.")
+        check(self, data, strict=[('start_time', 'end_time')], not_past=['date'], labels={'date': "la date de réservation"})
 
         if status == 'confirmed' and room and date and start_time and end_time:
             conflicts = RoomReservation.objects.filter(
@@ -298,8 +316,10 @@ class RoomReservationSerializer(serializers.ModelSerializer):
             if self.instance:
                 conflicts = conflicts.exclude(pk=self.instance.pk)
             if conflicts.exists():
+                c = conflicts.first()
                 raise serializers.ValidationError(
-                    "Cette salle a deja une reservation confirmee sur ce creneau."
+                    f"La salle {room} est déjà réservée le {date:%d/%m/%Y} de {c.start_time:%H:%M} à {c.end_time:%H:%M}"
+                    f" ({c.purpose or 'réservation confirmée'}). Choisissez un autre créneau ou une autre salle."
                 )
 
         return data
@@ -323,6 +343,10 @@ class TimeSlotSerializer(serializers.ModelSerializer):
 
     def get_display(self, obj):
         return f"{obj.label} ({obj.start_time.strftime('%H:%M')}-{obj.end_time.strftime('%H:%M')})"
+
+    def validate(self, attrs):
+        check(self, attrs, strict=[('start_time', 'end_time')])
+        return attrs
 
 
 class ScheduleSerializer(serializers.ModelSerializer):
@@ -376,15 +400,14 @@ class ScheduleSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "L'heure de début et l'heure de fin sont obligatoires."
                 )
-            if data.get('start_time') and data.get('end_time') and data['start_time'] >= data['end_time']:
-                raise serializers.ValidationError(
-                    "L'heure de début doit être avant l'heure de fin."
-                )
+            check(self, data, strict=[('start_time', 'end_time')])
         elif schedule_type == 'module':
             if not data.get('module_start_date') or not data.get('module_end_date'):
                 raise serializers.ValidationError(
                     "Les dates de début et fin sont obligatoires pour un horaire de type module."
                 )
+            check(self, data, order=[('module_start_date', 'module_end_date')],
+                  strict=[('module_start_time', 'module_end_time')])
         return data
 
 
@@ -409,6 +432,11 @@ class TeacherAvailabilitySerializer(serializers.ModelSerializer):
 
     def get_teacher_name(self, obj):
         return obj.teacher.name if obj.teacher else None
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        check(self, attrs, order=[('start_date', 'end_date')])
+        return attrs
 
     def get_timeslot_display(self, obj):
         if obj.timeslot:

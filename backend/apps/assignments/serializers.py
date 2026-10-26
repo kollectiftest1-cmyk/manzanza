@@ -2,6 +2,8 @@
 Serializers for TP/TD Assignment System
 """
 from rest_framework import serializers
+
+from apps.core.validation import check
 from .models import (
     Assignment, AssignmentQuestion, AssignmentChoice,
     AssignmentSubmission, AssignmentAnswer
@@ -64,6 +66,10 @@ class AssignmentSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'submission_count', 'graded_count'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        check(self, attrs, not_past=['due_date'], labels={'due_date': "la date limite de remise"})
+        return attrs
 
     def get_questions(self, obj):
         """Get questions for the assignment"""

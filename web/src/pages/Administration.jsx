@@ -11,6 +11,7 @@ import { getAuditoires } from "../services/auditoireService"
 import { getSections } from "../services/sectionService"
 import { getFilieres } from "../services/filiereService"
 import debounce from "lodash.debounce"
+import { notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -65,7 +66,7 @@ const Administration = () => {
       const usersRes = await getUsers(params)
       setUsers(usersRes.data)
     } catch (err) {
-      setError("Erreur lors du chargement des utilisateurs.")
+      notifyError(err, "Erreur lors du chargement des utilisateurs.")
     } finally {
       setLoading(false)
     }
@@ -88,7 +89,7 @@ const Administration = () => {
         setSections(sectionsRes.data.results || sectionsRes.data)
         setFilieres(filieresRes.data.results || filieresRes.data)
       } catch (err) {
-        setError("Erreur lors du chargement des données annexes.")
+        notifyError(err, "Erreur lors du chargement des données annexes.")
       }
     }
     fetchRelatedData()
@@ -108,7 +109,7 @@ const Administration = () => {
       setNewUser({ role: 'etudiant' })
       fetchUsers(1, filters) // Refetch the first page
     } catch (err) {
-      alert(`Erreur: ${err.response?.data?.detail || err.message || 'Impossible de créer l\'utilisateur.'}`)
+      notifyError(err, `Erreur: ${err.response?.data?.detail || err.message || 'Impossible de créer l\'utilisateur.'}`)
     }
   }
   
@@ -119,7 +120,7 @@ const Administration = () => {
         // Refetch the current page
         fetchUsers(currentPage, filters)
       } catch (err) {
-        alert(`Erreur: ${err.message || 'Impossible de supprimer l\'utilisateur.'}`)
+        notifyError(err, `Erreur: ${err.message || 'Impossible de supprimer l\'utilisateur.'}`)
       }
     }
   }

@@ -6,6 +6,7 @@ import { FiPlus, FiBriefcase } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { createEmployee } from '../../services/hrService';
 import { toast } from 'react-toastify';
+import { notifyError } from "../../utils/notify"
 
 const POSITION_CHOICES = [
   { value: 'professeur', label: 'Professeur' },
@@ -83,9 +84,9 @@ export default function PotentialEmployeeList({ potentialEmployees, onRefresh })
       const msg = error.response?.data;
       if (msg && typeof msg === 'object') {
         const first = Object.values(msg).flat()[0];
-        toast.error(typeof first === 'string' ? first : JSON.stringify(msg));
+        notifyError(error, typeof first === 'string' ? first : JSON.stringify(msg));
       } else {
-        toast.error('Erreur lors de la création de l\'employé.');
+        notifyError(error, 'Erreur lors de la création de l\'employé.');
       }
       console.error(error);
     }

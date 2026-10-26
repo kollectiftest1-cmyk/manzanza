@@ -2,6 +2,8 @@
 Serializers for Quiz System
 """
 from rest_framework import serializers
+
+from apps.core.validation import check
 from .models import (
     Quiz, QuizQuestion, QuizChoice,
     QuizAttempt, QuizAnswer
@@ -80,6 +82,14 @@ class QuizSerializer(serializers.ModelSerializer):
             'completed_count', 'is_active'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        check(self, attrs, strict=[('start_date', 'end_date')],
+              labels={'start_date': "l'ouverture du quiz", 'end_date': "la fermeture du quiz"})
+        d = attrs.get('duration_minutes')
+        if d is not None and d <= 0:
+            raise serializers.ValidationError({'duration_minutes': f"La durée doit être d'au moins 1 minute (saisi : {d})."})
+        return attrs
 
     def get_questions(self, obj):
         """Get questions for the quiz"""

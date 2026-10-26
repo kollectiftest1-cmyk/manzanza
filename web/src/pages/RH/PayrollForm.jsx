@@ -11,6 +11,7 @@ import {
   calculatePrestation
 } from '../../services/hrService';
 import { toast } from 'react-toastify';
+import { notifyError } from "../../utils/notify"
 
 const MONTH_OPTIONS = [
   { value: 1, label: 'Janvier' },
@@ -107,7 +108,7 @@ export default function PayrollForm() {
       setPrestation(res.data);
     } catch (err) {
       console.error('Erreur calcul prestation:', err);
-      setPrestationError('Erreur lors du calcul automatique.');
+      notifyError(err, 'Erreur lors du calcul automatique.');
       setPrestation(null);
     } finally {
       setLoadingPrestation(false);
@@ -148,7 +149,7 @@ export default function PayrollForm() {
           fetchPrestation(p.employee, p.mois, p.annee);
         }
       } catch (err) {
-        setError('Erreur lors du chargement des données.');
+        notifyError(err, 'Erreur lors du chargement des données.');
         console.error(err);
       } finally {
         setLoading(false);
@@ -208,11 +209,11 @@ export default function PayrollForm() {
       if (msg && typeof msg === 'object') {
         const values = Object.values(msg).flat();
         const first = values[0];
-        setError(typeof first === 'string' ? first : JSON.stringify(msg));
+        notifyError(err, typeof first === 'string' ? first : JSON.stringify(msg));
       } else {
-        setError('Une erreur est survenue lors de la soumission.');
+        notifyError(err, 'Une erreur est survenue lors de la soumission.');
       }
-      toast.error('Échec de l\'opération.');
+      notifyError(err, 'Échec de l\'opération.');
       console.error(err);
     } finally {
       setLoading(false);

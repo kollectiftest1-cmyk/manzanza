@@ -13,6 +13,7 @@ import {
   createReservation,
   updateReservationStatus,
 } from "../store/slices/apparitoratSlice"
+import { notify, notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -91,11 +92,11 @@ const Apparitorat = () => {
   const submitReservation = async (statusOverride = 'pending') => {
     try {
       await dispatch(createReservation({ ...newReservation, requested_by: user.id, status: statusOverride })).unwrap()
-      alert("Demande de réservation envoyée avec succès!")
+      notify.info("Demande de réservation envoyée avec succès!")
       handleCloseReservationModal()
       dispatch(fetchReservations()); // Refresh active reservations
     } catch (err) {
-      alert("Erreur lors de la création de la réservation: " + formatError(err))
+      notifyError(err, "Erreur lors de la création de la réservation: " + formatError(err))
     }
   }
 
@@ -143,11 +144,11 @@ const Apparitorat = () => {
     e.preventDefault()
     try {
       await dispatch(createRoom(newRoom)).unwrap()
-      alert("Salle créée avec succès!")
+      notify.info("Salle créée avec succès!")
       handleCloseRoomModal()
       dispatch(fetchRooms()); // Refresh rooms
     } catch (err) {
-      alert("Erreur lors de la création de la salle: " + formatError(err))
+      notifyError(err, "Erreur lors de la création de la salle: " + formatError(err))
     }
   }
 
@@ -155,11 +156,11 @@ const Apparitorat = () => {
   const handleUpdateReservationStatus = async (reservationId, status) => {
     try {
       await dispatch(updateReservationStatus({ id: reservationId, status })).unwrap()
-      alert(`Réservation ${status} avec succès!`)
+      notify.info(`Réservation ${status} avec succès!`)
       dispatch(fetchReservations()); // Refresh active reservations
       dispatch(fetchArchivedReservations()); // Refresh archived reservations
     } catch (err) {
-      alert("Erreur lors de la mise à jour du statut: " + formatError(err))
+      notifyError(err, "Erreur lors de la mise à jour du statut: " + formatError(err))
     }
   }
 

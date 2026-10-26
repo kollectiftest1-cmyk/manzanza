@@ -3,6 +3,7 @@ import { Plus, X, Trash2, GripVertical, Image as ImageIcon, AlertCircle, CheckCi
 import { motion, AnimatePresence } from 'framer-motion';
 import quizService from '../../services/quizService';
 import courseService from '../../services/courseService';
+import { notify, notifyError } from "../../utils/notify"
 
 const QuizForm = ({ quiz, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
@@ -119,19 +120,19 @@ const QuizForm = ({ quiz, onSuccess, onCancel }) => {
 
   const addQuestion = () => {
     if (!currentQuestion.question_text.trim()) {
-      alert('Veuillez entrer une question');
+      notify.warning('Veuillez entrer une question');
       return;
     }
 
     const requiresChoices = ['single_choice', 'multiple_choice', 'true_false'];
     if (requiresChoices.includes(currentQuestion.question_type)) {
       if (currentQuestion.choices.length === 0) {
-        alert('Veuillez ajouter au moins un choix');
+        notify.warning('Veuillez ajouter au moins un choix');
         return;
       }
       const hasCorrect = currentQuestion.choices.some(c => c.is_correct);
       if (!hasCorrect) {
-        alert('Veuillez marquer au moins une réponse correcte');
+        notify.warning('Veuillez marquer au moins une réponse correcte');
         return;
       }
     }
@@ -196,12 +197,12 @@ const QuizForm = ({ quiz, onSuccess, onCancel }) => {
         }
       }
 
-      alert(successMessage);
+      notify.info(successMessage);
       if (onSuccess) onSuccess(savedQuiz);
     } catch (error) {
       console.error('Erreur:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Erreur lors de la sauvegarde du quiz';
-      alert(`Erreur: ${errorMessage}`);
+      notifyError(error, `Erreur: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

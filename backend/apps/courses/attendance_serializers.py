@@ -4,6 +4,7 @@ Serializers for attendance tracking
 from rest_framework import serializers
 from .attendance_models import Attendance, AttendanceSession
 from apps.users.models import User
+from apps.core.validation import check
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
@@ -29,8 +30,10 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Validate that student is enrolled in the course"""
-        student = data.get('student')
-        course = data.get('course')
+        student = data.get('student', getattr(self.instance, 'student', None))
+        course = data.get('course', getattr(self.instance, 'course', None))
+        if not student or not course:
+            return data
 
         if student.role != 'etudiant':
             raise serializers.ValidationError("Seuls les étudiants peuvent avoir des présences enregistrées.")
@@ -105,12 +108,7 @@ class AttendanceSessionSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Validate session times"""
-        start_time = data.get('start_time')
-        end_time = data.get('end_time')
-
-        if start_time and end_time and start_time >= end_time:
-            raise serializers.ValidationError("L'heure de fin doit être après l'heure de début.")
-
+        check(self, data, strict=[('start_time', 'end_time')], not_future=['date'], labels={'date': "la date de la séance"})
         return data
 
 

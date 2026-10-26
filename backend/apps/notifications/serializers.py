@@ -2,6 +2,8 @@
 Notification serializers
 """
 from rest_framework import serializers
+
+from apps.core.validation import check
 from .models import Notification, Announcement
 
 
@@ -33,3 +35,7 @@ class AnnouncementSerializer(serializers.ModelSerializer):
             'created_by', 'created_by_name', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        check(self, attrs, order=[('publish_date', 'expire_date')])
+        return attrs

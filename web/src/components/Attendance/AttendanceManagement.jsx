@@ -20,6 +20,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import attendanceService from '../../services/attendanceService';
 import courseService from '../../services/courseService';
+import { notifyError } from "../../utils/notify"
 
 // ── Status config ──────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -71,7 +72,7 @@ const AttendanceManagement = () => {
       setSessions(res.data.results || res.data || []);
     } catch (err) {
       console.error('Erreur sessions:', err);
-      setError('Erreur chargement des séances.');
+      notifyError(err, 'Erreur chargement des séances.');
     } finally {
       setLoading(false);
     }
@@ -115,8 +116,8 @@ const AttendanceManagement = () => {
       setView('sessions');
     } catch (err) {
       const msg = err.response?.data;
-      toast.error(
-        typeof msg === 'object' ? Object.values(msg).flat()[0] : 'Erreur création séance.'
+      notifyError(
+        err, typeof msg === 'object' ? Object.values(msg).flat()[0] : 'Erreur création séance.'
       );
     } finally {
       setCreating(false);
@@ -152,7 +153,7 @@ const AttendanceManagement = () => {
       setView('take');
     } catch (err) {
       console.error('Erreur chargement présences:', err);
-      toast.error('Erreur lors du chargement des données.');
+      notifyError(err, 'Erreur lors du chargement des données.');
     } finally {
       setLoading(false);
     }
@@ -189,7 +190,7 @@ const AttendanceManagement = () => {
       }
     } catch (err) {
       console.error('Erreur enregistrement:', err);
-      toast.error('Erreur lors de l\'enregistrement.');
+      notifyError(err, 'Erreur lors de l\'enregistrement.');
     } finally {
       setSavingAtt(false);
     }
@@ -211,7 +212,7 @@ const AttendanceManagement = () => {
       }
     } catch (err) {
       const msg = err.response?.data?.error || 'Erreur lors de la clôture.';
-      toast.error(msg);
+      notifyError(err, msg);
     }
   };
 
@@ -224,7 +225,7 @@ const AttendanceManagement = () => {
       setReportData(res.data);
     } catch (err) {
       console.error('Erreur rapport:', err);
-      toast.error('Erreur chargement rapport.');
+      notifyError(err, 'Erreur chargement rapport.');
     } finally {
       setLoadingReport(false);
     }

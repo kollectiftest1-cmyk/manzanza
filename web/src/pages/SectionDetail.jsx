@@ -6,6 +6,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getSectionDetail } from '../services/sectionService';
 import { motion } from "framer-motion"
 import { FiLayers, FiUsers, FiHome, FiBook, FiUserCheck, FiArrowLeft } from "react-icons/fi"
+import { notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -34,7 +35,7 @@ const SectionDetail = () => {
                 const res = await getSectionDetail(id);
                 setSection(res.data);
             } catch (err) {
-                setError("Impossible de charger les détails de la section.");
+                notifyError(err, "Impossible de charger les détails de la section.");
                 console.error(err);
             } finally {
                 setLoading(false);

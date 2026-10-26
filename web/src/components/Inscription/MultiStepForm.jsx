@@ -8,6 +8,7 @@ import Step3_Documents from './Step3_Documents'
 import StepIndicator from './StepIndicator'
 import api from '../../services/api'
 import { useNavigate } from 'react-router-dom'
+import { notifyError } from "../../utils/notify"
 
 const steps = [
   { title: 'Infos Personnelles', component: Step1_PersonalInfo },
@@ -107,7 +108,7 @@ const MultiStepForm = () => {
         const errorMessage = Array.isArray(errorData[firstErrorKey]) ? errorData[firstErrorKey][0] : errorData[firstErrorKey]
         errorMsg = `${firstErrorKey}: ${errorMessage}`
       }
-      setError(errorMsg)
+      notifyError(err, errorMsg)
       // Find which step has the error
       const errorField = Object.keys(errorData)[0]
       const stepIndex = steps.findIndex(step => {

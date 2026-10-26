@@ -7,6 +7,7 @@ import { useSelector } from "react-redux"
 import { getCourseDetail } from "../services/courseService"
 import gradeService from "../services/gradeService"
 import { getUsers } from "../services/userService"
+import { notify, notifyError } from "../utils/notify"
 
 const CATEGORY_TYPE_COLORS = {
   interro: { bg: '#fff3cd', text: '#856404', label: 'Interrogation' },
@@ -72,7 +73,7 @@ const CourseAssessments = () => {
         setStudents(unwrapList(studentsRes))
       }
     } catch (err) {
-      setError(err.response?.data?.error || "Impossible de charger les épreuves du cours.")
+      notifyError(err, err.response?.data?.error || "Impossible de charger les épreuves du cours.")
     } finally {
       setLoading(false)
     }
@@ -118,9 +119,9 @@ const CourseAssessments = () => {
     if (!reason) return
     try {
       await gradeWorkflowAPI.requestCorrection({ grade: row.grade_id, new_value: value, reason })
-      window.alert('Demande de correction transmise au chef de filière / SGA.')
+      notify.info('Demande de correction transmise au chef de filière / SGA.')
     } catch (err) {
-      window.alert(err.response?.data?.detail || err.response?.data?.error || 'Demande impossible.')
+      notifyError(err, err.response?.data?.detail || err.response?.data?.error || 'Demande impossible.')
     }
   }
 
@@ -164,7 +165,7 @@ const CourseAssessments = () => {
       setShowBulk(false)
       await loadData()
     } catch (err) {
-      setBulkError(err.response?.data?.detail || err.response?.data?.error || "Erreur lors de l'enregistrement.")
+      notifyError(err, err.response?.data?.detail || err.response?.data?.error || "Erreur lors de l'enregistrement.")
     } finally {
       setSavingBulk(false)
     }

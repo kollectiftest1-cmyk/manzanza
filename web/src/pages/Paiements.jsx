@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 import paymentService from '../services/paymentService'
+import { notifyError } from "../utils/notify"
 
 // Mobile money providers (DRC)
 const MM_PROVIDERS = [
@@ -75,7 +76,7 @@ const Paiements = () => {
       const res = await paymentService.getMyFees()
       setMyFees(res.data?.results || res.data || [])
     } catch {
-      toast.error('Erreur chargement de vos frais.')
+      notifyError(null, 'Erreur chargement de vos frais.')
     } finally {
       setLoading(false)
     }
@@ -131,7 +132,7 @@ const Paiements = () => {
       toast.info(res.data?.message || 'Demande enregistrée : en attente de vérification.')
       loadMyFees()
     } catch (err) {
-      toast.error(err.response?.data?.error || err.response?.data?.detail || 'Erreur paiement.')
+      notifyError(err, err.response?.data?.error || err.response?.data?.detail || 'Erreur paiement.')
     } finally {
       setMmPaying(false)
     }
@@ -163,7 +164,7 @@ const Paiements = () => {
       })
       setBonData({ ...res.data, payment_method_label: BON_METHODS.find(m => m.id === bonMethod)?.label || bonMethod })
     } catch {
-      toast.error('Erreur génération du BON.')
+      notifyError(null, 'Erreur génération du BON.')
     } finally {
       setBonLoading(false)
     }

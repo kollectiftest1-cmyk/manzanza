@@ -14,6 +14,7 @@ import {
 import scheduleService from "../services/scheduleService"
 import { getUsers } from "../services/userService"
 import api from "../services/api"
+import { notify, notifyError } from "../utils/notify"
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -334,7 +335,7 @@ const Horaire = () => {
       const data = await scheduleService.getMySchedule(params)
       setSchedules(Array.isArray(data) ? data : data.results || [])
     } catch (e) {
-      setError("Impossible de charger votre horaire.")
+      notifyError(e, "Impossible de charger votre horaire.")
     } finally {
       setLoading(false)
     }
@@ -350,7 +351,7 @@ const Horaire = () => {
       const data = await scheduleService.getAuditoireSchedule(audId, params)
       setSchedules(Array.isArray(data) ? data : data.results || [])
     } catch (e) {
-      setError("Impossible de charger l'horaire de cet auditoire.")
+      notifyError(e, "Impossible de charger l'horaire de cet auditoire.")
     } finally {
       setLoading(false)
     }
@@ -366,7 +367,7 @@ const Horaire = () => {
       const data = await scheduleService.getTeacherSchedule(tid, params)
       setSchedules(Array.isArray(data) ? data : data.results || [])
     } catch (e) {
-      setError("Impossible de charger l'horaire du professeur.")
+      notifyError(e, "Impossible de charger l'horaire du professeur.")
     } finally {
       setLoading(false)
     }
@@ -381,7 +382,7 @@ const Horaire = () => {
       const data = await scheduleService.getSchedules(params)
       setSchedules(Array.isArray(data) ? data : data.results || [])
     } catch (e) {
-      setError("Impossible de charger les horaires.")
+      notifyError(e, "Impossible de charger les horaires.")
     } finally {
       setLoading(false)
     }
@@ -653,13 +654,13 @@ const Horaire = () => {
       if (msg && typeof msg === "object") {
         if (msg.conflicts) {
           const conflicts = Array.isArray(msg.conflicts) ? msg.conflicts : [msg.conflicts]
-          setFormError(conflicts.join(" | "))
+          notifyError(e, conflicts.join(" | "))
         } else {
           const first = Object.values(msg)[0]
-          setFormError(Array.isArray(first) ? first[0] : JSON.stringify(msg))
+          notifyError(e, Array.isArray(first) ? first[0] : JSON.stringify(msg))
         }
       } else {
-        setFormError("Erreur lors de la sauvegarde. Vérifiez les conflits d'horaire.")
+        notifyError(e, "Erreur lors de la sauvegarde. Vérifiez les conflits d'horaire.")
       }
     } finally {
       setSaving(false)
@@ -721,7 +722,7 @@ const Horaire = () => {
       setShowAvailModal(false)
       loadMyAvailability()
     } catch (e) {
-      alert("Erreur lors de la sauvegarde de la disponibilité.")
+      notifyError(e, "Erreur lors de la sauvegarde de la disponibilité.")
     } finally {
       setSaving(false)
     }
@@ -750,9 +751,9 @@ const Horaire = () => {
       if (selectedTerm) payload.term_id = selectedTerm
       const result = await scheduleService.publishSchedule(payload)
       setError(null)
-      alert(`✅ ${result.message}\n${result.notifications_sent} notification(s) envoyée(s).`)
+      notify.info(`✅ ${result.message}\n${result.notifications_sent} notification(s) envoyée(s).`)
     } catch (e) {
-      setError(e.response?.data?.error || "Erreur lors de la publication de l'horaire.")
+      notifyError(e, e.response?.data?.error || "Erreur lors de la publication de l'horaire.")
     } finally {
       setPublishingSchedule(false)
     }

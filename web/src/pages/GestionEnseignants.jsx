@@ -20,6 +20,7 @@ import { getUsers, createUser, updateUser, deleteUser } from '../services/userSe
 import courseService from '../services/courseService'
 import { getSections } from '../services/sectionService'
 import { getFilieres } from '../services/filiereService'
+import { notifyError } from "../utils/notify"
 
 const EMPTY_TEACHER = {
   first_name: '',
@@ -88,7 +89,7 @@ const GestionEnseignants = () => {
       const unique = Array.from(new Map(merged.map(item => [item.id, item])).values())
       setTeachers(unique)
     } catch (err) {
-      setError('Erreur lors du chargement des enseignants.')
+      notifyError(err, 'Erreur lors du chargement des enseignants.')
       console.error(err)
     } finally {
       setLoading(false)
@@ -186,9 +187,9 @@ const GestionEnseignants = () => {
       const msg = err.response?.data
       if (msg && typeof msg === 'object') {
         const first = Object.values(msg).flat()[0]
-        setFormError(typeof first === 'string' ? first : JSON.stringify(msg))
+        notifyError(err, typeof first === 'string' ? first : JSON.stringify(msg))
       } else {
-        setFormError('Erreur lors de la sauvegarde.')
+        notifyError(err, 'Erreur lors de la sauvegarde.')
       }
     } finally {
       setSaving(false)
@@ -202,7 +203,7 @@ const GestionEnseignants = () => {
       setSuccess(`Enseignant supprimé.`)
       loadTeachers()
     } catch (err) {
-      setError('Erreur lors de la suppression.')
+      notifyError(err, 'Erreur lors de la suppression.')
     }
   }
 
@@ -243,7 +244,7 @@ const GestionEnseignants = () => {
       loadTeachers()
     } catch (err) {
       console.error('Erreur assignation:', err)
-      setError('Erreur lors de l\'assignation du cours.')
+      notifyError(err, 'Erreur lors de l\'assignation du cours.')
     } finally {
       setAssigning(false)
     }
@@ -289,7 +290,7 @@ const GestionEnseignants = () => {
       // Refresh detail
       openDetailModal(detailTeacher)
     } catch (err) {
-      setError('Erreur lors du retrait du cours.')
+      notifyError(err, 'Erreur lors du retrait du cours.')
     }
   }
 

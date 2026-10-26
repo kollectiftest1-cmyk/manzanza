@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { usersAPI, authAPI } from "../services/api"
 import { getTeacherStatistics } from "../services/userService"
 import UserDetail from "./UserDetail"
+import { notify, notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -73,7 +74,7 @@ const Profile = () => {
         setUser(userData)
       } catch (err) {
         console.error("Erreur lors de la récupération de l'utilisateur:", err)
-        setError("Impossible de charger les informations de l'utilisateur.")
+        notifyError(err, "Impossible de charger les informations de l'utilisateur.")
       } finally {
         setLoading(false)
       }
@@ -101,7 +102,7 @@ const Profile = () => {
       }
       setUser(userData)
     } catch (err) {
-      alert("Erreur lors de la mise à jour du profil.")
+      notifyError(err, "Erreur lors de la mise à jour du profil.")
     }
   }
 
@@ -111,10 +112,10 @@ const Profile = () => {
         old_password: formData.currentPassword,
         new_password: formData.newPassword,
       })
-      alert("Mot de passe modifié avec succès !")
+      notify.info("Mot de passe modifié avec succès !")
     } catch (err) {
       const detail = err.response?.data?.old_password || err.response?.data?.detail || "Erreur lors du changement de mot de passe."
-      alert(typeof detail === 'string' ? detail : JSON.stringify(detail))
+      notifyError(err, typeof detail === 'string' ? detail : JSON.stringify(detail))
     }
   }
 

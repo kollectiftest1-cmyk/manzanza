@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Spinner, Alert, Tabs, Tab } from 'react-bootstrap';
 import ContractList from '../../components/rh/ContractList';
 import { getContracts } from '../../services/hrService';
+import { notifyError } from "../../utils/notify"
 
 export default function HrContractsPage() {
   const [contracts, setContracts] = useState([]);
@@ -16,7 +17,7 @@ export default function HrContractsPage() {
       const response = await getContracts();
       setContracts(response.data.results || response.data);
     } catch (err) {
-      setError('Erreur lors du chargement des contrats.');
+      notifyError(err, 'Erreur lors du chargement des contrats.');
       console.error(err);
     } finally {
       setLoading(false);

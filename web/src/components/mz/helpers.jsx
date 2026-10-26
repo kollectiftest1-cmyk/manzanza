@@ -1,19 +1,10 @@
 /**
  * Fonctions utilitaires partagées (formatage, erreurs API, message de retour).
  */
-import { useCallback, useState } from "react"
-import { FiAlertTriangle, FiCheckCircle } from "react-icons/fi"
+import { useCallback } from "react"
+import { describeError, notify, notifyError } from "../../utils/notify"
 
-export const errorMessage = (err, fallback = "Une erreur est survenue.") => {
-  const d = err?.response?.data
-  if (!d) return fallback
-  if (typeof d === "string") return fallback
-  if (d.detail) return Array.isArray(d.detail) ? d.detail.join(" ") : d.detail
-  if (d.error) return d.error
-  const first = Object.entries(d)[0]
-  if (first) return `${first[0]} : ${Array.isArray(first[1]) ? first[1].join(" ") : first[1]}`
-  return fallback
-}
+export const errorMessage = (err, fallback = "Une erreur est survenue.") => describeError(err, fallback)
 
 export const listOf = (data) => data?.results || data || []
 
@@ -28,18 +19,14 @@ export const fmtDate = (v, withTime = false) => {
 export const fmtMoney = (amount, currency = "USD") =>
   `${Number(amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
 
+/**
+ * Retour d'action d'un écran : succès et erreurs s'affichent en notification, au-dessus de tout
+ * (y compris des fenêtres modales). « banner » est conservé pour compatibilité (n'affiche plus rien).
+ */
 export function useFeedback() {
-  const [feedback, setFeedback] = useState(null)
-  const ok = useCallback((text) => setFeedback({ type: "success", text }), [])
-  const fail = useCallback((err, fallback) => setFeedback({ type: "error", text: typeof err === "string" ? err : errorMessage(err, fallback) }), [])
-  const banner = feedback && (
-    <div className={`mz-banner mb-3 ${feedback.type === "error" ? "mz-banner--error" : "mz-banner--success"}`}>
-      {feedback.type === "error" ? <FiAlertTriangle size={18} /> : <FiCheckCircle size={18} />}
-      <span style={{ flex: 1 }}>{feedback.text}</span>
-      <button className="mz-icon-btn" onClick={() => setFeedback(null)} aria-label="Fermer">×</button>
-    </div>
-  )
-  return { ok, fail, banner, clear: () => setFeedback(null) }
+  const ok = useCallback((text) => notify.success(text), [])
+  const fail = useCallback((err, fallback) => notifyError(err, fallback), [])
+  return { ok, fail, banner: null, clear: () => {} }
 }
 
 const TONES = {

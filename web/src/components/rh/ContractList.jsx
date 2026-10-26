@@ -6,6 +6,7 @@ import { FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { deleteContract } from '../../services/hrService';
 import { toast } from 'react-toastify';
+import { notifyError } from "../../utils/notify"
 
 export default function ContractList({ contracts, onRefresh }) {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function ContractList({ contracts, onRefresh }) {
         toast.success('Contrat supprimé.');
         onRefresh();
       } catch (error) {
-        toast.error('Erreur lors de la suppression.');
+        notifyError(error, 'Erreur lors de la suppression.');
         console.error(error);
       }
     }

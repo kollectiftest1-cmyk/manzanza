@@ -1,5 +1,5 @@
 import tempfile
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from django.test import override_settings
 
@@ -304,7 +304,7 @@ class UniversityWorkflowSmokeTests(APITestCase):
             {
                 "room": room_response.data["id"],
                 "requested_by": self.student.id,
-                "date": "2026-10-10",
+                "date": (date.today() + timedelta(days=14)).isoformat(),
                 "startTime": "10:00",
                 "endTime": "12:00",
                 "purpose": "Reunion de promotion",
@@ -328,7 +328,7 @@ class UniversityWorkflowSmokeTests(APITestCase):
         second = RoomReservation.objects.create(
             room_id=room_response.data["id"],
             requested_by=self.teacher,
-            date=date(2026, 10, 10),
+            date=date.today() + timedelta(days=14),
             start_time=time(11, 0),
             end_time=time(13, 0),
             purpose="Cours special",

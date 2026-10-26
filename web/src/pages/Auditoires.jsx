@@ -11,6 +11,7 @@ import { getUsers } from "../services/userService"
 import gradeService from "../services/gradeService"
 import { motion, AnimatePresence } from "framer-motion"
 import { FiHome, FiPlus, FiEdit, FiTrash, FiEye, FiUsers, FiGrid, FiLayers, FiX, FiAward, FiSliders } from "react-icons/fi"
+import { notify, notifyError } from "../utils/notify"
 
 const CATEGORY_TYPE_OPTIONS = [
   { value: 'interro', label: 'Interrogation (en classe)' },
@@ -161,7 +162,7 @@ const Auditoires = () => {
       try {
         await Promise.all(promises)
       } catch (error) {
-        console.error("Error loading academic data:", error);
+        notifyError(error, "Impossible de charger les sections et filières. Rechargez la page.");
         // Optionally, set an error state to display to the user
       } finally {
         setLoading(false)
@@ -203,7 +204,7 @@ const Auditoires = () => {
   const handleAuditoireSubmit = async (e) => {
     e.preventDefault()
     if (!newAuditoire.nom || !newAuditoire.niveau || !newAuditoire.vacation || !newAuditoire.filiere) {
-      alert("Veuillez remplir tous les champs obligatoires (Nom, Niveau, Vacation, Filière).")
+      notify.warning("Veuillez remplir tous les champs obligatoires (Nom, Niveau, Vacation, Filière).")
       return
     }
     
@@ -232,7 +233,7 @@ const Auditoires = () => {
       } else if (typeof errorDetail === 'string') {
         errorMessage = errorDetail;
       }
-      alert(`Erreur: ${errorMessage}`)
+      notifyError(err, `Erreur: ${errorMessage}`)
     }
   }
 
@@ -263,7 +264,7 @@ const Auditoires = () => {
       }})).unwrap()
       setShowEditAuditoireModal(false)
     } catch (err) {
-      alert(`Erreur: ${err.detail || err.message || 'Impossible de modifier l\'auditoire.'}`)
+      notifyError(err, `Erreur: ${err.detail || err.message || 'Impossible de modifier l\'auditoire.'}`)
     }
   }
 
@@ -272,7 +273,7 @@ const Auditoires = () => {
     try {
       await dispatch(deleteAuditoire(auditoireId)).unwrap()
     } catch (err) {
-      alert(`Erreur lors de la suppression : ${err.detail || err.message || 'Erreur inconnue.'}`)
+      notifyError(err, `Erreur lors de la suppression : ${err.detail || err.message || 'Erreur inconnue.'}`)
     }
   }
 
@@ -326,7 +327,7 @@ const Auditoires = () => {
       loadGradeCategories()
     } catch (e) {
       const msg = e.response?.data
-      setCatFormError(msg ? JSON.stringify(msg) : "Erreur lors de la sauvegarde.")
+      notifyError(e, msg ? JSON.stringify(msg) : "Erreur lors de la sauvegarde.")
     } finally { setSavingCat(false) }
   }
 
@@ -350,7 +351,7 @@ const Auditoires = () => {
       handleCloseSectionModal()
     } catch (err) {
       console.error("Erreur lors de la sauvegarde de la section :", err.response?.data || err.message);
-      alert(`Erreur: ${err.response?.data?.detail || err.message || 'Impossible de sauvegarder la section.'}`)
+      notifyError(err, `Erreur: ${err.response?.data?.detail || err.message || 'Impossible de sauvegarder la section.'}`)
     }
   }
 
@@ -367,7 +368,7 @@ const Auditoires = () => {
       }
       handleCloseFiliereModal()
     } catch (err) {
-      alert(`Erreur: ${err.message || 'Impossible de sauvegarder la filière.'}`)
+      notifyError(err, `Erreur: ${err.message || 'Impossible de sauvegarder la filière.'}`)
     }
   }
 
@@ -380,7 +381,7 @@ const Auditoires = () => {
         await deleteFiliere(id); setAllFilieres(allFilieres.filter(f => f.id !== id))
       }
     } catch (err) {
-      alert(`Erreur de suppression: ${err.message}`)
+      notifyError(err, `Erreur de suppression: ${err.message}`)
     }
   }
 

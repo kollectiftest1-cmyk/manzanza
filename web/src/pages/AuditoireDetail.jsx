@@ -6,6 +6,7 @@ import { useParams, Link } from "react-router-dom"
 import { getAuditoireDetail, getAuditoireStudents, getAuditoireCourses } from "../services/auditoireService"
 import { motion } from "framer-motion"
 import { FiUsers, FiBook, FiUserCheck, FiCalendar, FiMessageCircle, FiArrowLeft, FiEye, FiAward } from "react-icons/fi"
+import { notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -43,7 +44,7 @@ const AuditoireDetail = () => {
         setStudents(studentsRes.data)
         setCourses(coursesRes.data)
       } catch (err) {
-        setError("Impossible de charger les détails de l'auditoire.")
+        notifyError(err, "Impossible de charger les détails de l'auditoire.")
         console.error(err)
       } finally {
         setLoading(false)

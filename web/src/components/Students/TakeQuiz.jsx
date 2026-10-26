@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, AlertCircle, CheckCircle, Send, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import quizService from '../../services/quizService';
+import { notify, notifyError } from "../../utils/notify"
 
 const TakeQuiz = ({ quiz, onComplete, onCancel }) => {
   const [attempt, setAttempt] = useState(null);
@@ -41,7 +42,7 @@ const TakeQuiz = ({ quiz, onComplete, onCancel }) => {
     } catch (error) {
       console.error('Erreur lors du démarrage du quiz:', error);
       const errorMsg = error.response?.data?.error || 'Erreur lors du démarrage du quiz';
-      alert(errorMsg);
+      notifyError(error, errorMsg);
       if (onCancel) onCancel();
     } finally {
       setLoading(false);
@@ -88,16 +89,16 @@ const TakeQuiz = ({ quiz, onComplete, onCancel }) => {
     try {
       const answersList = Object.values(answers);
       await quizService.saveAnswers(attempt.id, answersList);
-      alert('Progrès sauvegardé!');
+      notify.info('Progrès sauvegardé!');
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde du progrès');
+      notifyError(error, 'Erreur lors de la sauvegarde du progrès');
     }
   };
 
   const handleAutoSubmit = async () => {
     if (submitting) return;
-    alert('Le temps est écoulé! Votre quiz sera soumis automatiquement.');
+    notify.info('Le temps est écoulé! Votre quiz sera soumis automatiquement.');
     await handleSubmit(true);
   };
 
@@ -118,11 +119,11 @@ const TakeQuiz = ({ quiz, onComplete, onCancel }) => {
       setSubmitting(true);
       const answersList = Object.values(answers);
       await quizService.submitAttempt(attempt.id, answersList);
-      alert('Quiz soumis avec succès!');
+      notify.info('Quiz soumis avec succès!');
       if (onComplete) onComplete();
     } catch (error) {
       console.error('Erreur lors de la soumission:', error);
-      alert('Erreur lors de la soumission du quiz');
+      notifyError(error, 'Erreur lors de la soumission du quiz');
     } finally {
       setSubmitting(false);
     }

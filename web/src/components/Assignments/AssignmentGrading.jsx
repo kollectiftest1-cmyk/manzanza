@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Download, CheckCircle, XCircle, User, Calendar, Star, Award, Save, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import assignmentService from '../../services/assignmentService';
+import { notify, notifyError } from "../../utils/notify"
 
 // Modern color palette
 const colors = {
@@ -98,12 +99,12 @@ const AssignmentGrading = ({ assignment, onBack }) => {
       };
 
       await assignmentService.gradeSubmission(selectedSubmission.id, gradeData);
-      alert('Note enregistrée avec succès!');
+      notify.info('Note enregistrée avec succès!');
       loadSubmissions();
       setSelectedSubmission(null);
     } catch (error) {
       console.error('Erreur lors de la notation:', error);
-      alert('Erreur lors de l\'enregistrement de la note');
+      notifyError(error, 'Erreur lors de l\'enregistrement de la note');
     } finally {
       setGrading(false);
     }
@@ -115,7 +116,7 @@ const AssignmentGrading = ({ assignment, onBack }) => {
     try {
       setGrading(true);
       await assignmentService.autoGradeSubmission(selectedSubmission.id);
-      alert('Correction automatique effectuée!');
+      notify.info('Correction automatique effectuée!');
       loadSubmissions();
       const updated = submissions.find(s => s.id === selectedSubmission.id);
       if (updated) {
@@ -123,7 +124,7 @@ const AssignmentGrading = ({ assignment, onBack }) => {
       }
     } catch (error) {
       console.error('Erreur lors de la correction automatique:', error);
-      alert('Erreur lors de la correction automatique');
+      notifyError(error, 'Erreur lors de la correction automatique');
     } finally {
       setGrading(false);
     }

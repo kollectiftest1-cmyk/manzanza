@@ -2,6 +2,8 @@
 Serializers for grades, averages, bulletins, academic configuration
 """
 from rest_framework import serializers
+
+from apps.core.validation import check
 from .models import (
     AcademicConfig, GradeCategory, CourseGradeWeight, Grade, ExamSession, Transcript,
     GradeSheet, GradeCorrectionRequest,
@@ -59,6 +61,20 @@ class GradeSerializer(serializers.ModelSerializer):
         ]
         # Le statut suit la feuille de notes (workflow), il ne se saisit pas.
         read_only_fields = ['date', 'percentage', 'status']
+
+    def validate(self, attrs):
+        g = lambda f: attrs.get(f, getattr(self.instance, f, None))  # noqa: E731
+        v, mx = g('value'), g('max_value')
+        if mx is None and 'value' in attrs:
+            mx = 20
+        if mx is not None and mx <= 0:
+            raise serializers.ValidationError({'max_value': f"La note maximale doit être supérieure à 0 (saisi : {mx})."})
+        if v is not None and v < 0:
+            raise serializers.ValidationError({'value': f"Une note ne peut pas être négative (saisi : {v})."})
+        if v is not None and mx is not None and v > mx:
+            raise serializers.ValidationError({'value': f"La note saisie ({v}) dépasse la note maximale ({mx}). "
+                                                        f"Exemple : sur {mx}, la note doit être entre 0 et {mx}."})
+        return attrs
 
     def get_student_name(self, obj):
         s = obj.student

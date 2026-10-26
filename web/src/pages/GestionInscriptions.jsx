@@ -6,6 +6,7 @@ import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FiClipboard, FiEye, FiCheck, FiX, FiClock, FiCheckCircle, FiXCircle, FiMail, FiCalendar } from "react-icons/fi"
 import api from "../services/api"
+import { notifyError } from "../utils/notify"
 
 // Animation variants
 const containerVariants = {
@@ -30,7 +31,7 @@ const GestionInscriptions = () => {
       const res = await api.get("/inscriptions/", { params: { page_size: 500 } })
       setInscriptions(res.data.results || res.data)
     } catch (err) {
-      setError("Impossible de charger les demandes d'inscription.")
+      notifyError(err, "Impossible de charger les demandes d'inscription.")
     } finally {
       setLoading(false)
     }

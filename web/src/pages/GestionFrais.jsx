@@ -25,6 +25,7 @@ import { getAuditoires } from '../services/auditoireService'
 import { getSections } from '../services/sectionService'
 import { getFilieres } from '../services/filiereService'
 import api from '../services/api'
+import { notifyError } from "../utils/notify"
 
 const EMPTY_FEE = {
   name: '',
@@ -105,7 +106,7 @@ const GestionFrais = () => {
       setPayments(paymentsRes.data?.results || paymentsRes.data || [])
       if (dashRes.data) setDashboard(dashRes.data)
     } catch (err) {
-      toast.error('Erreur chargement des données.')
+      notifyError(err, 'Erreur chargement des données.')
     } finally {
       setLoading(false)
     }
@@ -157,7 +158,7 @@ const GestionFrais = () => {
       loadAll()
     } catch (err) {
       const msg = err.response?.data
-      setFeeFormError(typeof msg === 'object' ? Object.values(msg).flat()[0] : 'Erreur création.')
+      notifyError(err, typeof msg === 'object' ? Object.values(msg).flat()[0] : 'Erreur création.')
     } finally {
       setSaving(false)
     }
@@ -171,7 +172,7 @@ const GestionFrais = () => {
       const res = await paymentService.getFeeStudents(fee.id)
       setFeeStudents(res.data?.results || res.data || [])
     } catch {
-      toast.error('Erreur chargement des étudiants.')
+      notifyError(null, 'Erreur chargement des étudiants.')
     } finally {
       setLoadingStudents(false)
     }
@@ -183,7 +184,7 @@ const GestionFrais = () => {
       toast.success(res.data.message)
       loadAll()
     } catch {
-      toast.error('Erreur lors de la réassignation.')
+      notifyError(null, 'Erreur lors de la réassignation.')
     }
   }
 
@@ -194,7 +195,7 @@ const GestionFrais = () => {
       toast.success('Frais supprimé.')
       loadAll()
     } catch {
-      toast.error('Erreur suppression.')
+      notifyError(null, 'Erreur suppression.')
     }
   }
 
@@ -205,7 +206,7 @@ const GestionFrais = () => {
       toast.success('Paiement confirmé !')
       loadAll()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Erreur confirmation.')
+      notifyError(err, err.response?.data?.error || 'Erreur confirmation.')
     }
   }
 
@@ -215,7 +216,7 @@ const GestionFrais = () => {
       toast.warning('Paiement rejeté.')
       loadAll()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Erreur rejet.')
+      notifyError(err, err.response?.data?.error || 'Erreur rejet.')
     }
   }
 
@@ -236,7 +237,7 @@ const GestionFrais = () => {
       setFeeTypeForm({ name: '', category: 'scolarite', amount: '', is_mandatory: true })
       loadAll()
     } catch (err) {
-      toast.error('Erreur sauvegarde catégorie.')
+      notifyError(err, 'Erreur sauvegarde catégorie.')
     } finally {
       setSaving(false)
     }
@@ -611,7 +612,7 @@ const GestionFrais = () => {
                         <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                           <Button size="sm" variant="outline-warning" onClick={() => { setEditingFeeType(ft); setFeeTypeForm({ name: ft.name, category: ft.category, amount: ft.amount, is_mandatory: ft.is_mandatory }); setShowFeeTypeModal(true) }}
                             style={{ borderRadius: '6px', padding: '3px 7px' }}><FiEdit size={12} /></Button>
-                          <Button size="sm" variant="outline-danger" onClick={() => { if (window.confirm('Supprimer?')) paymentService.deleteFeeType(ft.id).then(loadAll).catch(() => toast.error('Erreur')) }}
+                          <Button size="sm" variant="outline-danger" onClick={() => { if (window.confirm('Supprimer?')) paymentService.deleteFeeType(ft.id).then(loadAll).catch(() => notifyError(null, 'Erreur')) }}
                             style={{ borderRadius: '6px', padding: '3px 7px' }}><FiTrash2 size={12} /></Button>
                         </div>
                         )}

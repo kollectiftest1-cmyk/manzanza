@@ -2,6 +2,7 @@
 Extended serializers for payment vouchers and receipts
 """
 from rest_framework import serializers
+from apps.core.validation import check
 from .models import PaymentVoucher, PaymentReceipt, PaymentAuditLog, StudentFee
 
 
@@ -37,6 +38,10 @@ class PaymentVoucherSerializer(serializers.ModelSerializer):
             'id', 'voucher_number', 'created_at', 'updated_at',
             'issue_date', 'paid_date', 'created_by', 'validated_by'
         ]
+
+    def validate(self, attrs):
+        check(self, attrs, order=[('issue_date', 'expiry_date')], not_past=['expiry_date'])
+        return attrs
 
 
 class PaymentReceiptSerializer(serializers.ModelSerializer):
