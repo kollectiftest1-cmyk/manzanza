@@ -27,6 +27,22 @@ def _attr_or_instance(attrs, instance, field_name):
     return getattr(instance, field_name, None) if instance else None
 
 
+def _blank_dates_to_none(serializer, data):
+    """Un champ date facultatif envoyé vide ("") est traité comme « non renseigné »."""
+    if not hasattr(data, 'items'):
+        return data
+    fields = serializer.fields
+    if not any(v == '' and isinstance(fields.get(k), (serializers.DateField, serializers.TimeField))
+               and not fields[k].required for k, v in data.items()):
+        return data
+    data = data.copy()
+    for k, v in list(data.items()):
+        f = fields.get(k)
+        if v == '' and isinstance(f, (serializers.DateField, serializers.TimeField)) and not f.required:
+            data[k] = None
+    return data
+
+
 class AcademicEventSerializer(serializers.ModelSerializer):
     event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
     term_name = serializers.CharField(source='term.name', read_only=True, allow_null=True)
@@ -45,16 +61,18 @@ class AcademicEventSerializer(serializers.ModelSerializer):
     def get_duration_days(self, obj):
         return _inclusive_days(obj.start_date, obj.end_date)
 
+    def to_internal_value(self, data):
+        return super().to_internal_value(_blank_dates_to_none(self, data))
+
     def validate(self, attrs):
         term = _attr_or_instance(attrs, self.instance, 'term')
         academic_year = _attr_or_instance(attrs, self.instance, 'academic_year')
 
-        check(self, attrs, order=[('start_date', 'end_date')])
-        if academic_year:
-            check(self, attrs, within=(academic_year.start_date, academic_year.end_date,
-                                       f"l'année académique {academic_year.name}", ['start_date', 'end_date']))
+        check(self, attrs, order=[('start_date', 'end_date')],
+              within=(academic_year.start_date, academic_year.end_date, f"l'année académique {academic_year.name}",
+                      ['start_date', 'end_date']) if academic_year else None)
         if term and academic_year and term.academic_year_id != academic_year.id:
-            raise serializers.ValidationError("Le trimestre sélectionné n'appartient pas à cette année académique.")
+            raise serializers.ValidationError({'term': [f"Le semestre « {term.name} » appartient à l'année {term.academic_year.name}, pas à l'année {academic_year.name}."]})
         return attrs
 
 
@@ -69,6 +87,7 @@ class TermSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Term
+        validators = []  # unicité (année, ordre) vérifiée dans validate() avec un message clair
         fields = [
             'id', 'academic_year', 'academic_year_name',
             'name', 'term_type', 'term_type_display', 'order',
@@ -95,6 +114,9 @@ class TermSerializer(serializers.ModelSerializer):
     def get_rattrapage_duration_days(self, obj):
         return _inclusive_days(obj.rattrapage_start_date, obj.rattrapage_end_date)
 
+    def to_internal_value(self, data):
+        return super().to_internal_value(_blank_dates_to_none(self, data))
+
     def validate(self, attrs):
         g = lambda f: _attr_or_instance(attrs, self.instance, f)  # noqa: E731
         errors = {}
@@ -102,6 +124,17 @@ class TermSerializer(serializers.ModelSerializer):
             if bool(g(a)) != bool(g(b)):
                 errors[b if g(a) else a] = ["Renseignez à la fois le début et la fin de cette période."]
         year = g('academic_year')
+        order = g('order')
+        if year and order is not None:
+            same = Term.objects.filter(academic_year=year, order=order)
+            if self.instance:
+                same = same.exclude(pk=self.instance.pk)
+            other = same.first()
+            if other:
+                used = sorted(Term.objects.filter(academic_year=year).values_list('order', flat=True))
+                free = next(i for i in range(1, len(used) + 2) if i not in used)
+                errors['order'] = [f"L'ordre {order} est déjà pris par « {other.name} » dans l'année {year.name}. "
+                                   f"Choisissez l'ordre {free}."]
         rules = [dict(order=[('start_date', 'end_date'), ('exam_start_date', 'exam_end_date'),
                              ('rattrapage_start_date', 'rattrapage_end_date'), ('end_courses_date', 'exam_start_date'),
                              ('exam_end_date', 'rattrapage_start_date')],

@@ -98,7 +98,7 @@ def check(serializer, attrs, order=(), strict=(), not_future=(), not_past=(), wi
         lo, hi, label, fields = within
         for f in fields:
             v = value(serializer, attrs, f)
-            if v is None:
+            if v is None or f in errors:  # une seule remarque par champ, la plus utile
                 continue
             if lo is not None and v < lo:
                 add(f, f"{cap(phrase(f))} ({fmt(v)}) est avant le début de {label} ({fmt(lo)}).")

@@ -56,3 +56,41 @@ class ClearErrorMessagesTests(APITestCase):
             'startTime': '12:00', 'endTime': '10:00', 'purpose': 'Réunion'})
         self.assertIn('déjà passée', msg)
         self.assertIn("doit être après l'heure de début", msg)
+
+
+class CalendarFlowTests(APITestCase):
+    def setUp(self):
+        self.pdg = User.objects.create_user(email='pdg2@t.cd', password='x12345678!', role='pdg',
+                                            first_name='P', last_name='G')
+        self.client.force_authenticate(self.pdg)
+        self.year = AcademicYear.objects.create(name='2033-2034', start_date=date(2033, 9, 1),
+                                                end_date=date(2034, 7, 31))
+
+    def test_term_with_blank_optional_dates_is_accepted(self):
+        r = self.client.post('/api/schedules/terms/', {
+            'academic_year': self.year.id, 'name': 'Semestre 1', 'term_type': 'semestre', 'order': 1,
+            'start_date': '2033-09-15', 'end_date': '2034-02-15', 'end_courses_date': '', 'exam_start_date': '',
+            'exam_end_date': '', 'rattrapage_start_date': '', 'rattrapage_end_date': '',
+            'auto_generate_events': True}, format='json')
+        self.assertEqual(r.status_code, 201, r.data)
+
+    def test_order_already_taken_suggests_next(self):
+        from apps.schedules.models import Term
+        Term.objects.create(academic_year=self.year, name='Semestre 1', term_type='semestre', order=1,
+                            start_date=date(2033, 9, 15), end_date=date(2034, 2, 15))
+        r = self.client.post('/api/schedules/terms/', {
+            'academic_year': self.year.id, 'name': 'Semestre 2', 'term_type': 'semestre', 'order': 1,
+            'start_date': '2034-02-16', 'end_date': '2034-07-31'}, format='json')
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Choisissez l'ordre 2", r.data['message'])
+
+    def test_deleting_term_removes_its_automatic_events(self):
+        from apps.schedules.models import AcademicEvent
+        r = self.client.post('/api/schedules/terms/', {
+            'academic_year': self.year.id, 'name': 'Semestre 1', 'term_type': 'semestre', 'order': 1,
+            'start_date': '2033-09-15', 'end_date': '2034-02-15', 'exam_start_date': '2034-01-10',
+            'exam_end_date': '2034-01-31', 'auto_generate_events': True}, format='json')
+        self.assertEqual(r.status_code, 201, r.data)
+        self.assertTrue(AcademicEvent.objects.filter(term_id=r.data['id'], is_auto_generated=True).exists())
+        self.assertEqual(self.client.delete(f"/api/schedules/terms/{r.data['id']}/").status_code, 204)
+        self.assertFalse(AcademicEvent.objects.filter(academic_year=self.year, is_auto_generated=True).exists())

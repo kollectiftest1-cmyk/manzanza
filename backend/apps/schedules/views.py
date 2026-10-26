@@ -144,6 +144,13 @@ class TermViewSet(viewsets.ModelViewSet):
         if term.auto_generate_events:
             term.generate_events()
 
+    def perform_destroy(self, instance):
+        # Les événements générés automatiquement (rentrée, examens…) partent avec leur semestre
+        # (dans la corbeille, restaurables) ; les événements saisis à la main sont conservés.
+        for event in instance.events.filter(is_auto_generated=True):
+            event.delete(user=self.request.user)
+        instance.delete(user=self.request.user)
+
 
 class AcademicEventViewSet(viewsets.ModelViewSet):
     """
@@ -865,7 +872,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
         if not source_qs.exists():
             return Response(
-                {'message': 'Aucun horaire à dupliquer dans le trimestre source.'},
+                {'message': f"Rien à dupliquer : « {source_term.name} » n'a encore aucun horaire. Créez d'abord les horaires dans le menu Horaires.", 'created_count': 0},
                 status=status.HTTP_200_OK
             )
 

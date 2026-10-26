@@ -20,7 +20,7 @@ import {
   FiChevronLeft, FiChevronRight, FiStar, FiClock, FiBookOpen, FiAlertCircle
 } from "react-icons/fi"
 import scheduleService from "../services/scheduleService"
-import { notifyError } from "../utils/notify"
+import { notify, notifyError } from "../utils/notify"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const isAdminOrSGA = (role) =>
@@ -78,7 +78,6 @@ const CalendrierAcademique = () => {
   const [activeTab, setActiveTab] = useState("calendrier")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
 
   // Data
   const [academicYears, setAcademicYears] = useState([])
@@ -104,7 +103,11 @@ const CalendrierAcademique = () => {
       setAcademicYears(data)
       // Auto-select current year
       const current = data.find(y => y.is_current)
-      if (current && !selectedYear) setSelectedYear(current)
+      if (selectedYear) {
+        const fresh = data.find(y => y.id === selectedYear.id)
+        if (fresh) setSelectedYear(fresh)
+        else setSelectedYear(current || data[0] || null)
+      } else if (current) setSelectedYear(current)
       else if (data.length > 0 && !selectedYear) setSelectedYear(data[0])
     } catch (e) {
       notifyError(e, "Impossible de charger les années académiques.")
@@ -134,25 +137,18 @@ const CalendrierAcademique = () => {
     if (selectedYear) loadTermsAndEvents()
   }, [selectedYear, loadTermsAndEvents])
 
-  // ─── Auto-dismiss success ───────────────────────────────────────────────
-  useEffect(() => {
-    if (success) {
-      const t = setTimeout(() => setSuccess(null), 4000)
-      return () => clearTimeout(t)
-    }
-  }, [success])
-
   // ─── CRUD Handlers ─────────────────────────────────────────────────────
 
   // Academic Year
   const handleSaveYear = async (formData) => {
+    formData = { ...formData, name: (formData.name || '').trim() }
     try {
       if (editingItem) {
         await scheduleService.updateAcademicYear(editingItem.id, formData)
-        setSuccess("Année académique mise à jour.")
+        notify.success("Année académique mise à jour.")
       } else {
         await scheduleService.createAcademicYear(formData)
-        setSuccess("Année académique créée.")
+        notify.success("Année académique créée.")
       }
       setShowYearModal(false)
       setEditingItem(null)
@@ -166,7 +162,7 @@ const CalendrierAcademique = () => {
     if (!window.confirm("Supprimer cette année académique ? Tous les trimestres et événements associés seront aussi supprimés.")) return
     try {
       await scheduleService.deleteAcademicYear(id)
-      setSuccess("Année académique supprimée.")
+      notify.success("Année académique supprimée (récupérable depuis la Corbeille).")
       if (selectedYear?.id === id) setSelectedYear(null)
       await loadYears()
     } catch (e) {
@@ -177,7 +173,7 @@ const CalendrierAcademique = () => {
   const handleSetCurrent = async (id) => {
     try {
       const updated = await scheduleService.setCurrentYear(id)
-      setSuccess(`${updated.name} définie comme année en cours.`)
+      notify.success(`${updated.name} définie comme année en cours.`)
       await loadYears()
       setSelectedYear(updated)
     } catch (e) {
@@ -185,16 +181,19 @@ const CalendrierAcademique = () => {
     }
   }
 
+  // Les champs date facultatifs laissés vides partent à null (et non en texte vide).
+  const blanksToNull = (data) => Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v === '' ? null : v]))
+
   // Term
   const handleSaveTerm = async (formData) => {
     try {
-      const payload = { ...formData, academic_year: selectedYear.id }
+      const payload = blanksToNull({ ...formData, academic_year: selectedYear.id })
       if (editingItem) {
         await scheduleService.updateTerm(editingItem.id, payload)
-        setSuccess("Trimestre/semestre mis à jour.")
+        notify.success("Semestre mis à jour.")
       } else {
         await scheduleService.createTerm(payload)
-        setSuccess("Trimestre/semestre créé.")
+        notify.success(formData.auto_generate_events ? "Semestre créé : rentrée, fin des cours, examens et rattrapage ont été ajoutés au calendrier." : "Semestre créé.")
       }
       setShowTermModal(false)
       setEditingItem(null)
@@ -205,10 +204,10 @@ const CalendrierAcademique = () => {
   }
 
   const handleDeleteTerm = async (id) => {
-    if (!window.confirm("Supprimer ce trimestre/semestre ?")) return
+    if (!window.confirm("Supprimer ce semestre ? Ses événements automatiques (rentrée, examens…) seront aussi retirés.")) return
     try {
       await scheduleService.deleteTerm(id)
-      setSuccess("Trimestre/semestre supprimé.")
+      notify.success("Semestre supprimé (récupérable depuis la Corbeille).")
       await loadTermsAndEvents()
     } catch (e) {
       notifyError(e, "Impossible de supprimer ce trimestre.")
@@ -218,13 +217,13 @@ const CalendrierAcademique = () => {
   // Event
   const handleSaveEvent = async (formData) => {
     try {
-      const payload = { ...formData, academic_year: selectedYear.id }
+      const payload = blanksToNull({ ...formData, academic_year: selectedYear.id })
       if (editingItem) {
         await scheduleService.updateAcademicEvent(editingItem.id, payload)
-        setSuccess("Événement mis à jour.")
+        notify.success("Événement mis à jour.")
       } else {
         await scheduleService.createAcademicEvent(payload)
-        setSuccess("Événement créé.")
+        notify.success("Événement créé.")
       }
       setShowEventModal(false)
       setEditingItem(null)
@@ -238,7 +237,7 @@ const CalendrierAcademique = () => {
     if (!window.confirm("Supprimer cet événement ?")) return
     try {
       await scheduleService.deleteAcademicEvent(id)
-      setSuccess("Événement supprimé.")
+      notify.success("Événement supprimé (récupérable depuis la Corbeille).")
       await loadTermsAndEvents()
     } catch (e) {
       notifyError(e, "Impossible de supprimer cet événement.")
@@ -249,7 +248,8 @@ const CalendrierAcademique = () => {
   const handleDuplicate = async (data) => {
     try {
       const result = await scheduleService.duplicatePlanning(data)
-      setSuccess(result.message)
+      if (result.created_count === 0) notify.info(result.message)
+      else notify.success(result.message)
       setShowDuplicateModal(false)
     } catch (e) {
       notifyError(e, e.response?.data?.error || "Erreur lors de la duplication.")
@@ -269,7 +269,7 @@ const CalendrierAcademique = () => {
     try {
       setPublishing(true)
       const result = await scheduleService.publishCalendar(selectedYear.id)
-      setSuccess(`${result.message} (${result.notifications_sent} notification(s) envoyée(s))`)
+      notify.success(`${result.message} (${result.notifications_sent} notification(s) envoyée(s))`)
       // Update local state
       setSelectedYear(result.year)
       setAcademicYears(prev => prev.map(y => y.id === result.year.id ? result.year : y))
@@ -346,7 +346,7 @@ const CalendrierAcademique = () => {
             Calendrier Académique
           </h2>
           <p className="text-muted mb-0">
-            Gestion des années académiques, trimestres et événements
+            Années académiques, semestres et événements de l'université
           </p>
         </div>
         {canEdit && (
@@ -357,7 +357,7 @@ const CalendrierAcademique = () => {
             {selectedYear && (
               <>
                 <Button variant="outline-primary" size="sm" onClick={() => { setEditingItem(null); setShowTermModal(true) }}>
-                  <FiPlus className="me-1" /> Trimestre
+                  <FiPlus className="me-1" /> Semestre
                 </Button>
                 <Button variant="outline-success" size="sm" onClick={() => { setEditingItem(null); setShowEventModal(true) }}>
                   <FiPlus className="me-1" /> Événement
@@ -387,7 +387,6 @@ const CalendrierAcademique = () => {
 
       {/* Alerts */}
       {error && <Alert variant="danger" dismissible onClose={() => setError(null)}>{error}</Alert>}
-      {success && <Alert variant="success" dismissible onClose={() => setSuccess(null)}>{success}</Alert>}
 
       {/* Year selector */}
       {academicYears.length > 0 && (
@@ -522,7 +521,7 @@ const CalendrierAcademique = () => {
           </Tab>
 
           {/* ─── Tab: Trimestres ─────────────────────────────────────── */}
-          <Tab eventKey="trimestres" title={<><FiClock className="me-1" /> Trimestres</>}>
+          <Tab eventKey="trimestres" title={<><FiClock className="me-1" /> Semestres</>}>
             <Card className="border-0 shadow-sm">
               <Card.Body>
                 {terms.length === 0 ? (
@@ -681,8 +680,12 @@ const CalendrierAcademique = () => {
                         <td>
                           {y.is_current ? (
                             <Badge bg="success"><FiCheck className="me-1" /> En cours</Badge>
+                          ) : y.start_date > todayISO() ? (
+                            <Badge bg="info">À venir</Badge>
+                          ) : y.end_date < todayISO() ? (
+                            <Badge bg="secondary">Terminée</Badge>
                           ) : (
-                            <Badge bg="secondary">Archivée</Badge>
+                            <Badge bg="warning" text="dark">Non définie comme année en cours</Badge>
                           )}
                         </td>
                         {canEdit && (
@@ -725,6 +728,7 @@ const CalendrierAcademique = () => {
 
       {/* Term Modal */}
       <TermFormModal
+        nextOrder={terms.reduce((m, t) => Math.max(m, t.order || 0), 0) + 1}
         show={showTermModal}
         onHide={() => { setShowTermModal(false); setEditingItem(null) }}
         onSave={handleSaveTerm}
@@ -801,6 +805,8 @@ const TimelineBar = ({ terms, year, events }) => {
   )
 }
 
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+
 // ─── Year Form Modal ────────────────────────────────────────────────────────
 const YearFormModal = ({ show, onHide, onSave, editing }) => {
   const [form, setForm] = useState({ name: '', start_date: '', end_date: '', is_current: false, description: '' })
@@ -851,7 +857,7 @@ const YearFormModal = ({ show, onHide, onSave, editing }) => {
         </Row>
         {durationLabel(form.start_date, form.end_date) && (
           <div className="text-muted small mb-3">
-            Duree inclusive: {durationLabel(form.start_date, form.end_date)}
+            Durée (jours inclus): {durationLabel(form.start_date, form.end_date)}
           </div>
         )}
         <Form.Group className="mb-3">
@@ -877,9 +883,9 @@ const YearFormModal = ({ show, onHide, onSave, editing }) => {
 }
 
 // ─── Term Form Modal ────────────────────────────────────────────────────────
-const TermFormModal = ({ show, onHide, onSave, editing }) => {
+const TermFormModal = ({ show, onHide, onSave, editing, nextOrder = 1 }) => {
   const [form, setForm] = useState({
-    name: '', term_type: 'trimestre', order: 1,
+    name: '', term_type: 'semestre', order: 1,
     start_date: '', end_date: '', end_courses_date: '',
     exam_start_date: '', exam_end_date: '',
     rattrapage_start_date: '', rattrapage_end_date: '',
@@ -891,7 +897,7 @@ const TermFormModal = ({ show, onHide, onSave, editing }) => {
     if (editing) {
       setForm({
         name: editing.name || '',
-        term_type: editing.term_type || 'trimestre',
+        term_type: editing.term_type || 'semestre',
         order: editing.order || 1,
         start_date: editing.start_date || '',
         end_date: editing.end_date || '',
@@ -905,7 +911,7 @@ const TermFormModal = ({ show, onHide, onSave, editing }) => {
       })
     } else {
       setForm({
-        name: '', term_type: 'trimestre', order: 1,
+        name: `Semestre ${nextOrder}`, term_type: 'semestre', order: nextOrder,
         start_date: '', end_date: '', end_courses_date: '',
         exam_start_date: '', exam_end_date: '',
         rattrapage_start_date: '', rattrapage_end_date: '',
@@ -913,7 +919,7 @@ const TermFormModal = ({ show, onHide, onSave, editing }) => {
         is_active: true,
       })
     }
-  }, [editing, show])
+  }, [editing, show, nextOrder])
 
   // Compute preview of auto-generated events
   const eventPreview = useMemo(() => {
@@ -981,7 +987,7 @@ const TermFormModal = ({ show, onHide, onSave, editing }) => {
               <Form.Label className="fw-semibold">Nom *</Form.Label>
               <Form.Control value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="Ex: Trimestre 1" />
+                placeholder="Ex : Semestre 1" />
             </Form.Group>
           </Col>
           <Col md={4}>
@@ -1032,7 +1038,7 @@ const TermFormModal = ({ show, onHide, onSave, editing }) => {
         {(coursesDuration || termDuration) && (
           <div className="text-muted small mb-3">
             {coursesDuration && <span className="me-3">Cours: {coursesDuration}</span>}
-            {termDuration && <span>Periode globale: {termDuration}</span>}
+            {termDuration && <span>Période globale: {termDuration}</span>}
           </div>
         )}
 
@@ -1190,7 +1196,7 @@ const EventFormModal = ({ show, onHide, onSave, editing, terms }) => {
           </Col>
         </Row>
         {eventDuration && (
-          <div className="text-muted small mb-3">Duree inclusive: {eventDuration}</div>
+          <div className="text-muted small mb-3">Durée (jours inclus): {eventDuration}</div>
         )}
 
         <Row>
