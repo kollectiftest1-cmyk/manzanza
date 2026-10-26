@@ -52,7 +52,7 @@ const TPTD = () => {
     assignment_type: "TP",
   })
 
-  const isEnseignant = ["enseignant", "assistant", "chef_departement", "chef_section", "sga", "iadmin"].includes(
+  const isEnseignant = ["enseignant", "assistant", "chef_departement", "chef_section", "sga", "pdg"].includes(
     user?.role
   )
 

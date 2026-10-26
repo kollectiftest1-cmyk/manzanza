@@ -1,405 +1,113 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Container, Row, Col, Card, Button, Table, Badge, Form, Modal } from "react-bootstrap"
+/**
+ * Assistance informatique (helpdesk). Tout utilisateur signale un problème et suit ses
+ * demandes ; le Service IT voit toutes les demandes, les prend en charge et les résout.
+ */
+import { useCallback, useEffect, useState } from "react"
 import { useSelector } from "react-redux"
-import { motion } from "framer-motion"
-import { FiTool, FiPlus, FiEye, FiCheckCircle, FiClock, FiAlertCircle, FiActivity, FiSave } from "react-icons/fi"
+import { Modal } from "react-bootstrap"
+import { FiPlus, FiSearch, FiUserCheck, FiCheck, FiX, FiLifeBuoy } from "react-icons/fi"
+import api from "../services/api"
+import { hasAnyRole } from "../utils/permissions"
+import { ConfirmDialog, Empty, Field, Kpi, Loading, PageHeader, Pill, Tabs } from "../components/mz/Kit"
+import { fmtDate, listOf, useFeedback } from "../components/mz/helpers"
 
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-}
+const STATUS = [{ key: "", label: "Tous" }, { key: "ouvert", label: "Ouverts" }, { key: "en_cours", label: "En cours" },
+  { key: "resolu", label: "Résolus" }, { key: "ferme", label: "Fermés" }]
+const TONE = { ouvert: "warning", en_cours: "info", resolu: "success", ferme: "", urgente: "danger", haute: "warning", normale: "info", basse: "" }
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-}
+export default function ServiceIT() {
+  const { user } = useSelector((s) => s.auth)
+  const isIT = hasAnyRole(user, "service_it", "pdg")
+  const fb = useFeedback()
+  const [status, setStatus] = useState(isIT ? "ouvert" : "")
+  const [search, setSearch] = useState("")
+  const [rows, setRows] = useState(null)
+  const [all, setAll] = useState([])
+  const [form, setForm] = useState(null)
+  const [ask, setAsk] = useState(null)
 
-const ServiceIT = () => {
-  const { user } = useSelector((state) => state.auth)
-  const [tickets, setTickets] = useState([])
-  const [showModal, setShowModal] = useState(false)
-  const [newTicket, setNewTicket] = useState({
-    title: "",
-    description: "",
-    priority: "medium",
-    category: "hardware",
-  })
+  const load = useCallback(async () => {
+    try {
+      const params = { page_size: 300 }
+      if (search.trim()) params.search = search.trim()
+      const { data } = await api.get("/core/tickets/", { params })
+      const list = listOf(data); setAll(list); setRows(status ? list.filter((t) => t.status === status) : list)
+    } catch (e) { fb.fail(e); setRows([]) }
+  }, [status, search]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const t = setTimeout(load, search ? 300 : 0); return () => clearTimeout(t) }, [load, search])
 
-  useEffect(() => {
-    // Simuler le chargement des tickets
-    setTickets([
-      {
-        id: 1,
-        title: "Problème de connexion WiFi",
-        description: "Impossible de se connecter au réseau universitaire",
-        status: "open",
-        priority: "high",
-        category: "network",
-        createdBy: "Jean Dupont",
-        createdAt: "2024-01-15",
-        assignedTo: "Admin IT",
-      },
-      {
-        id: 2,
-        title: "Ordinateur en panne",
-        description: "L'ordinateur de la salle 101 ne démarre plus",
-        status: "in-progress",
-        priority: "medium",
-        category: "hardware",
-        createdBy: "Marie Martin",
-        createdAt: "2024-01-14",
-        assignedTo: "Technicien A",
-      },
-    ])
-  }, [])
-
-  const handleSubmitTicket = (e) => {
-    e.preventDefault()
-    const ticket = {
-      id: tickets.length + 1,
-      ...newTicket,
-      status: "open",
-      createdBy: user.name,
-      createdAt: new Date().toISOString().split("T")[0],
-      assignedTo: "En attente",
-    }
-    setTickets([...tickets, ticket])
-    setNewTicket({ title: "", description: "", priority: "medium", category: "hardware" })
-    setShowModal(false)
-  }
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case "high":
-        return "danger"
-      case "medium":
-        return "warning"
-      case "low":
-        return "success"
-      default:
-        return "secondary"
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "open":
-        return "primary"
-      case "in-progress":
-        return "warning"
-      case "resolved":
-        return "success"
-      case "closed":
-        return "secondary"
-      default:
-        return "secondary"
-    }
-  }
+  const act = async (fn, msg) => { try { await fn(); fb.ok(msg); load() } catch (e) { fb.fail(e) } }
+  const count = (s) => all.filter((t) => t.status === s).length
 
   return (
-    <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
-      <motion.div 
-        variants={containerVariants} 
-        initial="hidden" 
-        animate="visible"
-      >
-        {/* Header Section */}
-        <motion.div variants={itemVariants} style={{ marginBottom: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-              }}>
-                <FiTool size={28} style={{ color: 'white' }} />
-              </div>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '32px', fontWeight: '700', color: 'var(--color-text)' }}>
-                  Service IT
-                </h2>
-                <p style={{ margin: 0, color: 'var(--color-textSecondary)', fontSize: '16px' }}>Support technique et maintenance</p>
-              </div>
+    <div className="mz-page">
+      <PageHeader title={isIT ? "Service IT — assistance" : "Assistance informatique"}
+                  subtitle={isIT ? "Toutes les demandes des utilisateurs. Chaque résolution est notifiée au demandeur." : "Signalez un problème (compte, réseau, matériel, application) et suivez son traitement."}>
+        <button className="btn btn-primary btn-sm px-3" onClick={() => setForm({ title: "", description: "", category: "autre", priority: "normale", location: "" })}><FiPlus className="me-1" />Signaler un problème</button>
+      </PageHeader>
+      {fb.banner}
+      {isIT && (
+        <div className="mz-kpis">
+          <Kpi label="Ouverts" value={count("ouvert")} tone={count("ouvert") ? "warning" : undefined} />
+          <Kpi label="En cours" value={count("en_cours")} />
+          <Kpi label="Urgents non résolus" value={all.filter((t) => t.priority === "urgente" && ["ouvert", "en_cours"].includes(t.status)).length} tone="danger" />
+          <Kpi label="Résolus" value={count("resolu")} />
+        </div>
+      )}
+      <div className="mz-card">
+        <div className="mz-toolbar">
+          <Tabs tabs={STATUS.map((s) => ({ ...s, count: s.key ? count(s.key) : all.length }))} value={status} onChange={setStatus} />
+          <div className="mz-search"><FiSearch size={15} /><input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+        </div>
+        {rows === null ? <Loading /> : rows.length === 0 ? <Empty icon={FiLifeBuoy} title="Aucune demande">{isIT ? "Rien à traiter pour ce filtre." : "Vous n'avez signalé aucun problème."}</Empty> : (
+          <div className="mz-table-wrap"><table className="mz-table">
+            <thead><tr><th>#</th><th>Demande</th><th>Catégorie</th><th>Priorité</th>{isIT && <th>Demandeur</th>}<th>Statut</th><th>Suivi</th><th className="mz-actions"></th></tr></thead>
+            <tbody>{rows.map((t) => (
+              <tr key={t.id}>
+                <td className="mz-muted">{t.id}</td>
+                <td style={{ maxWidth: 320 }}><div className="mz-strong">{t.title}</div><div className="mz-muted">{t.description}</div>{t.location && <div className="mz-muted">Lieu : {t.location}</div>}</td>
+                <td className="mz-muted">{t.category_label}</td>
+                <td><Pill tone={TONE[t.priority]}>{t.priority_label}</Pill></td>
+                {isIT && <td className="mz-muted">{t.created_by_name}<div>{t.created_by_role}</div></td>}
+                <td><Pill tone={TONE[t.status]}>{t.status_label}</Pill></td>
+                <td className="mz-muted" style={{ fontSize: "0.8rem", maxWidth: 220 }}>
+                  <div>Créé le {fmtDate(t.created_at, true)}</div>
+                  {t.assigned_to_name && <div>Pris en charge par {t.assigned_to_name}</div>}
+                  {t.resolution && <div style={{ color: "var(--color-textPrimary)" }}>Solution : {t.resolution}</div>}
+                </td>
+                <td className="mz-actions">
+                  {isIT && t.status === "ouvert" && <button className="mz-icon-btn mz-icon-btn--primary" onClick={() => act(() => api.post(`/core/tickets/${t.id}/take/`), "Ticket pris en charge.")}><FiUserCheck /> Prendre</button>}
+                  {isIT && ["ouvert", "en_cours"].includes(t.status) && <button className="mz-icon-btn mz-icon-btn--primary" onClick={() => setAsk({ title: `Résoudre #${t.id}`, input: { label: "Solution apportée (envoyée au demandeur)", required: true }, confirmLabel: "Marquer résolu",
+                    onConfirm: (resolution) => act(() => api.post(`/core/tickets/${t.id}/resolve/`, { resolution }), "Ticket résolu, le demandeur est notifié.") })}><FiCheck /> Résoudre</button>}
+                  {t.status !== "ferme" && (isIT || t.status === "resolu" || t.status === "ouvert") && <button className="mz-icon-btn" title="Fermer" onClick={() => act(() => api.post(`/core/tickets/${t.id}/close/`), "Ticket fermé.")}><FiX /></button>}
+                </td>
+              </tr>))}</tbody>
+          </table></div>
+        )}
+      </div>
+      {form && (
+        <Modal show onHide={() => setForm(null)} centered>
+          <Modal.Header closeButton><Modal.Title style={{ fontSize: "1.05rem" }}>Signaler un problème</Modal.Title></Modal.Header>
+          <Modal.Body>
+            <Field label="Objet"><input className="form-control" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex. : impossible de me connecter au Wi-Fi" /></Field>
+            <Field label="Description"><textarea className="form-control" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
+            <div className="row">
+              <div className="col-6"><Field label="Catégorie"><select className="form-select" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                <option value="compte">Compte / mot de passe</option><option value="reseau">Réseau / Wi-Fi</option><option value="materiel">Matériel</option><option value="logiciel">Application / logiciel</option><option value="autre">Autre</option></select></Field></div>
+              <div className="col-6"><Field label="Priorité"><select className="form-select" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+                <option value="basse">Basse</option><option value="normale">Normale</option><option value="haute">Haute</option><option value="urgente">Urgente</option></select></Field></div>
             </div>
-            <Button 
-              variant="primary" 
-              onClick={() => setShowModal(true)}
-              style={{ borderRadius: '8px', padding: '10px 24px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <FiPlus size={18} />
-              Nouveau Ticket
-            </Button>
-          </div>
-        </motion.div>
-
-        {/* Statistiques */}
-        <Row style={{ marginBottom: '32px' }}>
-          <Col md={3} className="mb-3 mb-md-0">
-            <motion.div variants={itemVariants}>
-              <Card style={{
-                textAlign: 'center',
-                background: 'var(--color-cardBg)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '16px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                transition: 'transform 0.2s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                <Card.Body style={{ padding: '24px' }}>
-                  <FiAlertCircle size={32} style={{ color: 'var(--color-primary)', marginBottom: '12px' }} />
-                  <h3 style={{ color: 'var(--color-primary)', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>12</h3>
-                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Tickets Ouverts</p>
-                </Card.Body>
-              </Card>
-            </motion.div>
-          </Col>
-          <Col md={3} className="mb-3 mb-md-0">
-            <motion.div variants={itemVariants}>
-              <Card style={{
-                textAlign: 'center',
-                background: 'var(--color-cardBg)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '16px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                transition: 'transform 0.2s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                <Card.Body style={{ padding: '24px' }}>
-                  <FiClock size={32} style={{ color: '#ffc107', marginBottom: '12px' }} />
-                  <h3 style={{ color: '#ffc107', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>5</h3>
-                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>En Cours</p>
-                </Card.Body>
-              </Card>
-            </motion.div>
-          </Col>
-          <Col md={3} className="mb-3 mb-md-0">
-            <motion.div variants={itemVariants}>
-              <Card style={{
-                textAlign: 'center',
-                background: 'var(--color-cardBg)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '16px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                transition: 'transform 0.2s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                <Card.Body style={{ padding: '24px' }}>
-                  <FiCheckCircle size={32} style={{ color: '#28a745', marginBottom: '12px' }} />
-                  <h3 style={{ color: '#28a745', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>28</h3>
-                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Résolus</p>
-                </Card.Body>
-              </Card>
-            </motion.div>
-          </Col>
-          <Col md={3}>
-            <motion.div variants={itemVariants}>
-              <Card style={{
-                textAlign: 'center',
-                background: 'var(--color-cardBg)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '16px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                transition: 'transform 0.2s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                <Card.Body style={{ padding: '24px' }}>
-                  <FiActivity size={32} style={{ color: '#17a2b8', marginBottom: '12px' }} />
-                  <h3 style={{ color: '#17a2b8', fontSize: '32px', fontWeight: '700', margin: '8px 0' }}>2.5h</h3>
-                  <p style={{ color: 'var(--color-textSecondary)', margin: 0, fontSize: '14px' }}>Temps Moyen</p>
-                </Card.Body>
-              </Card>
-            </motion.div>
-          </Col>
-        </Row>
-
-        {/* Liste des tickets */}
-        <Row>
-          <Col>
-            <motion.div variants={itemVariants}>
-              <Card style={{
-                background: 'var(--color-cardBg)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '16px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-              }}>
-                <Card.Header style={{
-                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                  color: 'white',
-                  padding: '20px 24px',
-                  borderBottom: 'none',
-                  borderTopLeftRadius: '16px',
-                  borderTopRightRadius: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                  <FiTool size={20} />
-                  <h5 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Tickets de Support</h5>
-                </Card.Header>
-                <Card.Body style={{ padding: '24px' }}>
-                  <div style={{ overflowX: 'auto', borderRadius: '12px' }}>
-                    <Table responsive hover style={{ marginBottom: 0, border: '1px solid var(--color-border)', borderRadius: '12px', overflow: 'hidden' }}>
-                      <thead style={{ background: 'var(--color-bodyBg)' }}>
-                        <tr>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>ID</th>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>Titre</th>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>Catégorie</th>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>Priorité</th>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>Statut</th>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>Créé par</th>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>Assigné à</th>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>Date</th>
-                          <th style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '600', borderBottom: '2px solid var(--color-border)', fontSize: '14px' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tickets.map((ticket, index) => (
-                          <tr key={ticket.id} style={{ background: index % 2 === 0 ? 'var(--color-cardBg)' : 'var(--color-bodyBg)' }}>
-                            <td style={{ padding: '16px', color: 'var(--color-textSecondary)', borderBottom: '1px solid var(--color-border)', fontSize: '13px' }}>#{ticket.id}</td>
-                            <td style={{ padding: '16px', color: 'var(--color-text)', fontWeight: '500', borderBottom: '1px solid var(--color-border)', fontSize: '13px' }}>{ticket.title}</td>
-                            <td style={{ padding: '16px', borderBottom: '1px solid var(--color-border)' }}>
-                              <Badge bg="info" style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px' }}>{ticket.category}</Badge>
-                            </td>
-                            <td style={{ padding: '16px', borderBottom: '1px solid var(--color-border)' }}>
-                              <Badge bg={getPriorityColor(ticket.priority)} style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px' }}>{ticket.priority}</Badge>
-                            </td>
-                            <td style={{ padding: '16px', borderBottom: '1px solid var(--color-border)' }}>
-                              <Badge bg={getStatusColor(ticket.status)} style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px' }}>{ticket.status}</Badge>
-                            </td>
-                            <td style={{ padding: '16px', color: 'var(--color-textSecondary)', borderBottom: '1px solid var(--color-border)', fontSize: '13px' }}>{ticket.createdBy}</td>
-                            <td style={{ padding: '16px', color: 'var(--color-textSecondary)', borderBottom: '1px solid var(--color-border)', fontSize: '13px' }}>{ticket.assignedTo}</td>
-                            <td style={{ padding: '16px', color: 'var(--color-textSecondary)', borderBottom: '1px solid var(--color-border)', fontSize: '13px' }}>{ticket.createdAt}</td>
-                            <td style={{ padding: '16px', borderBottom: '1px solid var(--color-border)' }}>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <Button size="sm" variant="outline-primary" style={{ borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px' }}>
-                                  <FiEye size={14} />
-                                  Voir
-                                </Button>
-                                {user.role === "admin" && (
-                                  <Button size="sm" variant="outline-success" style={{ borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px' }}>
-                                    <FiCheckCircle size={14} />
-                                    Traiter
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                </Card.Body>
-              </Card>
-            </motion.div>
-          </Col>
-        </Row>
-
-        {/* Modal nouveau ticket */}
-        <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-          <div style={{
-            background: 'var(--color-cardBg)',
-            borderRadius: '16px',
-            border: '1px solid var(--color-border)',
-            overflow: 'hidden'
-          }}>
-            <Modal.Header closeButton style={{
-              background: 'linear-gradient(135deg, var(--color-primary), #667eea)',
-              color: 'white',
-              borderBottom: 'none',
-              padding: '24px'
-            }}>
-              <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '22px' }}>
-                <FiPlus size={24} />
-                Nouveau Ticket de Support
-              </Modal.Title>
-            </Modal.Header>
-            <Form onSubmit={handleSubmitTicket}>
-              <Modal.Body style={{ padding: '32px', background: 'var(--color-cardBg)' }}>
-            <Form.Group className="mb-3">
-              <Form.Label>Titre</Form.Label>
-              <Form.Control
-                type="text"
-                value={newTicket.title}
-                onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={newTicket.description}
-                onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-                required
-              />
-            </Form.Group>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Catégorie</Form.Label>
-                  <Form.Select
-                    value={newTicket.category}
-                    onChange={(e) => setNewTicket({ ...newTicket, category: e.target.value })}
-                  >
-                    <option value="hardware">Matériel</option>
-                    <option value="software">Logiciel</option>
-                    <option value="network">Réseau</option>
-                    <option value="account">Compte</option>
-                    <option value="other">Autre</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Priorité</Form.Label>
-                  <Form.Select
-                    value={newTicket.priority}
-                    onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
-                  >
-                    <option value="low">Basse</option>
-                    <option value="medium">Moyenne</option>
-                    <option value="high">Haute</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-              </Modal.Body>
-              <Modal.Footer style={{ background: 'var(--color-cardBg)', borderTop: '1px solid var(--color-border)', padding: '20px' }}>
-                <Button variant="secondary" onClick={() => setShowModal(false)} style={{ borderRadius: '8px', padding: '10px 24px' }}>
-                  Annuler
-                </Button>
-                <Button variant="primary" type="submit" style={{ borderRadius: '8px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FiSave size={18} />
-                  Créer le Ticket
-                </Button>
-              </Modal.Footer>
-            </Form>
-          </div>
+            <Field label="Lieu (salle, bureau) — facultatif"><input className="form-control" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field>
+          </Modal.Body>
+          <Modal.Footer>
+            <button className="btn btn-outline-primary btn-sm" onClick={() => setForm(null)}>Annuler</button>
+            <button className="btn btn-primary btn-sm" disabled={!form.title.trim() || !form.description.trim()} onClick={async () => {
+              try { await api.post("/core/tickets/", form); setForm(null); fb.ok("Demande envoyée au Service IT."); load() } catch (e) { fb.fail(e) }
+            }}>Envoyer</button>
+          </Modal.Footer>
         </Modal>
-      </motion.div>
-    </Container>
+      )}
+      <ConfirmDialog ask={ask} onClose={() => setAsk(null)} />
+    </div>
   )
 }
-
-export default ServiceIT

@@ -2,12 +2,14 @@
 Library models
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 from datetime import timedelta
 from django.utils import timezone
 
 
-class Book(models.Model):
+class Book(SoftDeleteModel):
     """Book Model"""
 
     BOOK_TYPES = [
@@ -80,7 +82,7 @@ class Book(models.Model):
         return self.available_quantity > 0
 
 
-class BookLoan(models.Model):
+class BookLoan(SoftDeleteModel):
     """Book loan/borrowing model"""
 
     STATUS_CHOICES = [
@@ -142,7 +144,7 @@ class BookLoan(models.Model):
         return (timezone.now() - self.due_date).days
 
 
-class BookReservation(models.Model):
+class BookReservation(SoftDeleteModel):
     """Book reservation model"""
 
     STATUS_CHOICES = [

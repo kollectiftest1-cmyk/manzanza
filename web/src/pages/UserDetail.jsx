@@ -32,10 +32,9 @@ const itemVariants = {
 // Dashboard for admin/SGA/other roles — shows user detailed info
 const AdminDashboard = ({ user }) => {
   const roleLabels = {
-    iadmin: 'Super Administrateur',
     sga: 'Secrétaire Général Académique',
     sgad: 'Secrétaire Général Administratif',
-    pdg: 'Président Directeur',
+    pdg: 'PDG — administrateur général',
     directeur_general: 'Directeur Général',
     chef_section: 'Chef de Section / Faculté',
     chef_departement: 'Chef de Département / Filière',

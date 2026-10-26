@@ -1,0 +1,307 @@
+/* ==========================================================================
+   Université MAZANZA — système de design « Turquoise »
+   Référence : maquette fournie (sidebar et en-tête turquoise, contenu blanc,
+   onglets en pastilles, tableau aéré, badges de statut pastel).
+   Toutes les couleurs viennent des jetons CSS posés par src/config/theme.js.
+   ========================================================================== */
+
+:root {
+  /* Valeurs par défaut (avant application du thème) — évite le flash bleu Bootstrap */
+  --color-primary: #0E8C9B;
+  --color-primaryHover: #0A7281;
+  --color-primaryLight: #E2F3F5;
+  --color-bodyBg: #EEF4F5;
+  --color-cardBg: #FFFFFF;
+  --color-border: #E1EBED;
+  --color-textPrimary: #1F3A40;
+  --color-textSecondary: #5F7A80;
+  --mz-radius: 14px;
+  --mz-radius-sm: 10px;
+  --mz-font: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--mz-font);
+  color: var(--color-textPrimary);
+  background: var(--color-bodyBg);
+}
+
+/* --- Bootstrap aligné sur la palette ------------------------------------ */
+:root,
+[data-theme] {
+  --bs-primary: var(--color-primary);
+  --bs-link-color: var(--color-primary);
+  --bs-link-hover-color: var(--color-primaryHover);
+  --bs-border-radius: var(--mz-radius-sm);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--color-primary);
+  --bs-btn-border-color: var(--color-primary);
+  --bs-btn-hover-bg: var(--color-primaryHover);
+  --bs-btn-hover-border-color: var(--color-primaryHover);
+  --bs-btn-active-bg: var(--color-primaryHover);
+  --bs-btn-active-border-color: var(--color-primaryHover);
+  --bs-btn-disabled-bg: var(--color-primary);
+  --bs-btn-disabled-border-color: var(--color-primary);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--color-primary);
+  --bs-btn-border-color: var(--color-primary);
+  --bs-btn-hover-bg: var(--color-primary);
+  --bs-btn-hover-border-color: var(--color-primary);
+  --bs-btn-active-bg: var(--color-primaryHover);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.text-primary { color: var(--color-primary) !important; }
+.bg-primary { background-color: var(--color-primary) !important; }
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+.form-check-input:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.nav-pills .nav-link.active { background-color: var(--color-primary); }
+.page-item.active .page-link { background-color: var(--color-primary); border-color: var(--color-primary); }
+
+/* --- Page ---------------------------------------------------------------- */
+.mz-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.mz-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.mz-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-textPrimary);
+  letter-spacing: -0.01em;
+}
+
+.mz-page-subtitle {
+  margin: 4px 0 0;
+  color: var(--color-textSecondary);
+  font-size: 0.925rem;
+}
+
+.mz-card {
+  background: var(--color-cardBg);
+  border: 1px solid var(--color-cardBorder, var(--color-border));
+  border-radius: var(--mz-radius);
+  box-shadow: var(--color-cardShadow);
+}
+
+.mz-card-body { padding: 20px; }
+
+.mz-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-divider, var(--color-border));
+}
+
+/* --- Onglets en pastilles (Tous / En cours / À faire / Terminés) --------- */
+.mz-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mz-tab {
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  background: var(--color-cardBg);
+  color: var(--color-primary);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.mz-tab:hover { background: var(--color-primaryLight); }
+
+.mz-tab.is-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.mz-tab .mz-tab-count {
+  margin-left: 6px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+/* --- Recherche ----------------------------------------------------------- */
+.mz-search {
+  position: relative;
+  min-width: 240px;
+}
+
+.mz-search input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bgDark, #F6FAFA);
+  border-radius: 999px;
+  padding: 8px 14px 8px 36px;
+  font-size: 0.9rem;
+  color: var(--color-textPrimary);
+  outline: none;
+}
+
+.mz-search input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-cardBg);
+}
+
+.mz-search svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-textSecondary);
+}
+
+/* --- Tableau ------------------------------------------------------------- */
+.mz-table-wrap { overflow-x: auto; }
+
+.mz-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.mz-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-cardBg);
+  color: var(--color-textSecondary);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mz-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-divider, var(--color-border));
+  vertical-align: middle;
+  color: var(--color-textPrimary);
+}
+
+.mz-table tbody tr:hover td { background: color-mix(in srgb, var(--color-primary) 4%, transparent); }
+.mz-table tbody tr:last-child td { border-bottom: none; }
+.mz-table .mz-muted { color: var(--color-textSecondary); font-size: 0.84rem; }
+.mz-table .mz-strong { font-weight: 600; }
+.mz-table .mz-actions { white-space: nowrap; text-align: right; }
+
+/* --- Badges de statut ---------------------------------------------------- */
+.mz-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--color-pillNeutralBg, #EDF3F4);
+  color: var(--color-pillNeutralText, #5F7A80);
+}
+
+.mz-pill--info { background: var(--color-pillInfoBg, #E6E9FF); color: var(--color-pillInfoText, #4C5FD5); }
+.mz-pill--warning { background: var(--color-pillWarningBg, #FFEBD6); color: var(--color-pillWarningText, #C76A12); }
+.mz-pill--success { background: var(--color-pillSuccessBg, #D9F4E7); color: var(--color-pillSuccessText, #1A8754); }
+.mz-pill--danger { background: var(--color-pillDangerBg, #FDE2E2); color: var(--color-pillDangerText, #B83232); }
+
+/* --- Boutons icône (voir / modifier / plus) ------------------------------ */
+.mz-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-textSecondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.mz-icon-btn:hover { background: var(--color-primaryLight); color: var(--color-primary); }
+.mz-icon-btn--primary { border-color: var(--color-primary); color: var(--color-primary); }
+.mz-icon-btn--primary:hover { background: var(--color-primary); color: #fff; }
+.mz-icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* --- Bandeaux et états --------------------------------------------------- */
+.mz-banner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border-radius: var(--mz-radius-sm);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  background: var(--color-primaryLight);
+  color: var(--color-textPrimary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.mz-banner--error { background: var(--color-pillDangerBg, #FDE2E2); border-color: transparent; color: var(--color-pillDangerText, #B83232); }
+.mz-banner--success { background: var(--color-pillSuccessBg, #D9F4E7); border-color: transparent; color: var(--color-pillSuccessText, #1A8754); }
+
+.mz-empty {
+  text-align: center;
+  padding: 56px 16px;
+  color: var(--color-textSecondary);
+}
+
+.mz-empty svg { color: var(--color-primary); opacity: 0.6; margin-bottom: 12px; }
+
+.mz-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mz-kpi { padding: 14px 16px; }
+.mz-kpi-label { font-size: 0.78rem; color: var(--color-textSecondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.mz-kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--color-textPrimary); }
+
+@media (max-width: 768px) {
+  .mz-page { padding: 16px; }
+  .mz-search { min-width: 100%; }
+}

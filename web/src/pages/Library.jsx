@@ -8,6 +8,8 @@ import { FiBook, FiSearch, FiPlus, FiFilter, FiBookOpen, FiDownload } from "reac
 import { fetchBooks, fetchMyBorrowings, borrowBook, returnBook, createBook } from "../store/slices/librarySlice"
 import debounce from "lodash.debounce"
 import { Link } from "react-router-dom"
+import BookCover from "../components/BookCover"
+
 
 const Library = () => {
   const dispatch = useDispatch()
@@ -188,7 +190,7 @@ const Library = () => {
     return <Badge bg="primary">{config.label}</Badge>
   }
 
-  const canManageLibrary = user?.role === 'bibliothecaire' || user?.role === 'iadmin' ||  user?.role === 'sga';
+  const canManageLibrary = user?.role === 'bibliothecaire' || user?.role === 'pdg' ||  user?.role === 'sga';
 
   return (
     <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>
@@ -334,17 +336,19 @@ const Library = () => {
                         }}
                       >
                         <div style={{ position: 'relative', overflow: 'hidden', height: '200px' }}>
-                          <Card.Img
-                            variant="top"
-                            src={book.cover_image || "https://via.placeholder.com/150x200?text=No+Cover"}
-                            style={{
-                              height: '200px',
-                              objectFit: 'cover',
-                              transition: 'transform 0.3s ease'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                          />
+                          {book.cover_image ? (
+                            <Card.Img
+                              variant="top"
+                              src={book.cover_image}
+                              style={{
+                                height: '200px',
+                                objectFit: 'cover',
+                                transition: 'transform 0.3s ease'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            />
+                          ) : <BookCover book={book} height={200} />}
                         </div>
                         <Card.Body style={{ padding: '16px' }}>
                           <Card.Title
@@ -527,11 +531,9 @@ const Library = () => {
           {selectedBook && (
             <Row>
               <Col md={4}>
-                <img
-                  src={selectedBook.cover_image || "https://via.placeholder.com/150x200?text=No+Cover"}
-                  alt={selectedBook.title}
-                  className="img-fluid rounded mb-3"
-                />
+                {selectedBook.cover_image
+                  ? <img src={selectedBook.cover_image} alt={selectedBook.title} className="img-fluid rounded mb-3" />
+                  : <div className="rounded mb-3 overflow-hidden"><BookCover book={selectedBook} height={240} /></div>}
               </Col>
               <Col md={8}>
                 <p><strong>Auteur:</strong> {selectedBook.author}</p>

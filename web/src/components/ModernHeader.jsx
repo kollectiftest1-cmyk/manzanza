@@ -6,11 +6,11 @@
 
 import { useState, useEffect } from "react"
 import { useSelector, useDispatch } from "react-redux"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { Dropdown, Badge, Form } from "react-bootstrap"
 import { logout } from "../store/slices/authSlice"
-import { markAllAsRead } from "../store/slices/notificationsSlice"
+import { markAllAsRead, fetchNotifications } from "../store/slices/notificationsSlice"
 import ThemeSwitcher from "./ThemeSwitcher"
 import UserAvatar from "./UserAvatar"
 import SearchModal from "./SearchModal"
@@ -22,7 +22,8 @@ import {
 const ModernHeader = () => {
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
-  const { unreadCount } = useSelector((state) => state.notifications)
+  const { unreadCount, notifications: storeNotifications = [] } = useSelector((state) => state.notifications)
+  const location = useLocation()
   const [searchFocused, setSearchFocused] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
@@ -82,12 +83,36 @@ const ModernHeader = () => {
     return new Date().toLocaleDateString('fr-FR', options)
   }
 
-  // Sample notifications (remplacez par vos vraies données)
-  const notifications = [
-    { id: 1, title: "Nouveau TP disponible", message: "TP de Programmation Web", time: "Il y a 5 min", unread: true },
-    { id: 2, title: "Résultat publié", message: "Quiz de Base de données", time: "Il y a 1h", unread: true },
-    { id: 3, title: "Rappel cours", message: "Cours demain à 8h00", time: "Il y a 2h", unread: false },
+  // Vraies notifications de l'utilisateur (plus de données fictives dans l'en-tête)
+  useEffect(() => { dispatch(fetchNotifications()) }, [dispatch])
+  const notifications = (Array.isArray(storeNotifications) ? storeNotifications : []).slice(0, 5).map((n) => ({
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    time: n.created_at ? new Date(String(n.created_at).replace(' ', 'T')).toLocaleString('fr-FR') : '',
+    unread: !(n.is_read ?? n.read),
+  }))
+
+  // Titre de la page courante (l'en-tête affichait « Dashboard » partout)
+  const PAGE_TITLES = [
+    ['/inscriptions-annuelles', 'Inscriptions annuelles'], ['/validation-notes', 'Validation des notes'],
+    ['/deliberations', 'Délibérations'], ['/memoires', 'TFC & mémoires'], ['/finances', 'Barèmes & caisse'], ['/documents-officiels', 'Documents officiels'],
+    ['/pilotage', 'Pilotage'], ['/mes-resultats', 'Mes résultats'], ['/affectations', 'Affectations de rôles'],
+    ['/parametres', "Paramètres de l'établissement"], ['/unites-enseignement', "Unités d'enseignement"], ['/assistance', 'Assistance informatique'], ['/rh/presences', 'Pointage du personnel'], ['/rh/heures', 'Heures prestées'], ['/rh/mes-bulletins', 'Mon espace RH'],
+    ['/corbeille', 'Corbeille'], ['/journal-audit', "Journal d'audit"], ['/courses', 'Cours'],
+    ['/auditoires', 'Auditoires'], ['/horaire', 'Horaires'], ['/calendrier', 'Calendrier académique'],
+    ['/releves-cotes', 'Relevés de cotes'], ['/transcripts', 'Relevés de cotes'],
+    ['/gestion-inscriptions', 'Inscriptions'], ['/gestion-etudiants', 'Étudiants'], ['/students', 'Étudiants'],
+    ['/gestion-enseignants', 'Enseignants'], ['/teachers', 'Enseignants'], ['/teacher/assignments', 'TP / TD'],
+    ['/student/assignments', 'Mes TP / TD'], ['/teacher/quizzes', 'Quiz'], ['/student/quizzes', 'Mes quiz'],
+    ['/teacher/attendance', 'Présences'], ['/configuration-notes', 'Configuration académique'],
+    ['/chat', 'Messagerie'], ['/library', 'Bibliothèque'], ['/paiements', 'Mes paiements'],
+    ['/caisse', 'Caisse'], ['/gestion-frais', 'Gestion des frais'], ['/comptabilite', 'Comptabilité'],
+    ['/rh/employees', 'Employés'], ['/rh/contracts', 'Contrats'], ['/rh/payrolls', 'Paie'], ['/rh/leaves', 'Congés'],
+    ['/administration', 'Utilisateurs'], ['/apparitorat', 'Apparitorat'], ['/service-it', 'Service IT'],
+    ['/notifications', 'Notifications'], ['/profile', 'Profil'],
   ]
+  const pageTitle = (PAGE_TITLES.find(([p]) => location.pathname.startsWith(p)) || [null, 'Tableau de bord'])[1]
 
   return (
     <>
@@ -417,7 +442,7 @@ const ModernHeader = () => {
               <FiMenu size={22} />
             </motion.button>
             <div>
-              <h1 className="header-title">Dashboard</h1>
+              <h1 className="header-title">{pageTitle}</h1>
               <div className="header-date">
                 <FiCalendar size={14} />
                 {getCurrentDate()}

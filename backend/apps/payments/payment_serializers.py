@@ -91,7 +91,7 @@ class CreateVoucherSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=10, decimal_places=2)
     description = serializers.CharField(required=False, allow_blank=True)
     beneficiary_account = serializers.CharField(max_length=100)
-    beneficiary_name = serializers.CharField(max_length=200, default='SYNTAX GU')
+    beneficiary_name = serializers.CharField(max_length=200, default='UNIVERSITÉ MAZANZA')
     expiry_days = serializers.IntegerField(default=30, help_text='Nombre de jours avant expiration')
     payment_method = serializers.CharField(max_length=50, default='especes')
 
@@ -115,6 +115,7 @@ class ValidatePaymentSerializer(serializers.Serializer):
 class ReceiptVerificationSerializer(serializers.Serializer):
     """Serializer for receipt verification response"""
     valid = serializers.BooleanField()
+    annulled = serializers.BooleanField(default=False)
     receipt_number = serializers.CharField()
     student_name = serializers.CharField()
     amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2)

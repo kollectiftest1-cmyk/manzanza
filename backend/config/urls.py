@@ -61,9 +61,15 @@ urlpatterns = [
     path('api/schedules/', include('apps.schedules.urls')),
     path('api/grades/', include('apps.grades.urls')),
     path('api/core/', include('apps.core.urls')),
+    path('api/scolarite/', include('apps.scolarite.urls')),
 ]
 
 # Serve media files in development
+# Médias : fichiers privés uniquement via URL signée ; fichiers publics servis par Django en dev
+# (nginx en production). Voir apps/core/media.py.
+from django.urls import re_path
+from apps.core.media import media_view
+urlpatterns += [re_path(r'^%s(?P<path>.+)$' % settings.MEDIA_URL.lstrip('/'), media_view)]
+
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

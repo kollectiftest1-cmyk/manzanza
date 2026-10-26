@@ -282,7 +282,7 @@ JWT_REFRESH_TOKEN_LIFETIME=1440
 12. etudiant - Étudiant
 13. bibliothecaire - Bibliothécaire
 14. jury - Jury Mémoire/Défense
-15. iadmin - iAdmin (Super Utilisateur)
+15. (ancien iAdmin fusionné dans PDG — administrateur général)
 
 ## 🔐 Authentification
 
@@ -325,11 +325,11 @@ POST /api/auth/token/refresh/
 
 ### Hiérarchie des permissions
 
-1. **IsAdminUser** - PDG, Directeur Général, SGA, SGAD, iAdmin
+1. **IsAdminUser** - PDG (tous les droits), Directeur Général, SGA, SGAD
 2. **IsTeacherOrAdmin** - Enseignants, Assistants, Chefs + Admins
 3. **IsLibrarianOrAdmin** - Bibliothécaires + Admins
-4. **IsHROrAdmin** - SGAD, Directeur Général, iAdmin
-5. **IsCaisseOrAdmin** - Caisse, SGAD, iAdmin
+4. **IsHROrAdmin** - SGAD, Directeur Général, PDG
+5. **IsCaisseOrAdmin** - Caisse, Comptable, SGAD, PDG
 6. **IsOwnerOrAdmin** - Propriétaire de la ressource + Admins
 
 ## 📚 Documentation API
@@ -347,6 +347,21 @@ python manage.py test
 # Tests pour une app spécifique
 python manage.py test apps.users
 ```
+
+## 🗑️ Corbeille, journal d'audit et sécurité (refonte v2)
+
+- **Aucune suppression immédiate** : `DELETE` envoie l'élément et ses dépendances dans la corbeille
+  (`/api/core/trash/`), restaurable en un clic (`POST /api/core/trash/{id}/restore/`).
+- **Purge automatique** après la durée de conservation (60 jours par défaut, réglable par le PDG via
+  `PATCH /api/core/settings/`). À planifier une fois par jour :
+  - Windows (Planificateur de tâches) : `python manage.py purge_trash`
+  - Linux (cron) : `15 2 * * * cd /chemin/backend && python manage.py purge_trash`
+  - Simulation : `python manage.py purge_trash --dry-run`
+- **Données protégées** : un élément lié à des paiements, reçus, notes, bulletins, copies ou tentatives
+  d'évaluation ne peut pas être supprimé (réponse 409) — on le désactive.
+- **Journal d'audit** (`/api/core/audit-logs/`, PDG/DG) : connexions, notes, paiements,
+  décisions d'inscription, corbeille, paramètres.
+- **Tests de non-régression** : `python manage.py test apps.core` (failles de l'audit + corbeille).
 
 ## 🔄 Commandes utiles
 

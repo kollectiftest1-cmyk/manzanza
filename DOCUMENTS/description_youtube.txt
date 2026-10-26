@@ -1,0 +1,25 @@
+Université MAZANZA — Le système de gestion universitaire expliqué de A à Z
+
+Présentation complète de la plateforme de gestion de l'Université MAZANZA (web et mobile) : organisation et rôles, configuration de l'établissement, système LMD (crédits, UE, volumes horaires), admission, inscription annuelle, finances et caisse, horaires, cours et présences, notes et pondérations, délibération et décisions du jury, documents officiels vérifiables, TFC et mémoires, pointage, heures prestées, paie, services, pilotage et sécurité.
+
+Tous les écrans proviennent de l'application réelle, remplie avec une université de démonstration (filière Génie Informatique, années 2025-2026 et 2026-2027), avec des exemples chiffrés : calcul d'une note pondérée, règle d'assiduité, compensation, délibération en deux sessions, retenues pour absence, heures supplémentaires et paie d'un vacataire.
+
+Chapitres
+0:00 Introduction
+1:14 1. Organisation et rôles
+3:30 2. Configurer l'établissement
+6:30 3. Le système LMD
+8:14 4. L'admission des nouveaux étudiants
+9:32 5. L'inscription annuelle
+11:10 6. Finances de la scolarité
+13:04 7. Horaires et salles
+13:34 8. Cours et présences
+14:40 9. Notes et pondérations
+16:41 10. La délibération LMD
+19:59 11. Documents officiels
+20:41 12. TFC et mémoires
+21:30 13. Le personnel
+23:05 14. La paie
+25:33 15. Services aux usagers
+26:11 16. Pilotage et sécurité
+27:21 17. Une année universitaire

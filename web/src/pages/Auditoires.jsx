@@ -90,14 +90,14 @@ const Auditoires = () => {
   const [savingCat, setSavingCat] = useState(false)
 
   // Permission checks
-  const canManageSection = ['sga', 'iadmin'].includes(user?.role)
-  const canManageFiliere = ['sga', 'iadmin','chef_section'].includes(user?.role)
-  const canManageAuditoir = ['sga', 'iadmin','chef_section',"chef_departement"].includes(user?.role)
+  const canManageSection = ['sga', 'pdg'].includes(user?.role)
+  const canManageFiliere = ['sga', 'pdg','chef_section'].includes(user?.role)
+  const canManageAuditoir = ['sga', 'pdg','chef_section',"chef_departement"].includes(user?.role)
   const isSectionRole = ['chef_section'].includes(user?.role)
   const isDepartementRole = ['chef_departement'].includes(user?.role)
   // More granular permission checks for fetching user lists
-  const canFetchChefSection = ['sga', 'iadmin','chef_section'].includes(user?.role)
-  const canFetchChefDepartement = ['sga', 'iadmin','chef_section'].includes(user?.role)
+  const canFetchChefSection = ['sga', 'pdg','chef_section'].includes(user?.role)
+  const canFetchChefDepartement = ['sga', 'pdg','chef_section'].includes(user?.role)
 
   // Initial Data Fetch
   useEffect(() => {
@@ -133,7 +133,7 @@ const Auditoires = () => {
         }));
       }
 
-      // Fetch chef_section users only if the current user can assign chef_section (sga, iadmin)
+      // Fetch chef_section users only if the current user can assign chef_section (sga, pdg)
       if (canFetchChefSection) {
         promises.push(getUsers({ role: 'chef_section' }).then(res => setChefsDeSection(res.data.results || res.data)).catch(err => {
           if (err.response && err.response.status === 403) {
@@ -145,7 +145,7 @@ const Auditoires = () => {
           }
         }));
       }
-      // Fetch chef_departement users only if the current user can assign chef_filiere (sga, iadmin)
+      // Fetch chef_departement users only if the current user can assign chef_filiere (sga, pdg)
       if (canFetchChefDepartement) {
         promises.push(getUsers({ role: 'chef_departement' }).then(res => setChefsDeDepartement(res.data.results || res.data)).catch(err => {
           if (err.response && err.response.status === 403) {
@@ -268,7 +268,7 @@ const Auditoires = () => {
   }
 
   const handleDeleteAuditoire = async (auditoireId, auditoireNom) => {
-    if (!window.confirm(`Supprimer l'auditoire "${auditoireNom}" ? Cette action est irréversible.`)) return
+    if (!window.confirm(`Supprimer l'auditoire "${auditoireNom}" ? Il ira dans la corbeille (restaurable pendant la durée de conservation).`)) return
     try {
       await dispatch(deleteAuditoire(auditoireId)).unwrap()
     } catch (err) {
@@ -276,7 +276,7 @@ const Auditoires = () => {
     }
   }
 
-  // ── Grade Category Config handlers (SGA/iadmin) ───────────────────────────
+  // ── Grade Category Config handlers (SGA/PDG) ───────────────────────────
   const loadGradeCategories = async () => {
     setLoadingCats(true)
     try {

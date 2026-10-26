@@ -53,6 +53,8 @@ const ConfigurationAcademique = () => {
     current_academic_year: '',
     current_semester: 'S1',
     include_retard_in_presence: false,
+    credits_per_year: 60,
+    min_attendance_percent: 0,
   })
   const [savingConfig, setSavingConfig] = useState(false)
   const [loadingConfig, setLoadingConfig] = useState(true)
@@ -83,6 +85,8 @@ const ConfigurationAcademique = () => {
           current_academic_year: data.current_academic_year || '',
           current_semester: data.current_semester || 'S1',
           include_retard_in_presence: data.include_retard_in_presence ?? false,
+          credits_per_year: data.credits_per_year ?? 60,
+          min_attendance_percent: data.min_attendance_percent ?? 0,
         })
       }
     } catch (err) {
@@ -432,6 +436,24 @@ const ConfigurationAcademique = () => {
                         </Form.Text>
                       </Form.Group>
                     )}
+
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: '600', fontSize: '14px' }}>Crédits par année d'études (LMD)</Form.Label>
+                      <Form.Control type="number" min="30" max="90" value={configForm.credits_per_year}
+                        onChange={(e) => setConfigForm({ ...configForm, credits_per_year: parseInt(e.target.value) || 60 })} />
+                      <Form.Text style={{ color: 'var(--color-textSecondary)' }}>
+                        Norme LMD : 60 crédits par an, soit 30 par semestre. Les écarts sont signalés sur la page « Unités d'enseignement ».
+                      </Form.Text>
+                    </Form.Group>
+
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: '600', fontSize: '14px' }}>Assiduité minimale pour être admis à l'examen (%)</Form.Label>
+                      <Form.Control type="number" min="0" max="100" step="0.01" value={configForm.min_attendance_percent}
+                        onChange={(e) => setConfigForm({ ...configForm, min_attendance_percent: parseFloat(e.target.value) || 0 })} />
+                      <Form.Text style={{ color: 'var(--color-textSecondary)' }}>
+                        0 = règle désactivée. Ex. 66,67 : un étudiant présent à moins des deux tiers des séances n'est pas admis à l'examen du cours (examen compté 0, accès en ligne bloqué).
+                      </Form.Text>
+                    </Form.Group>
 
                     <Form.Group className="mb-3">
                       <Form.Check

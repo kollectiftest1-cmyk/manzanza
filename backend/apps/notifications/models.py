@@ -2,10 +2,12 @@
 Notification models
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 
 
-class Notification(models.Model):
+class Notification(SoftDeleteModel):
     """Notification Model"""
 
     NOTIFICATION_TYPES = [
@@ -65,7 +67,7 @@ class Notification(models.Model):
         self.save()
 
 
-class Announcement(models.Model):
+class Announcement(SoftDeleteModel):
     """Public announcements"""
 
     AUDIENCE_CHOICES = [

@@ -8,6 +8,8 @@ import {
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiUser, FiMail, FiPhone, FiCalendar, FiMapPin, FiGlobe, FiHome, FiBook, FiUsers, FiFolder, FiExternalLink, FiUserCheck, FiAward, FiCheckCircle, FiXCircle, FiClock } from 'react-icons/fi';
 import api from '../services/api';
+import AdmissionCircuit from '../components/Admission/AdmissionCircuit';
+import { hasAnyRole } from '../utils/permissions';
 import { useSelector } from 'react-redux';
 
 // Animation variants
@@ -34,7 +36,8 @@ const InscriptionDetail = () => {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
 
-    const canManage = user && ['sga', 'iadmin', 'pdg', 'directeur_general'].includes(user.role);
+    // La décision revient à la commission d'admission (SGA, membres affectés) ; la direction consulte.
+    const canManage = hasAnyRole(user, 'sga', 'pdg', 'commission_admission');
 
     useEffect(() => {
         const fetchInscription = async () => {
@@ -52,7 +55,7 @@ const InscriptionDetail = () => {
     }, [id]);
 
     const handleValidate = async () => {
-        if (!window.confirm("Valider cette inscription et créer le compte étudiant ?")) return;
+        if (!window.confirm("Prononcer l'admission : création du compte, du matricule et de l'inscription annuelle (en attente des frais) ?")) return;
         setActionLoading(true);
         setActionError(null);
         try {
@@ -258,7 +261,7 @@ const InscriptionDetail = () => {
                                         }}
                                     >
                                         <FiCheckCircle size={18} />
-                                        {actionLoading ? 'Validation...' : 'Valider'}
+                                        {actionLoading ? 'Admission...' : 'Admettre'}
                                     </Button>
                                     <Button
                                         onClick={() => setShowRejectModal(true)}
@@ -281,6 +284,15 @@ const InscriptionDetail = () => {
                             )}
                         </div>
                     </div>
+                </motion.div>
+
+                <motion.div variants={itemVariants}>
+                    <AdmissionCircuit
+                        inscription={inscription}
+                        user={user}
+                        onChange={(data) => setInscription(prev => ({ ...prev, ...data }))}
+                        onMessage={(m) => { if (m.ok) { setActionSuccess(m.ok); setActionError(null) } else { setActionError(m.error); setActionSuccess(null) } }}
+                    />
                 </motion.div>
 
                 <Row xs={1} md={2} style={{ gap: '24px 0' }}>

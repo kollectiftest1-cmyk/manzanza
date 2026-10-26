@@ -95,7 +95,7 @@ def notify_auditoire_stakeholders(auditoire, title, message,
 
     # 5. SGA/admin users (they should also be notified)
     admin_ids = User.objects.filter(
-        role__in=['sga', 'sgad', 'iadmin'], is_active=True, status='actif'
+        role__in=['sga', 'sgad', 'pdg'], is_active=True, status='actif'
     ).values_list('id', flat=True)
     recipient_ids.update(admin_ids)
 

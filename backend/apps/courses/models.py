@@ -2,18 +2,24 @@
 Course models
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 from django.utils.text import slugify
 from django.utils import timezone
 from apps.auditoires.models import Section, Filiere, Auditoire
 
-class Course(models.Model):
+class Course(SoftDeleteModel):
     """Course Model - Un cours est donné dans UN SEUL auditoire"""
 
     name = models.CharField(max_length=200, verbose_name='Nom du cours')
     code = models.CharField(max_length=20, unique=True, blank=True, editable=False, verbose_name='Code du cours')
     description = models.TextField(blank=True, null=True, verbose_name='Description')
     credits = models.IntegerField(default=3, verbose_name='Crédits')
+    # Volume horaire présentiel (LMD : crédits × heures par crédit si non renseigné)
+    volume_cm = models.PositiveSmallIntegerField(default=0, verbose_name='Cours magistral (h)')
+    volume_td = models.PositiveSmallIntegerField(default=0, verbose_name='Travaux dirigés (h)')
+    volume_tp = models.PositiveSmallIntegerField(default=0, verbose_name='Travaux pratiques (h)')
 
     # Relations - Hiérarchie universitaire correcte
     # Un cours appartient à UN auditoire (qui appartient à une filière, qui appartient à une section)
@@ -25,6 +31,12 @@ class Course(models.Model):
         help_text='Auditoire dans lequel ce cours est donné',
         null=False,
         blank=False
+    )
+
+    # Élément constitutif (EC) d'une unité d'enseignement du programme
+    ue = models.ForeignKey(
+        'scolarite.UniteEnseignement', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='cours', verbose_name="Unité d'enseignement"
     )
 
     # Un cours a UN enseignant titulaire
@@ -80,6 +92,10 @@ class Course(models.Model):
         verbose_name = 'Cours'
         verbose_name_plural = 'Cours'
         ordering = ['name']
+
+    @property
+    def volume_horaire_total(self):
+        return (self.volume_cm or 0) + (self.volume_td or 0) + (self.volume_tp or 0)
 
     def __str__(self):
         return f"{self.code} - {self.name}"
@@ -164,7 +180,7 @@ class CourseEnrollment(models.Model):
                 )
 
 
-class CourseMaterial(models.Model):
+class CourseMaterial(SoftDeleteModel):
     """Course materials (documents, videos, etc.)"""
 
     MATERIAL_TYPES = [

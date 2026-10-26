@@ -2,11 +2,13 @@
 Teacher-Assistant relationship models
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
 
-class TeacherAssistant(models.Model):
+class TeacherAssistant(SoftDeleteModel):
     """
     Relation entre un enseignant et un assistant.
     Un assistant peut être attaché à un enseignant pour un cours spécifique.

@@ -1,0 +1,1095 @@
+1
+00:00:00,700 --> 00:00:06,332
+Bienvenue dans la présentation complète de la plateforme de gestion de l'Université Mazanza.
+
+2
+00:00:06,752 --> 00:00:15,473
+En suivant cette vidéo jusqu'au bout, vous saurez comment le système est organisé, comment le configurer, et comment chaque service l'utilise au quotidien.
+
+3
+00:00:16,823 --> 00:00:21,646
+Nous allons parcourir toute la vie d'une université : son organisation et ses rôles,
+
+4
+00:00:22,066 --> 00:00:27,191
+la scolarité selon le système LMD, avec l'admission, l'inscription et les crédits,
+
+5
+00:00:27,611 --> 00:00:31,611
+l'enseignement au jour le jour : cours, présences, épreuves et pondérations,
+
+6
+00:00:32,031 --> 00:00:36,553
+les délibérations, les décisions du jury et les documents officiels,
+
+7
+00:00:36,973 --> 00:00:39,225
+les finances de la scolarité et la caisse,
+
+8
+00:00:39,645 --> 00:00:45,997
+et enfin le personnel : pointage, heures prestées et paie, avant de terminer par le pilotage et la sécurité.
+
+9
+00:00:46,997 --> 00:00:53,345
+Tous les écrans de cette vidéo viennent de l'application réelle, remplie avec une université de démonstration.
+
+10
+00:00:53,765 --> 00:01:00,179
+L'année deux mille vingt-cinq – deux mille vingt-six est terminée : notes, délibérations et procès-verbaux existent.
+
+11
+00:01:00,599 --> 00:01:05,247
+L'année deux mille vingt-six – deux mille vingt-sept est en cours : nous sommes fin octobre.
+
+12
+00:01:05,667 --> 00:01:13,358
+Nous suivrons plusieurs cas concrets, comme celui de l'étudiante Naomie, pour voir exactement comment le système calcule et décide.
+
+13
+00:01:14,808 --> 00:01:17,393
+Premier chapitre : l'organisation et les rôles.
+
+14
+00:01:18,743 --> 00:01:24,523
+Le système reprend l'organisation habituelle d'une université congolaise, avec quinze rôles.
+
+15
+00:01:24,943 --> 00:01:33,402
+Au sommet, le PDG est l'administrateur général : il dispose de tous les droits, y compris les paramètres techniques, les comptes et la corbeille.
+
+16
+00:01:33,822 --> 00:01:38,999
+Le directeur général consulte tous les indicateurs et fixe les règles de l'établissement.
+
+17
+00:01:39,419 --> 00:01:47,105
+Le secrétariat général académique, le SGA, pilote la scolarité : structure, programmes, inscriptions et délibérations.
+
+18
+00:01:47,525 --> 00:01:54,593
+Le secrétariat général administratif, le SGAD, gère les finances de la scolarité et les ressources humaines.
+
+19
+00:01:55,013 --> 00:02:01,544
+Les chefs de section et de filière valident les inscriptions pédagogiques et approuvent les notes de leurs enseignants.
+
+20
+00:02:01,964 --> 00:02:06,441
+Les enseignants et les assistants tiennent les cours, font l'appel et saisissent les notes.
+
+21
+00:02:06,862 --> 00:02:10,580
+L'apparitorat contrôle les dossiers des candidats et gère les salles.
+
+22
+00:02:11,000 --> 00:02:14,666
+La caisse encaisse, le comptable suit les recettes et paie les salaires.
+
+23
+00:02:15,086 --> 00:02:22,712
+Le jury délibère, et chacun dispose enfin d'un espace adapté : bibliothécaire, service informatique et étudiant.
+
+24
+00:02:23,712 --> 00:02:25,710
+Trois principes guident tout le système.
+
+25
+00:02:26,130 --> 00:02:31,251
+Premièrement, la séparation des pouvoirs : celui qui saisit ne valide jamais sa propre saisie.
+
+26
+00:02:31,671 --> 00:02:39,378
+L'enseignant saisit ses notes, mais c'est le chef de filière qui les approuve ; le SGAD valide la paie, mais c'est le comptable qui la paie.
+
+27
+00:02:39,798 --> 00:02:47,344
+Deuxièmement, rien ne disparaît par erreur : une suppression envoie l'élément à la corbeille, où il reste restaurable soixante jours.
+
+28
+00:02:47,764 --> 00:02:54,334
+Et un paiement, une note ou un procès-verbal ne se suppriment jamais : on les annule par une opération inverse, tracée.
+
+29
+00:02:54,754 --> 00:03:03,013
+Troisièmement, tout est tracé : chaque connexion, chaque note, chaque paiement et chaque décision est inscrite dans un journal d'audit infalsifiable.
+
+30
+00:03:04,013 --> 00:03:08,612
+Chaque personne se connecte avec son adresse e-mail et son mot de passe personnels.
+
+31
+00:03:09,032 --> 00:03:14,583
+Le système reconnaît son rôle et lui présente uniquement les menus et les données qui la concernent.
+
+32
+00:03:15,583 --> 00:03:17,706
+Voici le tableau de bord du PDG.
+
+33
+00:03:18,126 --> 00:03:24,169
+Tous les chiffres sont calculés en direct à partir des données réelles : comptes, connexions, corbeille, stockage.
+
+34
+00:03:24,589 --> 00:03:29,570
+Sur la gauche, le menu regroupe les fonctions par domaine ; il est différent pour chaque rôle.
+
+35
+00:03:31,020 --> 00:03:34,387
+Deuxième chapitre : la configuration de l'établissement.
+
+36
+00:03:34,807 --> 00:03:40,299
+Ces réglages se font une fois, au démarrage, puis s'ajustent au début de chaque année académique.
+
+37
+00:03:41,649 --> 00:03:51,424
+Dans les paramètres de l'établissement, on saisit d'abord l'identité : le nom de l'université, la ville, le recteur et le secrétaire général académique signataire.
+
+38
+00:03:51,844 --> 00:03:57,764
+Ces informations apparaissent automatiquement sur les procès-verbaux, les relevés et les attestations.
+
+39
+00:03:58,184 --> 00:04:05,389
+On fixe ensuite les règles financières : ici, cent pour cent des frais échus doivent être réglés pour accéder aux examens.
+
+40
+00:04:05,809 --> 00:04:14,651
+Les résultats détaillés et les documents officiels sont réservés aux étudiants en règle, et l'admission exige le paiement préalable des frais de dossier.
+
+41
+00:04:15,651 --> 00:04:18,220
+L'université est organisée en trois niveaux.
+
+42
+00:04:18,640 --> 00:04:21,297
+Les sections, par exemple Sciences et Technologies,
+
+43
+00:04:21,717 --> 00:04:23,914
+les filières, comme Génie Informatique,
+
+44
+00:04:24,334 --> 00:04:31,492
+et les groupes, appelés auditoires : par exemple L1 Génie Informatique Jour, pour l'année deux mille vingt-six – deux mille vingt-sept.
+
+45
+00:04:31,912 --> 00:04:35,060
+Les étudiants sont inscrits dans un groupe pour une année donnée.
+
+46
+00:04:35,480 --> 00:04:42,025
+Chaque année on crée de nouveaux groupes ; les groupes des années passées restent intacts, avec leurs notes et leurs résultats.
+
+47
+00:04:43,025 --> 00:04:47,743
+Dans la gestion académique, le SGA crée les sections, les filières et les groupes.
+
+48
+00:04:48,163 --> 00:04:53,315
+Chaque groupe précise son niveau, sa vacation, jour ou soir, sa filière et sa capacité.
+
+49
+00:04:54,315 --> 00:04:58,581
+Les responsabilités sont attribuées par des affectations de rôles, datées.
+
+50
+00:04:59,001 --> 00:05:08,823
+Ici, Georges Matondo est chef de la section Sciences et Technologies, et Patrick Kabeya chef de la filière Génie Informatique, depuis septembre deux mille vingt-cinq.
+
+51
+00:05:09,243 --> 00:05:18,809
+Un enseignant peut ainsi devenir chef de filière, ou membre de la commission d'admission, pour une période, sans changer de compte et sans perdre son rôle d'enseignant.
+
+52
+00:05:19,809 --> 00:05:29,126
+Le calendrier académique définit les années, les semestres et les événements : rentrée, vacances, examens, délibérations, rattrapage, collation des grades.
+
+53
+00:05:29,546 --> 00:05:34,734
+Une seule année est marquée comme année courante : c'est elle que tout le système utilise par défaut.
+
+54
+00:05:35,734 --> 00:05:39,523
+Enfin, la configuration académique fixe les règles de calcul.
+
+55
+00:05:39,943 --> 00:05:43,726
+Un crédit vaut quinze heures d'enseignement, et une année vaut soixante crédits.
+
+56
+00:05:44,146 --> 00:05:52,724
+Les notes sont sur vingt, le seuil de réussite est dix, et la compensation est autorisée à partir de huit, comme nous le verrons à la délibération.
+
+57
+00:05:53,144 --> 00:06:01,618
+On y règle aussi le seuil d'assiduité, soixante-dix pour cent, et la part de crédits exigée pour passer avec une dette, soixante-quinze pour cent.
+
+58
+00:06:02,618 --> 00:06:12,696
+Le second onglet définit les catégories d'évaluation et leurs pondérations par défaut : interrogations vingt pour cent, travaux pratiques vingt pour cent, examen soixante pour cent.
+
+59
+00:06:13,116 --> 00:06:17,766
+Chaque enseignant pourra adapter ces pondérations pour son cours, nous y reviendrons.
+
+60
+00:06:18,766 --> 00:06:24,334
+Les comptes du personnel sont créés dans l'administration des utilisateurs, avec leur rôle.
+
+61
+00:06:24,754 --> 00:06:29,924
+Les comptes des étudiants, eux, sont créés automatiquement à l'admission, comme nous allons le voir.
+
+62
+00:06:31,374 --> 00:06:35,895
+Troisième chapitre : le système LMD, qui structure tous les programmes.
+
+63
+00:06:37,245 --> 00:06:40,316
+Le LMD organise les études en trois grades.
+
+64
+00:06:40,736 --> 00:06:44,843
+La licence, en trois ans, de L1 à L3, pour cent quatre-vingts crédits.
+
+65
+00:06:45,263 --> 00:06:48,627
+Le master, en deux ans, pour cent vingt crédits supplémentaires.
+
+66
+00:06:49,047 --> 00:06:51,550
+Puis le doctorat, consacré à la recherche.
+
+67
+00:06:51,970 --> 00:06:55,922
+Chaque année vaut soixante crédits, répartis en deux semestres de trente.
+
+68
+00:06:56,342 --> 00:07:03,439
+Et chaque crédit correspond à quinze heures d'enseignement, réparties entre cours magistraux, travaux dirigés et travaux pratiques.
+
+69
+00:07:04,439 --> 00:07:09,917
+Les programmes sont découpés en unités d'enseignement, les UE, qui regroupent un ou plusieurs cours.
+
+70
+00:07:10,337 --> 00:07:15,257
+Prenons l'UE GI101, Fondements de la programmation, au premier semestre de L1.
+
+71
+00:07:15,677 --> 00:07:25,525
+Elle contient le cours d'algorithmique, quatre crédits, soit soixante heures : trente heures de cours magistral, quinze de travaux dirigés et quinze de travaux pratiques.
+
+72
+00:07:25,945 --> 00:07:30,329
+Et le cours de programmation en C, également quatre crédits et soixante heures.
+
+73
+00:07:30,749 --> 00:07:32,986
+L'UE vaut donc huit crédits et cent vingt heures.
+
+74
+00:07:33,406 --> 00:07:38,143
+C'est l'UE, et non le cours isolé, qui se valide ou se compense à la délibération.
+
+75
+00:07:38,563 --> 00:07:44,807
+Une fois validée, elle est capitalisée : ses crédits restent acquis, même si l'étudiant doit reprendre d'autres UE.
+
+76
+00:07:45,227 --> 00:07:49,666
+Chaque UE a aussi un type : fondamentale, complémentaire ou transversale.
+
+77
+00:07:50,666 --> 00:07:54,606
+Voici le programme de L1 Génie Informatique dans l'application.
+
+78
+00:07:55,026 --> 00:07:58,880
+Pour chaque UE, on voit ses cours, ses crédits, son volume horaire et son type.
+
+79
+00:07:59,300 --> 00:08:06,398
+En haut, le système vérifie la norme LMD : trente crédits au premier semestre, trente au second, soixante sur l'année.
+
+80
+00:08:06,818 --> 00:08:13,629
+Si un programme ne respecte pas cet équilibre, l'indicateur passe à l'orange, et le SGA le voit immédiatement.
+
+81
+00:08:15,079 --> 00:08:18,131
+Quatrième chapitre : l'admission des nouveaux étudiants.
+
+82
+00:08:19,481 --> 00:08:24,645
+L'admission suit un circuit en cinq étapes, chacune réalisée par un service différent.
+
+83
+00:08:25,065 --> 00:08:28,085
+Le candidat remplit d'abord sa pré-inscription en ligne.
+
+84
+00:08:28,505 --> 00:08:32,937
+L'apparitorat contrôle ses pièces : bulletins, diplôme d'État, pièce d'identité.
+
+85
+00:08:33,357 --> 00:08:35,995
+La caisse enregistre le paiement des frais de dossier.
+
+86
+00:08:36,415 --> 00:08:40,470
+La commission d'admission décide : admis, liste d'attente ou refusé.
+
+87
+00:08:40,890 --> 00:08:47,907
+Pour un candidat admis, le système crée automatiquement son compte étudiant, son matricule et son inscription annuelle.
+
+88
+00:08:48,907 --> 00:08:55,516
+Le formulaire de pré-inscription est public : le candidat le remplit depuis n'importe quel téléphone ou ordinateur.
+
+89
+00:08:55,936 --> 00:09:00,751
+Il renseigne son identité, son parcours, la filière souhaitée, puis dépose ses pièces.
+
+90
+00:09:01,751 --> 00:09:05,073
+L'apparitorat retrouve toutes les candidatures en attente.
+
+91
+00:09:05,493 --> 00:09:10,972
+Pour chaque dossier, deux étiquettes résument l'avancement : l'état des pièces et le paiement des frais de dossier.
+
+92
+00:09:11,392 --> 00:09:17,315
+Un dossier incomplet est marqué à compléter, avec le motif, par exemple un diplôme d'État manquant.
+
+93
+00:09:18,315 --> 00:09:27,124
+La fiche du candidat montre le circuit complet : contrôle des pièces, frais de dossier encaissés avec le numéro de reçu, puis la décision de la commission.
+
+94
+00:09:27,544 --> 00:09:32,068
+Chaque étape est réalisée par le service compétent et inscrite au journal d'audit.
+
+95
+00:09:33,518 --> 00:09:38,688
+Cinquième chapitre : l'inscription annuelle, véritable colonne vertébrale du système.
+
+96
+00:09:40,038 --> 00:09:45,840
+Chaque année, chaque étudiant a une inscription annuelle : elle relie l'étudiant, l'année académique et son groupe.
+
+97
+00:09:46,260 --> 00:09:50,807
+Dès l'inscription, le système génère ses factures à partir des barèmes de l'année.
+
+98
+00:09:51,227 --> 00:09:56,992
+Lorsque les frais d'inscription sont réglés, le SGA prononce la validation administrative.
+
+99
+00:09:57,412 --> 00:10:05,291
+Puis le chef de filière prononce la validation pédagogique : il confirme le programme, c'est-à-dire les UE que l'étudiant doit suivre.
+
+100
+00:10:05,711 --> 00:10:11,721
+Le type d'inscription est conservé : première inscription, réinscription par passage, ou redoublement.
+
+101
+00:10:12,141 --> 00:10:16,803
+Et les UE non acquises l'année précédente sont inscrites comme dettes, à reprendre.
+
+102
+00:10:17,803 --> 00:10:27,778
+Les barèmes sont définis par année : frais d'inscription de cinquante dollars, minerval en deux tranches de trois cents dollars, et frais connexes de soixante-quinze mille francs congolais.
+
+103
+00:10:28,198 --> 00:10:37,015
+Chaque barème a sa devise et sa date d'échéance ; c'est ce qui permet au système de savoir, à une date donnée, ce que l'étudiant doit déjà avoir payé.
+
+104
+00:10:38,015 --> 00:10:43,583
+La liste des inscriptions annuelles affiche le groupe, le type et le statut de chaque étudiant.
+
+105
+00:10:44,003 --> 00:10:53,830
+Les réinscriptions en L2 ont été préparées automatiquement à partir de la délibération de l'année précédente : le système connaît la décision de chaque étudiant.
+
+106
+00:10:54,250 --> 00:11:00,980
+Des filtres permettent de retrouver les inscriptions en attente, validées administrativement ou pédagogiquement.
+
+107
+00:11:01,980 --> 00:11:09,444
+La fiche d'une inscription réunit la situation financière, l'accès aux examens et la liste des UE de l'année, avec leurs crédits.
+
+108
+00:11:10,894 --> 00:11:13,808
+Sixième chapitre : les finances de la scolarité.
+
+109
+00:11:15,158 --> 00:11:17,365
+Trois règles financières sont essentielles.
+
+110
+00:11:17,785 --> 00:11:23,224
+Un : le dollar et le franc congolais ne sont jamais additionnés ; chaque devise a ses propres totaux.
+
+111
+00:11:23,644 --> 00:11:28,840
+Deux : un étudiant est en règle lorsqu'il a payé tous les frais déjà échus, dans chaque devise.
+
+112
+00:11:29,260 --> 00:11:34,886
+Trois : être en règle ouvre l'accès aux examens, aux résultats détaillés et aux documents officiels.
+
+113
+00:11:35,306 --> 00:11:46,037
+Par exemple, fin octobre, seuls les frais d'inscription, échus le dix octobre, sont exigés ; la première tranche du minerval, payable le quinze novembre, ne l'est pas encore.
+
+114
+00:11:47,037 --> 00:11:52,629
+Côté étudiant, la page Mes paiements présente chaque facture : montant, payé, reste, et échéance.
+
+115
+00:11:53,049 --> 00:11:56,750
+Les totaux sont affichés séparément en dollars et en francs congolais.
+
+116
+00:11:57,170 --> 00:12:02,337
+L'étudiant peut payer par Mobile Money, ou générer un bon de paiement qu'il présente à la caisse.
+
+117
+00:12:03,337 --> 00:12:06,427
+À la caisse, le caissier travaille dans une session de caisse.
+
+118
+00:12:06,847 --> 00:12:10,705
+Il l'ouvre le matin en déclarant son fonds de caisse, dans chaque devise.
+
+119
+00:12:11,125 --> 00:12:16,211
+Chaque encaissement en espèces est rattaché à sa session et produit un reçu numéroté.
+
+120
+00:12:16,631 --> 00:12:19,031
+Le soir, il compte sa caisse par devise.
+
+121
+00:12:19,451 --> 00:12:24,964
+Tout écart entre le montant attendu et le montant compté doit être justifié, et reste visible.
+
+122
+00:12:25,384 --> 00:12:31,279
+Une erreur ne s'efface jamais : on demande une contre-passation, qui doit être validée par une autre personne.
+
+123
+00:12:31,699 --> 00:12:38,281
+Quant aux paiements Mobile Money, ils sont confirmés par un message signé de l'opérateur, vérifié par le système.
+
+124
+00:12:39,281 --> 00:12:45,828
+Voici l'historique des sessions de la caissière : hier, un écart de cinq dollars a été constaté au comptage.
+
+125
+00:12:46,248 --> 00:12:53,573
+Il a été justifié par une erreur de rendu de monnaie : l'écart reste inscrit, avec sa justification, et le comptable le voit.
+
+126
+00:12:54,573 --> 00:13:03,287
+Le comptable suit les encaissements du jour et du mois, toujours par devise, ainsi que les paiements à confirmer, les contre-passations et les impayés échus.
+
+127
+00:13:04,737 --> 00:13:07,179
+Septième chapitre : les horaires et les salles.
+
+128
+00:13:08,529 --> 00:13:14,534
+L'horaire hebdomadaire place chaque cours dans un créneau, une salle et avec un enseignant, pour un semestre.
+
+129
+00:13:14,954 --> 00:13:20,977
+Le système refuse les conflits : une salle ou un enseignant ne peuvent pas être à deux endroits au même moment.
+
+130
+00:13:21,397 --> 00:13:26,015
+Chaque étudiant voit l'horaire de son groupe, et chaque enseignant voit son propre horaire.
+
+131
+00:13:27,015 --> 00:13:34,158
+L'apparitorat gère les salles, leur capacité et les réservations ponctuelles, par exemple pour une soutenance ou un examen.
+
+132
+00:13:35,608 --> 00:13:38,179
+Huitième chapitre : les cours et les présences.
+
+133
+00:13:39,529 --> 00:13:44,006
+Chaque cours a sa fiche : titulaire, assistant, crédits, volume horaire et groupe.
+
+134
+00:13:44,426 --> 00:13:50,872
+L'enseignant y publie ses supports, ses travaux pratiques et ses quiz, que les étudiants retrouvent dans leur espace.
+
+135
+00:13:51,872 --> 00:13:56,372
+À chaque séance, l'enseignant fait l'appel : présent, en retard, absent ou excusé.
+
+136
+00:13:56,792 --> 00:14:04,260
+Une fois clôturée, la séance compte doublement : pour l'assiduité des étudiants, et pour les heures prestées de l'enseignant, donc pour sa paie.
+
+137
+00:14:05,260 --> 00:14:11,001
+Le système calcule l'assiduité de chaque étudiant dans chaque cours, à partir des séances clôturées.
+
+138
+00:14:11,421 --> 00:14:19,287
+Le seuil est fixé à soixante-dix pour cent : en dessous, l'étudiant n'est pas admis à l'examen de ce cours, et son examen compte zéro.
+
+139
+00:14:19,707 --> 00:14:23,902
+Prenons Naomie, en L1 l'an dernier, dans le cours d'électronique numérique.
+
+140
+00:14:24,322 --> 00:14:27,039
+Sur huit séances, elle n'a été présente qu'à trois.
+
+141
+00:14:27,459 --> 00:14:31,499
+Son assiduité est de trente-sept virgule cinq pour cent, sous le seuil.
+
+142
+00:14:31,919 --> 00:14:40,107
+Elle n'est donc pas admise à l'examen : sa note du cours tombe à quatre virgule deux sur vingt. Nous retrouverons cette conséquence à la délibération.
+
+143
+00:14:41,557 --> 00:14:44,314
+Neuvième chapitre : les notes et les pondérations.
+
+144
+00:14:45,664 --> 00:14:49,930
+La note d'un cours est une moyenne pondérée de ses catégories d'évaluation.
+
+145
+00:14:50,350 --> 00:14:57,605
+Par défaut, l'établissement applique vingt pour cent pour les interrogations, vingt pour les travaux pratiques et soixante pour l'examen.
+
+146
+00:14:58,025 --> 00:15:04,020
+Mais le titulaire du cours de programmation en C, très pratique, a choisi dix, quarante et cinquante.
+
+147
+00:15:04,440 --> 00:15:10,711
+Naomie a obtenu neuf virgule cinq à l'interrogation, ce qui apporte zéro virgule quatre-vingt-quinze point.
+
+148
+00:15:11,131 --> 00:15:16,214
+Dix virgule cinq en travaux pratiques, qui pèsent quarante pour cent : quatre virgule deux points.
+
+149
+00:15:16,634 --> 00:15:21,781
+Douze virgule cinq à l'examen, qui pèse cinquante pour cent : six virgule vingt-cinq points.
+
+150
+00:15:22,201 --> 00:15:25,476
+Sa note de cours est donc onze virgule quarante sur vingt.
+
+151
+00:15:25,896 --> 00:15:31,008
+Le système fait ce calcul automatiquement, avec les pondérations propres à chaque cours.
+
+152
+00:15:32,008 --> 00:15:35,751
+Les notes suivent un circuit en quatre états, par cours et par session.
+
+153
+00:15:36,171 --> 00:15:40,709
+L'enseignant saisit ses notes dans une feuille en brouillon : elles ne sont visibles que de lui.
+
+154
+00:15:41,129 --> 00:15:43,193
+Il soumet la feuille au chef de filière.
+
+155
+00:15:43,613 --> 00:15:48,487
+Le chef de filière l'approuve : les notes deviennent officielles et visibles des étudiants.
+
+156
+00:15:48,907 --> 00:15:53,865
+À l'ouverture de la délibération, la feuille est verrouillée : plus personne ne peut la modifier.
+
+157
+00:15:54,285 --> 00:15:58,703
+Le chef de filière peut aussi renvoyer une feuille à l'enseignant, avec un motif.
+
+158
+00:15:59,123 --> 00:16:04,676
+Et après verrouillage, toute correction passe par une demande motivée, approuvée et inscrite au journal.
+
+159
+00:16:05,676 --> 00:16:11,131
+Voici l'écran de l'enseignant Jean-Pierre Loukoussa : chacune de ses feuilles de notes, avec son statut.
+
+160
+00:16:11,551 --> 00:16:18,715
+Les feuilles de l'an dernier sont verrouillées, celle d'algorithmique de cette année est approuvée, et d'autres sont encore en brouillon.
+
+161
+00:16:19,135 --> 00:16:22,323
+Il saisit les notes, puis soumet la feuille au chef de filière.
+
+162
+00:16:23,323 --> 00:16:30,220
+Pour chaque cours, la page des épreuves liste les évaluations : ici, l'interrogation une, avec la moyenne du groupe.
+
+163
+00:16:31,220 --> 00:16:34,955
+Le chef de filière, lui, voit les feuilles soumises par ses enseignants.
+
+164
+00:16:35,375 --> 00:16:40,453
+Il les approuve, ou les renvoie avec un motif : il ne peut pas modifier lui-même les notes.
+
+165
+00:16:41,903 --> 00:16:46,297
+Dixième chapitre : la délibération, le moment le plus important de l'année.
+
+166
+00:16:47,647 --> 00:16:49,719
+Le calcul se fait en quatre niveaux.
+
+167
+00:16:50,139 --> 00:16:53,105
+D'abord la note de chaque cours, que nous venons de voir.
+
+168
+00:16:53,525 --> 00:16:58,032
+Ensuite la note de chaque UE : la moyenne de ses cours, pondérée par leurs crédits.
+
+169
+00:16:58,452 --> 00:17:02,671
+Puis la moyenne générale : la moyenne des UE, pondérée par leurs crédits.
+
+170
+00:17:03,091 --> 00:17:07,060
+Enfin les crédits capitalisés : la somme des crédits des UE acquises.
+
+171
+00:17:07,480 --> 00:17:10,188
+Une UE est validée si sa note atteint dix sur vingt.
+
+172
+00:17:10,608 --> 00:17:16,678
+Elle peut être compensée si sa note atteint au moins huit, et que la moyenne générale de l'étudiant atteint dix.
+
+173
+00:17:17,098 --> 00:17:24,067
+Et si une note manque, l'étudiant est déclaré défaillant : le jury ne délibère jamais sur un dossier incomplet.
+
+174
+00:17:25,067 --> 00:17:27,672
+Les décisions découlent directement des crédits.
+
+175
+00:17:28,092 --> 00:17:32,466
+Avec tous les crédits, l'étudiant est admis, avec une mention selon sa moyenne.
+
+176
+00:17:32,886 --> 00:17:38,752
+S'il lui manque des crédits en première session, il est ajourné et passe les examens de rattrapage.
+
+177
+00:17:39,172 --> 00:17:48,608
+En deuxième session, s'il a au moins soixante-quinze pour cent des crédits, il est admis avec dette, et reprendra les UE manquantes l'année suivante ; sinon, il redouble.
+
+178
+00:17:49,028 --> 00:17:57,681
+Les mentions sont : satisfaction à partir de dix, distinction à quatorze, grande distinction à seize et plus grande distinction à dix-huit.
+
+179
+00:17:58,681 --> 00:18:02,472
+Appliquons tout cela au cas de Naomie, en première session de L1.
+
+180
+00:18:02,892 --> 00:18:09,001
+Elle valide la plupart de ses UE, comme les fondements de la programmation à onze virgule soixante-cinq.
+
+181
+00:18:09,421 --> 00:18:18,108
+Son UE de langues, à neuf virgule quarante-cinq, est compensée : la note dépasse huit, et sa moyenne générale atteint dix virgule zéro deux.
+
+182
+00:18:18,528 --> 00:18:28,361
+En revanche, l'UE d'architecture des ordinateurs tombe à sept virgule un, à cause de l'examen d'électronique perdu pour défaut d'assiduité : elle n'est pas compensable.
+
+183
+00:18:28,781 --> 00:18:32,656
+De même pour probabilités et statistique, à sept virgule cinq.
+
+184
+00:18:33,076 --> 00:18:37,885
+Bilan : quarante-six crédits sur soixante. En première session, Naomie est ajournée.
+
+185
+00:18:38,305 --> 00:18:47,592
+Au rattrapage, elle obtient douze en probabilités. Elle atteint cinquante crédits sur soixante, soit quatre-vingt-trois pour cent, au-dessus du seuil de soixante-quinze.
+
+186
+00:18:48,012 --> 00:18:59,155
+Le jury la déclare admise en L2 avec dette : elle devra reprendre l'UE d'architecture des ordinateurs. Et sa réinscription en L2 a été préparée automatiquement.
+
+187
+00:19:00,155 --> 00:19:07,969
+Dans l'application, le SGA constitue le jury de chaque groupe et de chaque session : un président, un secrétaire et des membres.
+
+188
+00:19:08,389 --> 00:19:14,375
+Le président ouvre la délibération : les feuilles de notes sont alors verrouillées et les résultats calculés.
+
+189
+00:19:14,795 --> 00:19:21,713
+Le jury peut modifier une décision, mais uniquement avec une justification, qui figure au procès-verbal.
+
+190
+00:19:22,713 --> 00:19:29,437
+Voici les résultats publiés de la première session : rang, moyenne, crédits, décision et mention de chaque étudiant.
+
+191
+00:19:29,857 --> 00:19:37,708
+À la clôture, le système génère le procès-verbal en PDF, avec une empreinte numérique qui garantit qu'il n'a jamais été modifié.
+
+192
+00:19:38,128 --> 00:19:44,809
+Puis le SGA publie les résultats à une date précise, et prépare d'un clic les réinscriptions de l'année suivante.
+
+193
+00:19:45,809 --> 00:19:50,280
+Côté étudiante, Naomie voit ses deux sessions et les décisions correspondantes.
+
+194
+00:19:50,700 --> 00:19:59,057
+Comme elle est en règle, elle peut ouvrir le détail : chaque UE, chaque cours, chaque note, exactement tels que le jury les a délibérés.
+
+195
+00:20:00,507 --> 00:20:03,089
+Onzième chapitre : les documents officiels.
+
+196
+00:20:04,439 --> 00:20:09,855
+Le SGA émet les relevés de notes et les attestations à partir des résultats publiés.
+
+197
+00:20:10,275 --> 00:20:16,472
+Chaque document reçoit un numéro unique et un code de vérification, imprimé sous forme de code QR.
+
+198
+00:20:16,892 --> 00:20:23,385
+Une erreur ne se corrige pas en modifiant le document : on le révoque, avec un motif, et on en émet un nouveau.
+
+199
+00:20:24,385 --> 00:20:35,150
+N'importe quel employeur ou autre université peut scanner le code : la page publique confirme que le document est authentique et valide, avec ses informations essentielles.
+
+200
+00:20:35,570 --> 00:20:40,469
+Un document révoqué est immédiatement signalé comme tel. C'est la fin des faux relevés.
+
+201
+00:20:41,919 --> 00:20:45,406
+Douzième chapitre : les travaux de fin de cycle et les mémoires.
+
+202
+00:20:46,756 --> 00:20:51,390
+L'étudiant de L3 ou de master propose son sujet et choisit son directeur.
+
+203
+00:20:51,810 --> 00:20:56,101
+Le chef de filière valide le sujet, ou le refuse en indiquant le motif.
+
+204
+00:20:56,521 --> 00:20:59,515
+L'étudiant dépose ensuite son travail en PDF.
+
+205
+00:20:59,935 --> 00:21:05,353
+La soutenance est programmée : date, salle, président et membres du jury, tous notifiés.
+
+206
+00:21:05,773 --> 00:21:12,275
+Après la soutenance, le président saisit la note, qui est reportée automatiquement dans le cours TFC du relevé.
+
+207
+00:21:13,275 --> 00:21:16,230
+Le SGA et les chefs de filière suivent tous les travaux.
+
+208
+00:21:16,650 --> 00:21:23,920
+Les compteurs indiquent immédiatement ce qui attend une action : sujets à valider, dépôts à programmer, soutenances à venir.
+
+209
+00:21:24,340 --> 00:21:29,984
+Un sujet refusé affiche son motif, ici un sujet trop large, que l'étudiant peut reformuler.
+
+210
+00:21:31,434 --> 00:21:34,123
+Treizième chapitre : la gestion du personnel.
+
+211
+00:21:35,473 --> 00:21:42,384
+Chaque membre du personnel a une fiche employé : poste, type de contrat, salaire, indemnités et personnes à charge.
+
+212
+00:21:42,804 --> 00:21:49,754
+La distinction essentielle est entre les permanents, payés au mois, et les vacataires, payés à l'heure effectivement prestée.
+
+213
+00:21:50,174 --> 00:21:57,111
+Pour un enseignant permanent, on indique aussi sa charge statutaire, c'est-à-dire les heures de cours comprises dans son salaire.
+
+214
+00:21:58,111 --> 00:22:03,991
+Pour le personnel administratif, le pointage enregistre chaque jour l'heure d'arrivée et de départ.
+
+215
+00:22:04,411 --> 00:22:09,177
+Une arrivée après huit heures, au-delà d'une tolérance de quinze minutes, est un retard.
+
+216
+00:22:09,597 --> 00:22:15,508
+Les absences justifiées, les congés et les missions sont payés ; une absence injustifiée entraîne une retenue.
+
+217
+00:22:15,928 --> 00:22:23,298
+Les heures supplémentaires comptent au-delà de huit heures par jour, par tranches de trente minutes, et sont majorées de trente pour cent.
+
+218
+00:22:23,718 --> 00:22:27,694
+Dès que la paie d'un mois est validée, le pointage de ce mois est verrouillé.
+
+219
+00:22:28,694 --> 00:22:36,227
+Le récapitulatif mensuel donne, pour chaque agent, les jours de présence, les retards, les absences et les heures supplémentaires.
+
+220
+00:22:36,647 --> 00:22:38,941
+Ces chiffres alimentent directement la paie.
+
+221
+00:22:39,941 --> 00:22:45,339
+Pour les enseignants, ce sont les heures de cours réellement tenues qui comptent : les séances d'appel clôturées.
+
+222
+00:22:45,759 --> 00:22:52,044
+La page des heures prestées compare, pour chaque enseignant, les heures tenues dans le mois à sa charge statutaire.
+
+223
+00:22:53,044 --> 00:22:59,474
+Et l'onglet exécution des cours compare, pour chaque cours, le volume prévu par le programme aux heures réellement tenues.
+
+224
+00:22:59,894 --> 00:23:04,502
+La direction repère ainsi immédiatement les cours en retard sur leur programme.
+
+225
+00:23:05,952 --> 00:23:07,720
+Quatorzième chapitre : la paie.
+
+226
+00:23:09,070 --> 00:23:13,466
+La paie est calculée automatiquement, à partir du travail réellement accompli.
+
+227
+00:23:13,886 --> 00:23:25,965
+Pour un permanent : le salaire mensuel, moins les absences injustifiées au prorata journalier, plus les heures complémentaires de cours au-delà de sa charge, plus les heures supplémentaires majorées, plus les primes.
+
+228
+00:23:26,385 --> 00:23:30,998
+Pour un vacataire : les heures de cours réellement tenues, multipliées par son taux horaire.
+
+229
+00:23:31,418 --> 00:23:41,062
+Le système déduit ensuite la cotisation sociale du salarié et l'impôt professionnel sur le revenu, selon le barème progressif, ainsi que les avances.
+
+230
+00:23:41,482 --> 00:23:47,272
+Il calcule aussi les charges patronales, pour connaître le coût réel de chaque agent pour l'université.
+
+231
+00:23:47,692 --> 00:23:56,856
+Les indemnités de logement et de transport s'ajoutent au net sans être imposées. Et tous les taux sont paramétrables, pour suivre l'évolution de la législation.
+
+232
+00:23:57,856 --> 00:24:00,258
+Voyons trois exemples réels du scénario.
+
+233
+00:24:00,678 --> 00:24:12,832
+Trésor, technicien informatique à huit cents dollars, a eu deux absences injustifiées en octobre : huit cents divisé par vingt-six jours, fois deux, soit une retenue de soixante et un dollars cinquante-quatre.
+
+234
+00:24:13,252 --> 00:24:23,710
+Jacques, le comptable, a fait dix heures trente supplémentaires lors de la clôture de septembre : son taux horaire, majoré de trente pour cent, lui rapporte cinquante-neuf dollars de plus.
+
+235
+00:24:24,130 --> 00:24:31,955
+Béatrice, enseignante vacataire à vingt dollars de l'heure, a tenu seize heures de cours en octobre : son brut est de trois cent vingt dollars.
+
+236
+00:24:32,955 --> 00:24:38,210
+Dans l'écran de paie, le SGAD voit la masse salariale nette et le coût employeur du mois.
+
+237
+00:24:38,630 --> 00:24:44,857
+Chaque bulletin détaille la base, les heures, le brut imposable, les cotisations, l'impôt et le net à payer.
+
+238
+00:24:45,277 --> 00:24:51,373
+D'un clic, il calcule ou recalcule tous les bulletins du mois à partir du pointage et des heures de cours.
+
+239
+00:24:52,373 --> 00:25:00,352
+Le détail d'un bulletin montre chaque ligne du calcul, les charges patronales, et permet d'ajouter une prime ou une avance avant validation.
+
+240
+00:25:01,352 --> 00:25:03,205
+La paie suit elle aussi un circuit.
+
+241
+00:25:03,625 --> 00:25:06,094
+Les bulletins sont d'abord calculés en brouillon.
+
+242
+00:25:06,514 --> 00:25:10,532
+Le SGAD les valide ; le pointage du mois est alors verrouillé.
+
+243
+00:25:10,952 --> 00:25:16,619
+Le comptable les marque payés, avec le mode de paiement : une même personne ne peut pas valider et payer.
+
+244
+00:25:17,039 --> 00:25:21,681
+Chaque agent retrouve alors son bulletin en PDF dans son espace personnel.
+
+245
+00:25:22,681 --> 00:25:29,021
+Voici l'espace RH de l'enseignant : il pointe son arrivée et son départ, et consulte ses bulletins de paie.
+
+246
+00:25:29,441 --> 00:25:32,792
+Il ne voit que ses propres bulletins, et seulement une fois validés.
+
+247
+00:25:34,242 --> 00:25:36,768
+Quinzième chapitre : les services aux usagers.
+
+248
+00:25:38,118 --> 00:25:44,231
+La bibliothèque gère son catalogue, les exemplaires disponibles, les emprunts et les retards.
+
+249
+00:25:45,231 --> 00:25:54,638
+Le service informatique reçoit les demandes d'assistance sous forme de tickets : un projecteur en panne, un mot de passe oublié, un problème de Wi-Fi.
+
+250
+00:25:55,058 --> 00:26:00,800
+Chaque ticket a une catégorie, une priorité, un responsable et un état, jusqu'à sa résolution.
+
+251
+00:26:01,220 --> 00:26:10,317
+Enfin, la messagerie et les notifications informent chacun des événements qui le concernent : résultats publiés, soutenance programmée, bulletin disponible.
+
+252
+00:26:11,767 --> 00:26:14,765
+Seizième chapitre : le pilotage et la sécurité.
+
+253
+00:26:16,115 --> 00:26:25,301
+La page de pilotage rassemble les indicateurs clés de l'année : inscriptions par statut et par niveau, admissions en cours, notes à approuver, taux de réussite,
+
+254
+00:26:25,721 --> 00:26:32,815
+et la situation financière : taux de recouvrement par devise, impayés échus et caisses ouvertes. Tout est exportable.
+
+255
+00:26:33,815 --> 00:26:40,909
+Le journal d'audit enregistre qui a fait quoi, quand et depuis quelle adresse : connexions, notes, paiements, décisions, restaurations.
+
+256
+00:26:41,329 --> 00:26:44,404
+Ses entrées ne peuvent être ni modifiées ni supprimées.
+
+257
+00:26:45,404 --> 00:26:54,108
+La corbeille conserve pendant soixante jours tout élément supprimé : un cours, un groupe, une UE, un utilisateur, ou ici, une salle désaffectée.
+
+258
+00:26:54,528 --> 00:27:01,987
+Le PDG peut le restaurer en un clic, avec ses liens. Passé ce délai, la purge automatique le supprime définitivement.
+
+259
+00:27:02,987 --> 00:27:08,588
+Les étudiants et les enseignants disposent aussi d'une application mobile, reliée au même système.
+
+260
+00:27:09,008 --> 00:27:12,266
+Les enseignants peuvent y faire l'appel directement en classe.
+
+261
+00:27:12,686 --> 00:27:20,850
+Et les fichiers sensibles, comme les pièces des candidats, les procès-verbaux et les bulletins, ne sont accessibles que par des liens signés et temporaires.
+
+262
+00:27:22,300 --> 00:27:26,825
+Pour terminer, récapitulons une année universitaire complète dans le système.
+
+263
+00:27:28,175 --> 00:27:35,719
+Avant la rentrée, le SGA ouvre la nouvelle année, crée les groupes, met à jour les programmes, et le SGAD fixe les barèmes.
+
+264
+00:27:36,139 --> 00:27:41,153
+Les candidats déposent leur dossier, contrôlé par l'apparitorat, la caisse et la commission.
+
+265
+00:27:41,573 --> 00:27:47,469
+À la rentrée, chaque étudiant est inscrit, facturé et validé administrativement puis pédagogiquement.
+
+266
+00:27:47,889 --> 00:27:51,624
+Tout au long de l'année, les enseignants donnent cours, font l'appel et évaluent.
+
+267
+00:27:52,044 --> 00:27:56,534
+Chaque mois, la paie est calculée à partir du pointage et des heures réellement tenues.
+
+268
+00:27:56,954 --> 00:28:00,438
+En fin de semestre, les feuilles de notes sont soumises et approuvées.
+
+269
+00:28:00,858 --> 00:28:05,711
+Le jury délibère, le procès-verbal est généré et les résultats publiés.
+
+270
+00:28:06,131 --> 00:28:09,992
+Les ajournés passent le rattrapage, avec ses trois issues possibles.
+
+271
+00:28:10,412 --> 00:28:16,893
+Enfin, les relevés et attestations sont émis, et les réinscriptions préparées automatiquement pour l'année suivante.
+
+272
+00:28:17,313 --> 00:28:21,824
+Et tout au long du parcours, la direction pilote, contrôle et protège les données.
+
+273
+00:28:23,274 --> 00:28:31,055
+Vous connaissez maintenant l'ensemble du système et sa logique : une seule source de vérité, des règles claires, et chaque action à sa place.
+
+274
+00:28:31,475 --> 00:28:34,573
+Merci de votre attention, et bonne rentrée académique.

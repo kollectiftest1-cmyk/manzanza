@@ -2,6 +2,8 @@
 Models for grades, averages, bulletins, academic configuration
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 from apps.courses.models import Course
 from apps.auditoires.models import Auditoire, default_academic_year_label
@@ -46,6 +48,11 @@ class AcademicConfig(models.Model):
         verbose_name='Permettre la compensation',
         help_text="Permet de compenser un cours echoue par un autre dans le meme auditoire"
     )
+    min_credits_ratio_passage = models.DecimalField(
+        max_digits=5, decimal_places=2, default=75,
+        verbose_name='Crédits minimum pour passer avec dette (%)',
+        help_text="Après la 2e session : pourcentage minimum de crédits capitalisés pour passer en année supérieure avec des dettes"
+    )
     compensation_threshold = models.DecimalField(
         max_digits=5, decimal_places=2, default=8,
         verbose_name='Seuil de compensation',
@@ -61,6 +68,15 @@ class AcademicConfig(models.Model):
         max_length=50, default='Semestre 1',
         verbose_name='Semestre/Trimestre en cours'
     )
+
+    # LMD : volume annuel et assiduité
+    credits_per_year = models.PositiveSmallIntegerField(
+        default=60, verbose_name="Crédits par année d'études",
+        help_text="LMD : 60 crédits par an (30 par semestre)")
+    min_attendance_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        verbose_name="Assiduité minimale pour l'examen (%)",
+        help_text="0 = règle désactivée. Ex. 66,67 : présence aux deux tiers des séances exigée")
 
     # Teacher hours tracking
     include_retard_in_presence = models.BooleanField(
@@ -148,7 +164,7 @@ class AcademicConfig(models.Model):
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-class GradeCategory(models.Model):
+class GradeCategory(SoftDeleteModel):
     """
     Defines a type of evaluation (Interro, Quiz, TP/TD, Examen, …).
     IMPORTANT: 'Interro' and 'Quiz' are different categories:
@@ -186,7 +202,7 @@ class GradeCategory(models.Model):
         return f"{self.name} ({self.weight}%)"
 
 
-class CourseGradeWeight(models.Model):
+class CourseGradeWeight(SoftDeleteModel):
     """
     Per-course override of category weight.
     Allows SGA / teacher to set: for THIS course, interro counts 20 %, examen 50 %, etc.
@@ -206,7 +222,7 @@ class CourseGradeWeight(models.Model):
         return f"{self.course} — {self.category}: {self.weight}%"
 
 
-class Grade(models.Model):
+class Grade(SoftDeleteModel):
     STATUS_CHOICES = [
         ('draft', 'Brouillon'),
         ('validated', 'Validée'),
@@ -223,11 +239,14 @@ class Grade(models.Model):
                                 help_text='Ex: "Interro 1", "TP Semaine 4"')
     # 1-based sequence number within (student, course, category)
     session_number = models.PositiveSmallIntegerField(default=1)
+    # Session d'examen : 1 = première session, 2 = rattrapage (seconde session)
+    exam_session = models.PositiveSmallIntegerField(default=1, choices=[(1, '1re session'), (2, '2e session')])
 
     value    = models.DecimalField(max_digits=5, decimal_places=2)
     max_value = models.DecimalField(max_digits=5, decimal_places=2, default=20,
                                     help_text="Note maximale (ex: 20 ou 100)")
-    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='validated')
+    # 'validated' = publiée à l'étudiant (feuille approuvée). Le statut suit la feuille de notes.
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='draft')
     date     = models.DateField(auto_now_add=True)
     comment  = models.TextField(blank=True, null=True)
 
@@ -240,7 +259,7 @@ class Grade(models.Model):
     class Meta:
         # Removed the old unique_together so multiple interros/TPs are possible.
         # Uniqueness is (student, course, category, session_number).
-        unique_together = ['student', 'course', 'category', 'session_number']
+        unique_together = ['student', 'course', 'category', 'session_number', 'exam_session']
         ordering = ['student', 'course', 'category', 'session_number']
 
     def __str__(self):
@@ -254,7 +273,7 @@ class Grade(models.Model):
         return 0
 
 
-class ExamSession(models.Model):
+class ExamSession(SoftDeleteModel):
     SESSION_TYPE_CHOICES = [
         ('partiel',    'Partiel'),
         ('final',      'Final'),
@@ -283,3 +302,75 @@ class Transcript(models.Model):
 
     def __str__(self):
         return f"Bulletin {self.student} {self.semester} {self.year}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Workflow de validation des notes (cahier des charges v2, phase 2)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class GradeSheet(models.Model):
+    """
+    Feuille de notes d'un cours pour une session d'examen.
+    brouillon → soumise (titulaire) → approuvée (chef de filière / section / SGA)
+    → verrouillée (ouverture de la délibération). Une note ne se modifie que si la
+    feuille est en brouillon ; ensuite, toute correction passe par une requête tracée.
+    """
+    STATUS_CHOICES = [
+        ('draft', 'Brouillon'),
+        ('submitted', 'Soumise'),
+        ('approved', 'Approuvée'),
+        ('locked', 'Verrouillée'),
+    ]
+    SESSION_CHOICES = [(1, '1re session'), (2, '2e session')]
+
+    course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name='grade_sheets')
+    session = models.PositiveSmallIntegerField(choices=SESSION_CHOICES, default=1)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='draft')
+    submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                     blank=True, related_name='+')
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                    blank=True, related_name='+')
+    approved_at = models.DateTimeField(null=True, blank=True)
+    locked_at = models.DateTimeField(null=True, blank=True)
+    return_reason = models.TextField(blank=True, default='')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['course', 'session']
+        ordering = ['course__name', 'session']
+        verbose_name = 'Feuille de notes'
+        verbose_name_plural = 'Feuilles de notes'
+
+    def __str__(self):
+        return f"{self.course} — session {self.session} ({self.get_status_display()})"
+
+    @property
+    def is_editable(self):
+        return self.status == 'draft'
+
+
+class GradeCorrectionRequest(models.Model):
+    """Correction d'une note après soumission : demandée, puis tranchée par le jury / SGA."""
+    STATUS_CHOICES = [('pending', 'En attente'), ('approved', 'Acceptée'), ('rejected', 'Refusée')]
+
+    grade = models.ForeignKey(Grade, on_delete=models.PROTECT, related_name='correction_requests')
+    old_value = models.DecimalField(max_digits=5, decimal_places=2)
+    new_value = models.DecimalField(max_digits=5, decimal_places=2)
+    reason = models.TextField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                     related_name='+')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                   blank=True, related_name='+')
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(blank=True, default='')
+
+    class Meta:
+        ordering = ['-requested_at']
+        verbose_name = 'Demande de correction de note'
+        verbose_name_plural = 'Demandes de correction de note'
+
+    def __str__(self):
+        return f"Correction {self.grade} : {self.old_value} → {self.new_value} ({self.get_status_display()})"

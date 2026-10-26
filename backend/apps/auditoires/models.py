@@ -5,6 +5,8 @@ import re
 
 from django.apps import apps
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 from django.utils import timezone
 
@@ -33,7 +35,7 @@ def default_academic_year_label():
     start_year = today.year if today.month >= 9 else today.year - 1
     return f"{start_year}-{start_year + 1}"
 
-class Section(models.Model):
+class Section(SoftDeleteModel):
     """
     Section Model (e.g., 'Sciences Informatiques', 'Sciences Économiques')
     """
@@ -54,7 +56,7 @@ class Section(models.Model):
     def __str__(self):
         return self.nom
 
-class Filiere(models.Model):
+class Filiere(SoftDeleteModel):
     """
     Filiere (Option) Model (e.g., 'Génie Logiciel', 'Techniques de Maintenance')
     """
@@ -77,7 +79,7 @@ class Filiere(models.Model):
     def __str__(self):
         return f"{self.nom} ({self.section.nom})"
 
-class Auditoire(models.Model):
+class Auditoire(SoftDeleteModel):
     """Auditoire (Virtual Classroom) Model"""
 
     NIVEAU_CHOICES = [
@@ -105,7 +107,13 @@ class Auditoire(models.Model):
     annee_academique = models.CharField(
         max_length=20,
         default=default_academic_year_label,
-        verbose_name='Année académique'
+        verbose_name='Année académique (libellé)'
+    )
+    # Référence officielle à l'année académique (le libellé ci-dessus est conservé
+    # pour compatibilité et synchronisé automatiquement).
+    academic_year = models.ForeignKey(
+        'schedules.AcademicYear', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='auditoires', verbose_name='Année académique'
     )
     capacite_max = models.IntegerField(default=50, verbose_name='Capacité maximale')
     is_active = models.BooleanField(default=True, verbose_name='Actif')
@@ -123,6 +131,15 @@ class Auditoire(models.Model):
 
     def __str__(self):
         return f"{self.nom} ({self.get_niveau_display()} - {self.get_vacation_display()})"
+
+    def save(self, *args, **kwargs):
+        AcademicYear = apps.get_model('schedules', 'AcademicYear')
+        if self.academic_year_id:
+            self.annee_academique = normalize_academic_year_label(self.academic_year.name)
+        elif self.annee_academique:
+            self.annee_academique = normalize_academic_year_label(self.annee_academique)
+            self.academic_year = AcademicYear.objects.filter(name=self.annee_academique).first()
+        super().save(*args, **kwargs)
 
     # Renamed properties to avoid conflict with annotated fields
     @property

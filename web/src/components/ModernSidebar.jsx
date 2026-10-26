@@ -14,7 +14,7 @@ import {
   FiHome, FiBook, FiUsers, FiMessageSquare, FiBookOpen,
   FiDollarSign, FiSettings, FiFileText, FiHelpCircle,
   FiChevronRight, FiChevronDown, FiGrid, FiUserCheck, FiX, FiBriefcase,
-  FiFile, FiCalendar
+  FiFile, FiCalendar, FiTrash2, FiShield, FiAward, FiCheckSquare, FiBarChart2, FiUserPlus
 } from "react-icons/fi"
 
 const ModernSidebar = () => {
@@ -23,8 +23,8 @@ const ModernSidebar = () => {
   const [expandedGroups, setExpandedGroups] = useState({})
 
   // Define admin roles for reuse in permission checks
-  const adminRoles = ['iadmin', 'pdg', 'directeur_general', 'sga', 'sgad']
-  const academicManagementRoles = ['sga', 'iadmin']
+  const adminRoles = ['pdg', 'directeur_general', 'sga', 'sgad']
+  const academicManagementRoles = ['sga', 'pdg']
   const teacherRoles = ['enseignant', 'assistant']
 
   // Configuration des icônes pour chaque route
@@ -89,7 +89,7 @@ const ModernSidebar = () => {
     },
     {
       title: "Académique",
-      roles: ["chef_section", "chef_departement", "sga", "iadmin", 'enseignant', 'assistant', 'etudiant'],
+      roles: ["chef_section", "chef_departement", "sga", "pdg", 'enseignant', 'assistant', 'etudiant', 'apparitorat', 'caisse', 'commission_admission', 'jury', 'directeur_general'],
       items: [
         { path: "/auditoires", icon: "grid", text: "Gestion Auditoires", requiredRoles: [...academicManagementRoles, ...teacherRoles] },
         { path: "/horaire", icon: "calendar", text: "Horaires", requiredRoles: [] },
@@ -97,10 +97,17 @@ const ModernSidebar = () => {
         {
           path: "/releves-cotes",
           icon: "file-text",
-          text: "Releves des cotes",
-          requiredRoles: ["etudiant", ...teacherRoles, "chef_section", "chef_departement", "sga", "sgad", "iadmin", "pdg", "directeur_general"]
+          text: "Relevés des cotes",
+          requiredRoles: ["etudiant", ...teacherRoles, "chef_section", "chef_departement", "sga", "sgad", "pdg", "directeur_general"]
         },
-        { path: "/gestion-inscriptions", icon: "users", text: "Inscriptions", requiredRoles: ["sga", "iadmin"] },
+        { path: "/gestion-inscriptions", icon: "users", text: "Admissions", requiredRoles: ["sga", "pdg", "apparitorat", "caisse", "commission_admission"] },
+        { path: "/unites-enseignement", icon: "grid", text: "Unités d'enseignement", requiredRoles: ["sga", "pdg", "chef_section", "chef_departement"] },
+        { path: "/inscriptions-annuelles", icon: "user-check", text: "Inscriptions annuelles", requiredRoles: ["sga", "pdg", "apparitorat", "chef_section", "chef_departement"] },
+        { path: "/validation-notes", icon: "check-square", text: "Validation des notes", requiredRoles: ["sga", "pdg", "chef_section", "chef_departement", ...teacherRoles] },
+        { path: "/deliberations", icon: "award", text: "Délibérations", requiredRoles: ["sga", "pdg", "directeur_general", "chef_section", "chef_departement", "jury", ...teacherRoles] },
+        { path: "/memoires", icon: "book-open", text: ["etudiant"].includes(user?.role) ? "Mon TFC / mémoire" : "TFC & mémoires", requiredRoles: ["etudiant", "sga", "pdg", "directeur_general", "chef_section", "chef_departement", "jury", ...teacherRoles] },
+        { path: "/documents-officiels", icon: "file-text", text: "Documents officiels", requiredRoles: ["sga", "pdg", "apparitorat"] },
+        { path: "/mes-resultats", icon: "award", text: "Mes résultats", requiredRoles: ["etudiant"] },
         // TP/TD Links - Different for teachers and students
         {
           path: teacherRoles.includes(user?.role) ? "/teacher/assignments" : "/student/assignments",
@@ -124,36 +131,47 @@ const ModernSidebar = () => {
         },
         { path: "/gestion-enseignants", icon: "user-plus", text: "Gestion Enseignants", requiredRoles: [...academicManagementRoles] },
         { path: "/gestion-etudiants", icon: "user-check", text: "Gestion Étudiants", requiredRoles: [...academicManagementRoles] },
-        { path: "/configuration-notes", icon: "sliders", text: "Config. Académique", requiredRoles: ["sga", "iadmin"] },
+        { path: "/configuration-notes", icon: "sliders", text: "Config. Académique", requiredRoles: ["sga", "pdg"] },
       ],
     },
     {
       title: "Services",
       items: [
         { path: "/chat", icon: "message-square", text: "Chat", requiredRoles: [] },
+        { path: "/rh/mes-bulletins", icon: "briefcase", text: "Mon espace RH", requiredRoles: ["enseignant", "assistant", "sga", "sgad", "caisse", "comptable", "apparitorat", "bibliothecaire", "chef_section", "chef_departement", "directeur_general", "jury", "service_it"] },
+        { path: "/rh/heures", icon: "calendar", text: "Mes heures prestées", requiredRoles: ["enseignant", "assistant"] },
+        { path: "/assistance", icon: "help-circle", text: "Assistance IT", requiredRoles: ["etudiant", "enseignant", "assistant", "sga", "sgad", "caisse", "comptable", "apparitorat", "bibliothecaire", "chef_section", "chef_departement", "pdg", "directeur_general", "jury"] },
         { path: "/library", icon: "book-open", text: "Bibliothèque", requiredRoles: [] },
         { path: "/paiements", icon: "dollar-sign", text: "Mes Paiements", requiredRoles: ["etudiant"] },
-        { path: "/caisse", icon: "dollar-sign", text: "Caisse", requiredRoles: ["caisse", "iadmin", "directeur_general"] },
-        { path: "/gestion-frais", icon: "dollar-sign", text: "Gestion Frais", requiredRoles: ["iadmin", "sgad", "caisse", "pdg", "directeur_general"] },
+        { path: "/caisse", icon: "dollar-sign", text: "Caisse", requiredRoles: ["caisse", "pdg", "directeur_general"] },
+        { path: "/gestion-frais", icon: "dollar-sign", text: "Gestion Frais", requiredRoles: ["pdg", "sgad", "caisse", "directeur_general"] },
+        { path: "/finances", icon: "dollar-sign", text: "Barèmes & caisse", requiredRoles: ["pdg", "sgad", "caisse", "comptable", "directeur_general"] },
       ],
     },
     {
       title: "Ressources Humaines",
-      roles: ["sgad", "iadmin", "directeur_general"],
+      roles: ["sgad", "pdg", "directeur_general", "comptable", "caisse"],
       items: [
-        { path: "/rh/employees", icon: "briefcase", text: "Employés", requiredRoles: ["sgad", "iadmin", "directeur_general"] },
-        { path: "/rh/contracts", icon: "file-text", text: "Contrats", requiredRoles: ["sgad", "iadmin", "directeur_general"] },
-        { path: "/rh/payrolls", icon: "dollar-sign", text: "Paies", requiredRoles: ["sgad", "iadmin", "directeur_general"] },
-        { path: "/rh/leaves", icon: "calendar", text: "Congés", requiredRoles: ["sgad", "iadmin", "directeur_general"] },
+        { path: "/rh/employees", icon: "briefcase", text: "Employés", requiredRoles: ["sgad", "pdg", "directeur_general"] },
+        { path: "/rh/contracts", icon: "file-text", text: "Contrats", requiredRoles: ["sgad", "pdg", "directeur_general"] },
+        { path: "/rh/payrolls", icon: "dollar-sign", text: "Paie du personnel", requiredRoles: ["sgad", "pdg", "directeur_general", "comptable", "caisse"] },
+        { path: "/rh/presences", icon: "user-check", text: "Pointage du personnel", requiredRoles: ["sgad", "pdg", "directeur_general"] },
+        { path: "/rh/heures", icon: "calendar", text: "Heures prestées", requiredRoles: ["sgad", "pdg", "directeur_general"] },
+        { path: "/rh/leaves", icon: "calendar", text: "Congés", requiredRoles: ["sgad", "pdg", "directeur_general"] },
       ],
     },
     {
       title: "Administration",
       items: [
         { path: "/administration", icon: "settings", text: "Utilisateurs", requiredRoles: adminRoles },
-        { path: "/comptabilite", icon: "dollar-sign", text: "Comptabilité", requiredRoles: ["caisse", "sgad", "iadmin", "directeur_general"] },
-        { path: "/apparitorat", icon: "users", text: "Apparitorat", requiredRoles: ["apparitorat", "sga", "iadmin"] },
-        { path: "/service-it", icon: "settings", text: "Service IT", requiredRoles: ["service_it", "iadmin"] },
+        { path: "/comptabilite", icon: "dollar-sign", text: "Comptabilité", requiredRoles: ["caisse", "comptable", "sgad", "pdg", "directeur_general"] },
+        { path: "/apparitorat", icon: "users", text: "Apparitorat", requiredRoles: ["apparitorat", "sga", "pdg"] },
+        { path: "/service-it", icon: "settings", text: "Service IT (tickets)", requiredRoles: ["service_it", "pdg"] },
+        { path: "/pilotage", icon: "bar-chart", text: "Pilotage", requiredRoles: ["pdg", "sga", "sgad", "directeur_general", "chef_section", "chef_departement", "comptable"] },
+        { path: "/parametres", icon: "settings", text: "Paramètres établissement", requiredRoles: ["pdg", "directeur_general", "sga", "sgad"] },
+        { path: "/affectations", icon: "user-plus", text: "Affectations de rôles", requiredRoles: ["pdg", "sga", "sgad"] },
+        { path: "/journal-audit", icon: "shield", text: "Journal d'audit", requiredRoles: ["pdg", "directeur_general"] },
+        { path: "/corbeille", icon: "trash", text: "Corbeille", requiredRoles: [] },
       ],
     },
   ]
@@ -180,22 +198,29 @@ const ModernSidebar = () => {
       'settings': FiSettings,
       'briefcase': FiBriefcase,
       'calendar': FiCalendar,
+      'trash': FiTrash2,
+      'shield': FiShield,
+      'award': FiAward,
+      'check-square': FiCheckSquare,
+      'bar-chart': FiBarChart2,
+      'user-plus': FiUserPlus,
     }
     return icons[iconName] || FiHome
   }
 
   const renderNavGroup = (group, index) => {
     // Check if the group itself should be rendered based on role and condition
-    if (group.roles && group.roles.length > 0 && !group.roles.includes(user?.role)) {
+    if (group.roles && group.roles.length > 0 && !checkPermission(user, group.roles)) {
       return null
     }
-    if (group.condition === false) {
+    // Groupes « Ma filière / Ma faculté » : seulement si l'utilisateur a réellement ce périmètre.
+    if ('condition' in group && !group.condition) {
       return null
     }
 
     const accessibleItems = group.items.filter(item => {
       if (item.requiredRoles && item.requiredRoles.length > 0) {
-        return checkPermission(user?.role, item.requiredRoles)
+        return checkPermission(user, item.requiredRoles)
       }
       return true
     })
@@ -480,7 +505,8 @@ const ModernSidebar = () => {
           <Link to="/dashboard" className="sidebar-logo">
             <img
               src="/logo.jpeg"
-              alt="Université MAZANZA"
+              alt=""
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
               style={{
                 width: '45px',
                 height: '45px',

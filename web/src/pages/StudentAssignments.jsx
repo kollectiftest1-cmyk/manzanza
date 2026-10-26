@@ -201,8 +201,8 @@ const StudentAssignments = () => {
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
                           <span style={{
                             padding: "3px 10px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: "600",
-                            background: assignment.assignment_type === "TP" ? "rgba(13,110,253,0.1)" : "rgba(111,66,193,0.1)",
-                            color: assignment.assignment_type === "TP" ? "#0d6efd" : "#6f42c1",
+                            background: assignment.assignment_type === "TP" ? "rgba(14,140,155,0.1)" : "rgba(111,66,193,0.1)",
+                            color: assignment.assignment_type === "TP" ? "#0E8C9B" : "#6f42c1",
                           }}>
                             {assignment.assignment_type}
                           </span>

@@ -123,7 +123,7 @@ const EnseignantDashboard = ({ user, notifications }) => {
         gradeService.getCourseAverages(course.id)
           .then(res => ({
             label: course.name?.substring(0, 15) || 'Cours',
-            average: Number(res.data?.course_average || 0),
+            average: Math.round(Number(res.data?.course_average || 0) * Number(res.data?.config?.max_grade || 20)) / 100,
           }))
           .catch(() => ({
             label: course.name?.substring(0, 15) || 'Cours',
@@ -133,7 +133,7 @@ const EnseignantDashboard = ({ user, notifications }) => {
     ).then(setCourseAverageData)
   }, [courseIds])
 
-  const pendingGrades = myAssignments.filter(a => a.status === 'published').length
+  const pendingGrades = Number(teacherStats.submissions_to_grade || 0)
   const totalStudents = teacherStats.total_students_managed || 0
   const coursesTaughtCount = teacherStats.courses_taught_count || myCourses.length
 
@@ -165,8 +165,9 @@ const EnseignantDashboard = ({ user, notifications }) => {
     datasets: [{
       label: 'Moyenne de classe',
       data: courseAverageData.length ? courseAverageData.map(item => item.average) : [0],
-      borderColor: 'rgb(78, 115, 223)',
-      backgroundColor: 'rgba(78, 115, 223, 0.1)',
+      borderColor: '#0e7c86',
+      backgroundColor: courseAverageData.map(item => item.average >= 10 ? 'rgba(14, 124, 134, 0.75)' : 'rgba(220, 53, 69, 0.7)'),
+      borderRadius: 6,
       tension: 0.4,
       fill: true,
     }]
@@ -188,8 +189,7 @@ const EnseignantDashboard = ({ user, notifications }) => {
     title: assignment.title || 'TP/TD',
     description: assignment.course_name || assignment.description || '',
     time: assignment.updated_at ? new Date(assignment.updated_at).toLocaleDateString('fr-FR') : '',
-  }))
-  const recentActivities = [...notificationActivities, ...assignmentActivities].slice(0, 4)
+  })).slice(0, 4)
   /*
     {
       id: 1,
@@ -268,26 +268,24 @@ const EnseignantDashboard = ({ user, notifications }) => {
             value={totalStudents.toString()}
             icon={FiUsers}
             color="success"
-            trend="up"
-            trendValue="+5 ce mois"
             delay={0.1}
           />
         </Col>
         <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
           <StatCard
-            title="Notes à Saisir"
+            title="Copies à corriger"
             value={pendingGrades.toString()}
             icon={FiStar}
             color="warning"
-            trend={pendingGrades > 5 ? "neutral" : "up"}
-            trendValue={pendingGrades > 5 ? "À corriger" : "Presque fini!"}
+            trend={pendingGrades > 0 ? "neutral" : "up"}
+            trendValue={pendingGrades > 0 ? "TP/TD soumis" : "Tout est corrigé"}
             delay={0.2}
           />
         </Col>
         <Col xl={3} lg={6} md={6} sm={12} className="mb-4">
           <StatCard
             title="TP/TD Créés"
-            value={myAssignments.length.toString()}
+            value={String(teacherStats.assignments_created ?? myAssignments.length)}
             icon={FiFileText}
             color="info"
             subtitle="Total"
@@ -301,9 +299,10 @@ const EnseignantDashboard = ({ user, notifications }) => {
         <Col xl={8} lg={7} className="mb-4">
           <ChartCard
             title="Performance des Classes"
-            subtitle="Dernières 4 semaines"
-            chartType="line"
+            subtitle="Moyenne de classe sur 20 (notes validées)"
+            chartType="bar"
             data={performanceData}
+            options={{ scales: { y: { min: 0, max: 20, ticks: { stepSize: 5 } } } }}
             delay={0.4}
             height={300}
           />
@@ -337,7 +336,6 @@ const EnseignantDashboard = ({ user, notifications }) => {
         </Col>
         <Col xl={4} lg={6} className="mb-4">
           <RecentActivity
-            activities={recentActivities}
             delay={0.8}
           />
         </Col>

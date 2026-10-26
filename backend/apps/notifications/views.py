@@ -25,9 +25,24 @@ class NotificationViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'message']
     ordering_fields = ['created_at', 'priority']
 
+    def get_permissions(self):
+        # Les notifications sont émises par le système (ou le PDG), jamais par un utilisateur
+        # vers un autre : sinon n'importe qui pourrait envoyer un faux message « officiel ».
+        if self.action in ['create', 'update', 'partial_update']:
+            from apps.users.permissions import has_role
+            from rest_framework.permissions import BasePermission
+
+            class _IAdminOnly(BasePermission):
+                message = "Les notifications sont émises par le système."
+
+                def has_permission(self, request, view):
+                    return has_role(request.user, 'pdg')
+            return [_IAdminOnly()]
+        return super().get_permissions()
+
     def get_queryset(self):
         """Users see only their own notifications"""
-        if self.request.user.role in ['iadmin']:
+        if self.request.user.role in ['pdg']:
             return self.queryset
         return self.queryset.filter(recipient=self.request.user)
 
@@ -84,7 +99,7 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         # Admins see all
-        if user.role in ['iadmin', 'pdg', 'directeur_general', 'sga', 'sgad']:
+        if user.role in ['pdg', 'directeur_general', 'sga', 'sgad']:
             return self.queryset
 
         # Filter by audience

@@ -2,7 +2,10 @@
 Serializers for grades, averages, bulletins, academic configuration
 """
 from rest_framework import serializers
-from .models import AcademicConfig, GradeCategory, CourseGradeWeight, Grade, ExamSession, Transcript
+from .models import (
+    AcademicConfig, GradeCategory, CourseGradeWeight, Grade, ExamSession, Transcript,
+    GradeSheet, GradeCorrectionRequest,
+)
 
 
 class AcademicConfigSerializer(serializers.ModelSerializer):
@@ -10,9 +13,9 @@ class AcademicConfigSerializer(serializers.ModelSerializer):
         model = AcademicConfig
         fields = [
             'id', 'hours_per_credit', 'max_grade', 'passing_grade', 'passing_percentage',
-            'allow_compensation', 'compensation_threshold',
+            'allow_compensation', 'compensation_threshold', 'min_credits_ratio_passage',
             'current_academic_year', 'current_semester',
-            'include_retard_in_presence',
+            'include_retard_in_presence', 'credits_per_year', 'min_attendance_percent',
             'updated_at', 'updated_by',
         ]
         read_only_fields = ['id', 'updated_at', 'updated_by']
@@ -50,11 +53,12 @@ class GradeSerializer(serializers.ModelSerializer):
             'id', 'student', 'student_name',
             'course', 'course_name',
             'category', 'category_name', 'category_type',
-            'label', 'session_number',
+            'label', 'session_number', 'exam_session',
             'value', 'max_value', 'percentage', 'status',
             'date', 'comment', 'quiz_attempt',
         ]
-        read_only_fields = ['date', 'percentage']
+        # Le statut suit la feuille de notes (workflow), il ne se saisit pas.
+        read_only_fields = ['date', 'percentage', 'status']
 
     def get_student_name(self, obj):
         s = obj.student
@@ -91,3 +95,40 @@ class TranscriptSerializer(serializers.ModelSerializer):
     def get_student_name(self, obj):
         s = obj.student
         return f"{s.first_name} {s.last_name}".strip() or s.username
+
+
+class GradeSheetSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source='course.name', read_only=True)
+    course_code = serializers.CharField(source='course.code', read_only=True)
+    auditoire_name = serializers.CharField(source='course.auditoire.nom', read_only=True)
+    titulaire_name = serializers.CharField(source='course.titulaire.name', read_only=True, default=None)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    submitted_by_name = serializers.CharField(source='submitted_by.name', read_only=True, default=None)
+    approved_by_name = serializers.CharField(source='approved_by.name', read_only=True, default=None)
+    grades_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GradeSheet
+        fields = ['id', 'course', 'course_name', 'course_code', 'auditoire_name', 'titulaire_name', 'session',
+                  'status', 'status_display', 'submitted_by_name', 'submitted_at', 'approved_by_name',
+                  'approved_at', 'locked_at', 'return_reason', 'grades_count', 'updated_at']
+        read_only_fields = fields
+
+    def get_grades_count(self, obj):
+        return Grade.objects.filter(course=obj.course, exam_session=obj.session).count()
+
+
+class GradeCorrectionRequestSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='grade.student.name', read_only=True)
+    course_name = serializers.CharField(source='grade.course.name', read_only=True)
+    label = serializers.CharField(source='grade.label', read_only=True)
+    requested_by_name = serializers.CharField(source='requested_by.name', read_only=True, default=None)
+    decided_by_name = serializers.CharField(source='decided_by.name', read_only=True, default=None)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = GradeCorrectionRequest
+        fields = ['id', 'grade', 'student_name', 'course_name', 'label', 'old_value', 'new_value', 'reason',
+                  'status', 'status_display', 'requested_by_name', 'requested_at', 'decided_by_name',
+                  'decided_at', 'decision_note']
+        read_only_fields = ['old_value', 'status', 'requested_at', 'decided_at', 'decision_note']

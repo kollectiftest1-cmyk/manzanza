@@ -24,7 +24,7 @@ from apps.users.permissions import IsSGAOrAdmin, IsTeacherOrAdmin
 
 
 def _is_admin_or_sga(user):
-    return user.is_staff or user.role in ['iadmin', 'pdg', 'directeur_general', 'sga', 'sgad']
+    return user.is_staff or user.role in ['pdg', 'directeur_general', 'sga', 'sgad']
 
 
 def _is_teacher(user):
@@ -33,7 +33,7 @@ def _is_teacher(user):
 
 def _can_manage_apparitorat(user):
     return user.is_staff or user.role in [
-        'iadmin', 'pdg', 'directeur_general', 'sga', 'sgad', 'apparitorat'
+        'pdg', 'directeur_general', 'sga', 'sgad', 'apparitorat'
     ]
 
 
@@ -322,6 +322,20 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             return [IsTeacherOrAdmin()]
         return [IsAuthenticated()]
 
+    def _assert_can_plan(self, course):
+        """L'horaire est établi par le SGA ou le chef du périmètre, pas par l'enseignant."""
+        from apps.users.permissions import manages_course
+        from rest_framework.exceptions import PermissionDenied
+        user = self.request.user
+        if not (user.is_staff or user.role in ['sga', 'pdg', 'chef_section', 'chef_departement']):
+            raise PermissionDenied("L'horaire est établi par le SGA ou le chef de section/filière.")
+        if course is not None and not manages_course(user, course):
+            raise PermissionDenied("Ce cours n'appartient pas à votre périmètre.")
+
+    def perform_destroy(self, instance):
+        self._assert_can_plan(instance.course)
+        instance.delete(user=self.request.user)
+
     def get_queryset(self):
         user = self.request.user
         qs = Schedule.objects.select_related(
@@ -577,6 +591,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             validated_data['term'] = first_term
 
     def perform_create(self, serializer):
+        self._assert_can_plan(serializer.validated_data.get('course'))
         self._auto_resolve_term(serializer.validated_data)
         hard_conflicts, warnings = self._detect_conflicts(serializer.validated_data)
         if hard_conflicts:
@@ -585,6 +600,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def perform_update(self, serializer):
+        self._assert_can_plan(serializer.validated_data.get('course', serializer.instance.course))
         self._auto_resolve_term(serializer.validated_data)
         hard_conflicts, warnings = self._detect_conflicts(
             serializer.validated_data,
@@ -674,14 +690,17 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 Q(teacher=user) | Q(course__titulaire=user) | Q(course__assistants=user),
                 is_active=True
             ).distinct().select_related('course', 'auditoire', 'room', 'timeslot')
-        elif user.role in ('iadmin', 'sga', 'sgad', 'pdg', 'directeur_general'):
+        elif user.role in ('pdg', 'sga', 'sgad', 'directeur_general'):
             qs = Schedule.objects.filter(
                 is_active=True
             ).select_related('course', 'auditoire', 'room', 'timeslot', 'teacher')
         elif user.role == 'etudiant' and not user.auditoire:
             qs = Schedule.objects.none()
         else:
-            return Response({'error': 'Non applicable pour ce role.'}, status=status.HTTP_403_FORBIDDEN)
+            # Personnel administratif (apparitorat, caisse, jury…) : horaire général en lecture.
+            qs = Schedule.objects.filter(
+                is_active=True
+            ).select_related('course', 'auditoire', 'room', 'timeslot', 'teacher')
 
         # Filter by term if provided
         term_id = request.query_params.get('term')
@@ -976,6 +995,24 @@ class ScheduleExceptionViewSet(viewsets.ModelViewSet):
         return ScheduleException.objects.select_related(
             'schedule', 'replacement_teacher', 'replacement_room'
         ).all()
+
+    def _check(self, schedule):
+        from apps.users.permissions import manages_course
+        from rest_framework.exceptions import PermissionDenied
+        if schedule is None or not manages_course(self.request.user, schedule.course):
+            raise PermissionDenied("Vous ne pouvez modifier que les séances de vos propres cours.")
+
+    def perform_create(self, serializer):
+        self._check(serializer.validated_data.get('schedule'))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        self._check(serializer.validated_data.get('schedule', serializer.instance.schedule))
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check(instance.schedule)
+        instance.delete(user=self.request.user)
 
 
 class TeacherAvailabilityViewSet(viewsets.ModelViewSet):

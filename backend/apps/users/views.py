@@ -17,9 +17,11 @@ from django.db.models import Q
 from django.core.files.storage import default_storage
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
-    ChangePasswordSerializer, LoginSerializer, UserProfileSerializer
+    ChangePasswordSerializer, LoginSerializer, UserProfileSerializer, ProfileUpdateSerializer
 )
-from .permissions import IsOwnerOrAdmin, IsAdminUser, CanViewUsers
+from .permissions import IsOwnerOrAdmin, IsAdminUser, CanViewUsers, assignable_roles
+from rest_framework.exceptions import PermissionDenied
+from apps.core.audit import audit
 from .filters import UserFilter, StudentFilter, TeacherFilter
 from .mixins import RoleBasedFilterMixin
 
@@ -61,7 +63,7 @@ class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
 
         # Si c'est pour le formulaire de cours, chef section/département voient TOUS les utilisateurs
         for_course_form = self.request.query_params.get('for_course_form', 'false').lower() == 'true'
-        if for_course_form and user.role in ['chef_section', 'chef_departement', 'sga', 'admin', 'iadmin']:
+        if for_course_form and user.role in ['chef_section', 'chef_departement', 'sga', 'admin', 'pdg']:
             return queryset
 
         return self.filter_queryset_by_role(queryset, user, 'user')
@@ -70,6 +72,9 @@ class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
         if self.action == 'create':
             return UserCreateSerializer
         elif self.action in ['update', 'partial_update']:
+            target = self.get_object() if self.kwargs.get(self.lookup_field) else None
+            if target is not None and target.pk == self.request.user.pk and not self._can_manage(target, allow_self=False):
+                return ProfileUpdateSerializer
             return UserUpdateSerializer
         elif self.action == 'retrieve':
             return UserProfileSerializer
@@ -95,6 +100,29 @@ class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
             return [OR(IsOwnerOrAdmin(), CanViewUsers())]
         return super().get_permissions()
 
+    def _can_manage(self, target, allow_self=True):
+        """Un administrateur ne gère que les comptes dont il peut attribuer le rôle."""
+        user = self.request.user
+        if allow_self and target.pk == user.pk:
+            return True
+        allowed = assignable_roles(user)
+        if allowed is None:
+            return True
+        return target.role in allowed and target.pk != user.pk
+
+    def perform_update(self, serializer):
+        target = serializer.instance
+        if target.pk != self.request.user.pk and not self._can_manage(target):
+            raise PermissionDenied("Vous ne pouvez pas modifier ce compte.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.pk == self.request.user.pk:
+            raise PermissionDenied("Vous ne pouvez pas supprimer votre propre compte.")
+        if not self._can_manage(instance):
+            raise PermissionDenied("Vous ne pouvez pas supprimer ce compte.")
+        instance.delete(user=self.request.user, reason=self.request.data.get('reason', '') if hasattr(self.request, 'data') else '')
+
     @action(detail=False, methods=['get'])
     def me(self, request):
         """Get current user info"""
@@ -104,7 +132,7 @@ class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['put', 'patch'])
     def update_profile(self, request):
         """Update current user profile"""
-        serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(UserProfileSerializer(request.user).data)
@@ -124,6 +152,13 @@ class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
 
         user.set_password(serializer.validated_data['new_password'])
         user.save()
+        # Révoque toutes les sessions ouvertes (jetons de rafraîchissement).
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            for token in OutstandingToken.objects.filter(user=user):
+                BlacklistedToken.objects.get_or_create(token=token)
+        except Exception:
+            logger.warning("Révocation des jetons impossible pour %s", user.pk)
 
         return Response({'detail': 'Mot de passe changé avec succès.'})
 
@@ -138,7 +173,7 @@ class UserViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
         user = self.get_object()
 
         # Check permissions - user can only modify their own avatar or admin can modify any
-        if user != request.user and not request.user.is_staff and request.user.role not in ['iadmin', 'admin', 'pdg']:
+        if user != request.user and not request.user.is_staff and request.user.role not in ['pdg', 'admin']:
             return Response(
                 {'detail': 'Vous n\'avez pas la permission de modifier cet avatar.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -220,6 +255,7 @@ class LoginView(generics.GenericAPIView):
     """
     serializer_class = LoginSerializer
     permission_classes = [AllowAny]
+    throttle_scope = 'login'
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -231,25 +267,31 @@ class LoginView(generics.GenericAPIView):
         user = authenticate(email=email, password=password)
 
         if user is None:
+            audit('login_failed', None, details={'email': email})
             return Response(
                 {'detail': 'Email ou mot de passe incorrect.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        if not user.is_active:
+        if not user.is_active or user.status != 'actif':
+            audit('login_failed', user, user=user, details={'motif': f'compte {user.status}'})
             return Response(
-                {'detail': 'Ce compte est désactivé.'},
+                {'detail': 'Ce compte est désactivé ou suspendu. Contactez l’administration.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+        audit('login', user, user=user)
 
         user = User.objects.select_related('auditoire', 'section', 'filiere').get(pk=user.pk)
         refresh = RefreshToken.for_user(user)
 
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-            'user': UserProfileSerializer(user).data
-        })
+        body = {'access': str(refresh.access_token), 'user': UserProfileSerializer(user).data}
+        if cookie_mode(request):
+            # Web : le refresh token vit dans un cookie httpOnly (inaccessible au JavaScript).
+            response = Response(body)
+            set_refresh_cookie(response, str(refresh))
+            return response
+        body['refresh'] = str(refresh)  # applications mobiles : stockage sécurisé natif
+        return Response(body)
 
 
 class LogoutView(generics.GenericAPIView):
@@ -259,14 +301,59 @@ class LogoutView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        refresh_token = request.data.get('refresh') or request.COOKIES.get(REFRESH_COOKIE)
+        response = Response({'detail': 'Déconnexion réussie.'}, status=status.HTTP_200_OK)
+        response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH)
+        if refresh_token:
+            try:
+                RefreshToken(refresh_token).blacklist()
+            except Exception:
+                pass  # jeton déjà expiré / révoqué : la déconnexion reste effective
+        return response
+
+
+REFRESH_COOKIE = 'mz_refresh'
+REFRESH_COOKIE_PATH = '/api/auth/'
+
+
+def cookie_mode(request):
+    return request.headers.get('X-Auth-Mode', '').lower() == 'cookie'
+
+
+def set_refresh_cookie(response, token):
+    from django.conf import settings as dj_settings
+    response.set_cookie(
+        REFRESH_COOKIE, token, httponly=True, secure=not dj_settings.DEBUG, samesite='Lax',
+        path=REFRESH_COOKIE_PATH,
+        max_age=int(dj_settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds()))
+
+
+class CookieTokenRefreshView(generics.GenericAPIView):
+    """Rafraîchit l'access token depuis le corps (mobile) ou le cookie httpOnly (web)."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+        from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+        from_cookie = not request.data.get('refresh')
+        token = request.data.get('refresh') or request.COOKIES.get(REFRESH_COOKIE)
+        if not token:
+            return Response({'detail': 'Session expirée.'}, status=status.HTTP_401_UNAUTHORIZED)
+        serializer = TokenRefreshSerializer(data={'refresh': token})
         try:
-            refresh_token = request.data.get('refresh')
-            if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            return Response({'detail': 'Déconnexion réussie.'}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            serializer.is_valid(raise_exception=True)
+        except (TokenError, InvalidToken):
+            response = Response({'detail': 'Session expirée.'}, status=status.HTTP_401_UNAUTHORIZED)
+            response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH)
+            return response
+        data = dict(serializer.validated_data)
+        if from_cookie:
+            response = Response({'access': data['access']})
+            if data.get('refresh'):
+                set_refresh_cookie(response, data['refresh'])
+            return response
+        return Response(data)
 
 
 class StudentFilter(FilterSet):

@@ -179,8 +179,8 @@ const Apparitorat = () => {
   }
 
   // Role-based access control
-  const canManageRooms = ['iadmin', 'apparitorat', 'sga', 'sgad', 'directeur_general', 'pdg'].includes(user?.role);
-  const canManageReservations = ['iadmin', 'apparitorat', 'sga', 'sgad', 'directeur_general', 'pdg'].includes(user?.role);
+  const canManageRooms = ['pdg', 'apparitorat', 'sga', 'sgad', 'directeur_general'].includes(user?.role);
+  const canManageReservations = ['pdg', 'apparitorat', 'sga', 'sgad', 'directeur_general'].includes(user?.role);
 
   // Calculate stats
   const totalRooms = rooms.length;

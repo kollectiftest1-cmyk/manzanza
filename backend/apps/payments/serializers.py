@@ -77,6 +77,12 @@ class PaymentSerializer(serializers.ModelSerializer):
     fee_name = serializers.SerializerMethodField()
     processed_by_name = serializers.CharField(source='processed_by.get_full_name', read_only=True, default=None)
     mobile_money_provider_display = serializers.CharField(source='get_mobile_money_provider_display', read_only=True, default=None)
+    currency = serializers.CharField(read_only=True)
+    is_reversed = serializers.SerializerMethodField()
+
+    def get_is_reversed(self, obj):
+        c = getattr(obj, 'contrepassation', None) if hasattr(obj, 'contrepassation') else None
+        return bool(c and c.status == 'approved')
 
     class Meta:
         model = Payment
@@ -84,11 +90,28 @@ class PaymentSerializer(serializers.ModelSerializer):
             'id', 'student_fee', 'student_name', 'student_matricule', 'fee_name',
             'amount', 'payment_method', 'reference', 'status',
             'mobile_money_provider', 'mobile_money_provider_display', 'mobile_money_number',
-            'transaction_id', 'notes',
+            'transaction_id', 'notes', 'currency', 'cash_session', 'is_reversed',
             'processed_by', 'processed_by_name', 'payment_date',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'reference', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'reference', 'processed_by', 'cash_session', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        from decimal import Decimal
+        student_fee = data.get('student_fee')
+        amount = data.get('amount')
+        if amount is not None and amount <= 0:
+            raise serializers.ValidationError({'amount': 'Le montant doit être positif.'})
+        if student_fee is not None and amount is not None:
+            if student_fee.status == 'annule':
+                raise serializers.ValidationError({'student_fee': 'Ce frais est annulé.'})
+            if amount > student_fee.amount_remaining + Decimal('0.01'):
+                raise serializers.ValidationError(
+                    {'amount': f'Le montant dépasse le solde dû ({student_fee.amount_remaining}).'}
+                )
+        if data.get('status') not in (None, 'en_attente', 'confirme'):
+            raise serializers.ValidationError({'status': 'Statut initial invalide.'})
+        return data
 
     def get_fee_name(self, obj):
         sf = obj.student_fee
@@ -107,7 +130,8 @@ class StudentFeeSerializer(serializers.ModelSerializer):
     student_email = serializers.CharField(source='student.email', read_only=True)
     fee_type_name = serializers.CharField(source='fee_type.name', read_only=True, default=None)
     fee_campaign_name = serializers.CharField(source='fee_campaign.name', read_only=True, default=None)
-    fee_campaign_currency = serializers.CharField(source='fee_campaign.currency', read_only=True, default='USD')
+    fee_campaign_currency = serializers.CharField(source='currency', read_only=True)
+    academic_year_name = serializers.CharField(source='inscription.academic_year.name', read_only=True, default=None)
     fee_name = serializers.SerializerMethodField()
     amount_remaining = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     payment_percentage = serializers.FloatField(read_only=True)
@@ -118,12 +142,14 @@ class StudentFeeSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'student', 'student_name', 'student_matricule', 'student_email',
             'fee_type', 'fee_type_name', 'fee_campaign', 'fee_campaign_name', 'fee_campaign_currency',
-            'fee_name',
+            'fee_name', 'currency', 'inscription', 'bareme', 'academic_year_name',
             'total_amount', 'amount_paid', 'amount_remaining',
             'payment_percentage', 'due_date', 'status', 'notes',
             'payments', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'amount_remaining', 'payment_percentage', 'created_at', 'updated_at']
+        # Le montant payé et le statut découlent UNIQUEMENT des paiements confirmés.
+        read_only_fields = ['id', 'amount_paid', 'status', 'amount_remaining', 'payment_percentage',
+                            'inscription', 'bareme', 'created_at', 'updated_at']
 
     def get_fee_name(self, obj):
         if obj.fee_campaign:
@@ -131,56 +157,3 @@ class StudentFeeSerializer(serializers.ModelSerializer):
         if obj.fee_type:
             return obj.fee_type.name
         return '—'
-
-
-
-class FeeTypeSerializer(serializers.ModelSerializer):
-    """FeeType Serializer"""
-
-    class Meta:
-        model = FeeType
-        fields = [
-            'id', 'name', 'category', 'description', 'amount',
-            'is_mandatory', 'is_active', 'academic_year',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class PaymentSerializer(serializers.ModelSerializer):
-    """Payment Serializer"""
-
-    student_name = serializers.CharField(source='student_fee.student.get_full_name', read_only=True)
-    fee_name = serializers.CharField(source='student_fee.fee_type.name', read_only=True)
-    processed_by_name = serializers.CharField(source='processed_by.get_full_name', read_only=True)
-
-    class Meta:
-        model = Payment
-        fields = [
-            'id', 'student_fee', 'student_name', 'fee_name',
-            'amount', 'payment_method', 'reference', 'status',
-            'transaction_id', 'receipt_file', 'notes',
-            'processed_by', 'processed_by_name', 'payment_date',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'reference', 'created_at', 'updated_at']
-
-
-class StudentFeeSerializer(serializers.ModelSerializer):
-    """StudentFee Serializer"""
-
-    student_name = serializers.CharField(source='student.get_full_name', read_only=True)
-    fee_type_name = serializers.CharField(source='fee_type.name', read_only=True)
-    amount_remaining = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    payment_percentage = serializers.FloatField(read_only=True)
-    payments = PaymentSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = StudentFee
-        fields = [
-            'id', 'student', 'student_name', 'fee_type', 'fee_type_name',
-            'total_amount', 'amount_paid', 'amount_remaining',
-            'payment_percentage', 'due_date', 'status', 'notes',
-            'payments', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'amount_remaining', 'payment_percentage', 'created_at', 'updated_at']

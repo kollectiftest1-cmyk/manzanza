@@ -19,6 +19,7 @@ import {
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { hasAnyRole } from '../utils/permissions'
 import { getUsers, createUser, updateUser, deleteUser } from '../services/userService'
 import courseService from '../services/courseService'
 import gradeService from '../services/gradeService'
@@ -41,6 +42,8 @@ const EMPTY_STUDENT = {
 const GestionEtudiants = () => {
   const navigate = useNavigate()
   const { user: currentUser } = useSelector((s) => s.auth)
+  // Les admissions (pré-inscriptions) relèvent du SGA, de l'apparitorat et de la commission.
+  const canReviewAdmissions = hasAnyRole(currentUser, 'sga', 'pdg', 'apparitorat', 'commission_admission', 'caisse')
 
   // ── State ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState('students')
@@ -99,6 +102,7 @@ const GestionEtudiants = () => {
   }, [searchTerm, filterAuditoire, filterSection, filterFiliere])
 
   const loadInscriptions = useCallback(async () => {
+    if (!canReviewAdmissions) return
     try {
       setLoadingInscriptions(true)
       const res = await api.get('/inscriptions/')
@@ -109,7 +113,7 @@ const GestionEtudiants = () => {
     } finally {
       setLoadingInscriptions(false)
     }
-  }, [])
+  }, [canReviewAdmissions])
 
   const loadOptions = useCallback(async () => {
     try {
@@ -212,7 +216,7 @@ const GestionEtudiants = () => {
   }
 
   const handleDeleteStudent = async (student) => {
-    if (!window.confirm(`Supprimer l'étudiant ${student.first_name} ${student.last_name} ? Cette action est irréversible.`)) return
+    if (!window.confirm(`Supprimer l'étudiant ${student.first_name} ${student.last_name} ? Il ira dans la corbeille (restaurable pendant la durée de conservation).`)) return
     try {
       await deleteUser(student.id)
       setSuccess('Étudiant supprimé.')
@@ -300,7 +304,7 @@ const GestionEtudiants = () => {
   const validatedInscriptions = inscriptions.filter(i => i.status === 'validee')
   const rejectedInscriptions = inscriptions.filter(i => i.status === 'rejetee')
 
-  const canManage = ['sga', 'iadmin', 'pdg', 'directeur_general', 'chef_section', 'chef_departement'].includes(currentUser?.role)
+  const canManage = ['sga', 'pdg', 'directeur_general', 'chef_section', 'chef_departement'].includes(currentUser?.role)
 
   // Calculate total credits for student
   const calculateTotalCredits = (courses) => {
@@ -364,8 +368,10 @@ const GestionEtudiants = () => {
         <Row className="mb-4 g-3">
           {[
             { label: 'Total Étudiants', value: students.length, icon: FiUsers, color: '#4facfe' },
-            { label: 'Inscriptions en attente', value: pendingInscriptions.length, icon: FiClock, color: '#f093fb' },
-            { label: 'Inscriptions validées', value: validatedInscriptions.length, icon: FiCheckCircle, color: '#43e97b' },
+            ...(canReviewAdmissions ? [
+              { label: 'Inscriptions en attente', value: pendingInscriptions.length, icon: FiClock, color: '#f093fb' },
+              { label: 'Inscriptions validées', value: validatedInscriptions.length, icon: FiCheckCircle, color: '#43e97b' },
+            ] : []),
             { label: 'Auditoires', value: auditoires.length, icon: FiTarget, color: '#ffecd2' },
           ].map((stat, i) => (
             <Col md={3} sm={6} key={i}>
@@ -400,7 +406,7 @@ const GestionEtudiants = () => {
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
           {[
             { id: 'students', label: 'Étudiants', icon: FiUsers, count: students.length },
-            { id: 'inscriptions', label: 'Inscriptions', icon: FiClipboard, count: pendingInscriptions.length, badge: 'warning' },
+            ...(canReviewAdmissions ? [{ id: 'inscriptions', label: 'Inscriptions', icon: FiClipboard, count: pendingInscriptions.length, badge: 'warning' }] : []),
           ].map(tab => (
             <Button key={tab.id}
               variant={activeTab === tab.id ? 'primary' : 'outline-secondary'}

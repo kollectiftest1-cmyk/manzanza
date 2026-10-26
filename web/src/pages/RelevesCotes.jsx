@@ -8,7 +8,7 @@ import { FiFileText, FiRefreshCw, FiSearch, FiTrendingUp } from 'react-icons/fi'
 import api from '../services/api'
 import gradeService from '../services/gradeService'
 
-const PAGE_ROLES = ['iadmin', 'sga', 'sgad', 'pdg', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant']
+const PAGE_ROLES = ['pdg', 'sga', 'sgad', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant']
 
 const unwrap = (response) => {
   const data = response?.data ?? response

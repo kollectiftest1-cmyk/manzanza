@@ -21,6 +21,12 @@ def teacher_statistics(request, user_id):
     - courses: List of courses with details
     - teacher_stats: Overall statistics
     """
+    viewer = request.user
+    if viewer.id != user_id and not (viewer.is_staff or viewer.role in [
+        'pdg', 'directeur_general', 'sga', 'chef_section', 'chef_departement'
+    ]):
+        return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:

@@ -8,6 +8,7 @@ import { fetchBookById, borrowBook, returnBook } from "../store/slices/librarySl
 import axios from "axios"
 import { motion } from "framer-motion"
 import { FiBook, FiBookOpen, FiDownload, FiX, FiChevronLeft, FiChevronRight, FiPlay, FiVideo, FiArrowLeft, FiCalendar, FiMapPin, FiTag, FiFileText, FiUser, FiGlobe } from "react-icons/fi"
+import BookCover from "../components/BookCover"
 
 // Animation variants
 const containerVariants = {
@@ -185,11 +186,13 @@ const BookDetail = () => {
                     marginBottom: '24px',
                     boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
                   }}>
-                    <img
-                      src={book.cover_image || "https://via.placeholder.com/200x300?text=No+Cover"}
-                      alt={`Couverture de ${book.title}`}
-                      style={{ width: '100%', height: 'auto', maxHeight: '400px', objectFit: 'cover' }}
-                    />
+                    {book.cover_image ? (
+                      <img
+                        src={book.cover_image}
+                        alt={`Couverture de ${book.title}`}
+                        style={{ width: '100%', height: 'auto', maxHeight: '400px', objectFit: 'cover' }}
+                      />
+                    ) : <BookCover book={book} height={340} />}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

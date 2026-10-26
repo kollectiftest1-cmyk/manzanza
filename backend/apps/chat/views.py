@@ -38,7 +38,7 @@ class ChatChannelViewSet(viewsets.ModelViewSet):
             return ChatChannel.objects.none()
 
         # SGA and admins see ALL channels
-        if user.role in ['sga', 'admin', 'iadmin']:
+        if user.role in ['sga', 'admin', 'pdg']:
             return ChatChannel.objects.filter(is_active=True).distinct()
 
         # Chef de section sees: their section chat + all filieres of their section + all courses of their section
@@ -124,7 +124,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = self.get_object()
 
         # Only sender or admins can delete
-        if message.sender != request.user and request.user.role not in ['iadmin', 'sga']:
+        if message.sender != request.user and request.user.role not in ['pdg', 'sga']:
             return Response(
                 {'error': 'Vous ne pouvez supprimer que vos propres messages.'},
                 status=status.HTTP_403_FORBIDDEN

@@ -26,10 +26,16 @@ def config_bool(name, default=False):
     raise ValueError(f"Invalid truth value for {name}: {value}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config_bool('DEBUG', default=True)
+DEBUG = config_bool('DEBUG', default=False)
+
+_INSECURE_DEV_KEY = 'django-insecure-dev-only-change-me'
+SECRET_KEY = config('SECRET_KEY', default=_INSECURE_DEV_KEY if DEBUG else '')
+if not SECRET_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "SECRET_KEY doit être défini dans le fichier .env (obligatoire quand DEBUG=False)."
+    )
 
 ALLOWED_HOSTS = [host.strip() for host in config(
     'ALLOWED_HOSTS', default='localhost,127.0.0.1'
@@ -47,6 +53,7 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
     'drf_yasg',
@@ -63,10 +70,11 @@ INSTALLED_APPS = [
     'apps.hr',
     'apps.notifications',
     'apps.stats',
-    'apps.core',
+    'apps.core',  # corbeille, journal d'audit, paramètres système
     'apps.inscriptions', # New
     'apps.schedules',
     'apps.grades',
+    'apps.scolarite',  # inscriptions annuelles, délibérations, documents officiels, rapports
 ]
 
 MIDDLEWARE = [
@@ -78,6 +86,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.core.context.CurrentRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -110,11 +119,13 @@ DATABASES = {
         'HOST': config('DB_HOST', default=''),
         'PORT': config('DB_PORT', default=''),
         'ATOMIC_REQUESTS': True,
-        'OPTIONS': {
-            'timeout': 20,  # Increase timeout for SQLite to handle concurrent requests
-        }
+        'CONN_MAX_AGE': config('DB_CONN_MAX_AGE', default=60, cast=int),
     }
 }
+if DATABASES['default']['ENGINE'].endswith('sqlite3'):
+    # SQLite (développement) : délai d'attente des verrous. Ne pas passer cette option à PostgreSQL.
+    DATABASES['default']['OPTIONS'] = {'timeout': 20}
+    DATABASES['default']['CONN_MAX_AGE'] = 0
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
@@ -143,10 +154,10 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = config('STATIC_ROOT', default=str(BASE_DIR / 'staticfiles'))
 
 MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = config('MEDIA_ROOT', default=str(BASE_DIR / 'media'))
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -159,7 +170,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'apps.core.pagination.DefaultPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -168,7 +179,41 @@ REST_FRAMEWORK = {
     ],
     'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
     'DATE_FORMAT': '%Y-%m-%d',
+    'EXCEPTION_HANDLER': 'apps.core.exceptions.exception_handler',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': config('THROTTLE_ANON', default='60/minute'),
+        'user': config('THROTTLE_USER', default='1200/minute'),
+        'login': config('THROTTLE_LOGIN', default='10/minute'),
+        'public_form': config('THROTTLE_PUBLIC_FORM', default='5/hour'),
+    },
 }
+
+# Corbeille : durée de conservation par défaut (modifiable ensuite par le PDG dans l'application)
+TRASH_RETENTION_DAYS = config('TRASH_RETENTION_DAYS', default=60, cast=int)
+
+# Téléversements
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+# Secret partagé avec l'agrégateur Mobile Money (signature HMAC des rappels). Vide = désactivé.
+MOBILE_MONEY_WEBHOOK_SECRET = config('MOBILE_MONEY_WEBHOOK_SECRET', default='')
+# Durée de validité des liens signés vers les fichiers privés (secondes).
+MEDIA_SIGNED_URL_MAX_AGE = config('MEDIA_SIGNED_URL_MAX_AGE', default=7200, cast=int)
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='no-reply@manzanza.ac.cd')
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
 
 # JWT Configuration
 SIMPLE_JWT = {
@@ -187,12 +232,13 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = config(
+CORS_ALLOWED_ORIGINS = [o.strip() for o in config(
     'CORS_ALLOWED_ORIGINS',
     default='http://localhost:5173,http://localhost:3000'
-).split(',')
+).split(',') if o.strip()]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ['Content-Disposition']  # nom des PDF / CSV téléchargés
 
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -213,6 +259,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-auth-mode',
 ]
 
 # Email Configuration

@@ -4,6 +4,20 @@
 
 Toutes les opérations CRUD (Create, Read, Update, Delete) sont maintenant **connectées à l'API backend Django** et fonctionnent selon les permissions de chaque rôle.
 
+## Marche à suivre pour chaque type d’opération
+
+Les listes par rôle ci-dessous indiquent ce que chaque profil peut faire. Appliquez systématiquement la procédure correspondant à la lettre CRUD :
+
+| Type | Marche à suivre | Contrôle final |
+|---|---|---|
+| **Create (C)** | Ouvrir le module → **Ajouter/Nouveau** → choisir le contexte → remplir les champs obligatoires → enregistrer une seule fois. | La fiche apparaît avec un identifiant et le statut prévu. |
+| **Read (R)** | Ouvrir le module → sélectionner l’année ou le cours → filtrer → ouvrir la fiche. | Vérifier l’identité, les dates, le statut et les données liées. |
+| **Update (U)** | Rechercher la fiche → **Modifier** → changer uniquement les champs utiles → enregistrer. | Rouvrir la fiche et vérifier la nouvelle valeur. |
+| **Delete (D)** | Ouvrir la fiche exacte → vérifier ses dépendances → **Supprimer** → lire l’avertissement → confirmer. | Actualiser la liste et contrôler la suppression ou l’archivage. |
+| **Action métier** | Ouvrir la fiche → vérifier les préconditions → publier, clôturer, noter ou valider → confirmer. | Contrôler le nouveau statut, l’historique et les notifications. |
+
+Pour la marche à suivre détaillée de chacune des opérations métier, consultez [GUIDE_PARAMETRAGE_UTILISATION.md](GUIDE_PARAMETRAGE_UTILISATION.md). Pour l’étudiant et l’enseignant sur téléphone, consultez [le guide des opérations mobiles](../mobile/GUIDE_OPERATIONS_MOBILE.md).
+
 ---
 
 ## 📊 Vue d'Ensemble des Modules Connectés

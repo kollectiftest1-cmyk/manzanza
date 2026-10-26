@@ -15,12 +15,13 @@ from .serializers import (
     SectionDetailSerializer, FiliereDetailSerializer
 )
 from .filters import AuditoireFilter, FiliereFilter, SectionFilter
-from apps.users.permissions import IsAdminUser, IsSGAOrAdmin, CanViewAcademicData
+from apps.users.permissions import IsAdminUser, IsSGAOrAdmin, IsAcademicAdmin, CanViewAcademicData
 from apps.users.mixins import RoleBasedFilterMixin
 
 
 def _is_sga_or_admin_user(user):
-    return user.is_staff or user.role in ['sga', 'sgad', 'caisse', 'iadmin', 'pdg', 'directeur_general']
+    # Structure académique : SGA et PDG uniquement (ni la caisse, ni les finances).
+    return user.is_staff or user.role in ['sga', 'pdg']
 
 
 def _managed_section_for(user):
@@ -52,7 +53,7 @@ class SectionViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
         """
         if self.request.method in ['GET', 'HEAD', 'OPTIONS']:
             return [CanViewAcademicData()]
-        return [IsSGAOrAdmin()]
+        return [IsAcademicAdmin()]
 
 
 class FiliereViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
@@ -154,7 +155,7 @@ class AuditoireViewSet(RoleBasedFilterMixin, viewsets.ModelViewSet):
     def get_permissions(self):
         """Set permissions based on action"""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsSGAOrAdmin()]
+            return [IsAcademicAdmin()]
         # Allow chef_section to view auditoires
         if self.request.method in ['GET', 'HEAD', 'OPTIONS']:
             return [CanViewAcademicData()]

@@ -142,7 +142,7 @@ const AssistantDashboard = ({ user }) => {
                   Enseignants
                 </p>
                 <h3 style={{ margin: '4px 0 0', fontSize: '32px', fontWeight: '700' }}>
-                  {new Set(assignments.map(a => a.teacher)).size}
+                  {new Set([...assignments.map(a => a.teacher), ...courses.map(c => c.titulaire_detail?.id || c.titulaire?.id || c.titulaire)].filter(Boolean)).size}
                 </h3>
               </div>
             </div>
@@ -169,7 +169,7 @@ const AssistantDashboard = ({ user }) => {
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-textSecondary)' }}>
-                  Assignations actives
+                  Délégations actives
                 </p>
                 <h3 style={{ margin: '4px 0 0', fontSize: '32px', fontWeight: '700' }}>
                   {assignments.filter(a => a.is_active).length}

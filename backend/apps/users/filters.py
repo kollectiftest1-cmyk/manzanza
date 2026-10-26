@@ -50,7 +50,6 @@ class UserFilter(filters.FilterSet):
             ('jury', 'Jury'),
             ('pdg', 'PDG'),
             ('directeur_general', 'Directeur General'),
-            ('iadmin', 'IAdmin'),
         ]
     )
 

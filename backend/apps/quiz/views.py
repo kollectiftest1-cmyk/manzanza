@@ -20,6 +20,10 @@ from .serializers import (
     QuizCreateSerializer, QuizSubmitAnswerSerializer
 )
 from apps.grades.models import GradeCategory, Grade
+from rest_framework.exceptions import PermissionDenied
+from apps.users.permissions import (
+    IsTeachingStaff, ManagesObjectCourse, IsObjectStudent, manages_course, ASSESSMENT_READ_ALL_ROLES,
+)
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -50,9 +54,24 @@ class QuizViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(course__auditoire__filiere__section=user.section)
             elif user.role == 'chef_departement' and user.filiere:
                 queryset = queryset.filter(course__auditoire__filiere=user.filiere)
-        # SGA/Admin see all
+            else:
+                queryset = queryset.none()
+        elif not (user.is_superuser or user.role in ASSESSMENT_READ_ALL_ROLES):
+            # Caisse, bibliothèque, apparitorat… n'ont pas accès aux évaluations.
+            queryset = queryset.none()
 
         return queryset.distinct().order_by('-start_date')
+
+    # Actions ouvertes aux étudiants (le queryset limite déjà aux quiz publiés de leur auditoire).
+    STUDENT_ACTIONS = {'list', 'retrieve', 'questions', 'my_attempts', 'start_attempt', 'submit_attempt'}
+
+    def get_permissions(self):
+        if self.action in self.STUDENT_ACTIONS:
+            return [IsAuthenticated()]
+        return [IsTeachingStaff(), ManagesObjectCourse()]
+
+    def course_of(self, obj):
+        return obj.course
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -60,7 +79,18 @@ class QuizViewSet(viewsets.ModelViewSet):
         return QuizSerializer
 
     def perform_create(self, serializer):
+        if not manages_course(self.request.user, serializer.validated_data.get('course')):
+            raise PermissionDenied("Vous ne pouvez créer des quiz que pour vos propres cours.")
         serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        course = serializer.validated_data.get('course', serializer.instance.course)
+        if not manages_course(self.request.user, course):
+            raise PermissionDenied("Vous ne pouvez rattacher un quiz qu'à vos propres cours.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        instance.delete(user=self.request.user)
 
     @action(detail=True, methods=['get'])
     def questions(self, request, pk=None):
@@ -158,7 +188,7 @@ class QuizViewSet(viewsets.ModelViewSet):
 
                 selected_choice_ids = answer_data.get('selected_choices', [])
                 if selected_choice_ids:
-                    choices = QuizChoice.objects.filter(id__in=selected_choice_ids)
+                    choices = QuizChoice.objects.filter(id__in=selected_choice_ids, question=question)
                     answer.selected_choices.set(choices)
 
                     is_correct = answer.is_correct()
@@ -255,6 +285,25 @@ class QuizViewSet(viewsets.ModelViewSet):
                 {'error': 'Quiz is not currently active'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # Règle académique : l'accès à une épreuve d'examen suppose d'être en ordre de frais.
+        if quiz.quiz_type == 'examen' and user.role == 'etudiant':
+            from apps.scolarite.services.finance import clearance
+            fin = clearance(user)
+            if not fin['cleared']:
+                return Response({
+                    'error': (f"Accès à l'examen refusé : frais réglés à {fin['paid_percent']} % "
+                              f"(minimum {fin['required_percent']} %). Régularisez auprès de la caisse."),
+                    'clearance': {'paid_percent': float(fin['paid_percent']),
+                                  'required_percent': fin['required_percent']},
+                }, status=status.HTTP_403_FORBIDDEN)
+            from apps.scolarite.services.assiduite import exam_admissible
+            ok, rate, seuil = exam_admissible(user, quiz.course)
+            if not ok:
+                return Response({
+                    'error': (f"Accès à l'examen refusé : assiduité de {rate} % au cours "
+                              f"« {quiz.course.name} » (minimum {seuil} %)."),
+                }, status=status.HTTP_403_FORBIDDEN)
 
         # Use select_for_update to prevent race conditions
         from django.db import transaction, IntegrityError, OperationalError
@@ -364,8 +413,35 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
                 Q(quiz__course__titulaire=user) |
                 Q(quiz__course__assistants=user)
             )
+        elif user.role == 'chef_departement' and user.filiere_id:
+            queryset = queryset.filter(quiz__course__auditoire__filiere_id=user.filiere_id)
+        elif user.role == 'chef_section' and user.section_id:
+            queryset = queryset.filter(quiz__course__auditoire__filiere__section_id=user.section_id)
+        elif not (user.is_superuser or user.role in ASSESSMENT_READ_ALL_ROLES):
+            queryset = queryset.none()
 
         return queryset.distinct()
+
+    # Une tentative ne se crée que via /quizzes/{id}/start_attempt/, ne se modifie que via
+    # les actions dédiées et ne se supprime jamais (donnée d'évaluation protégée).
+    http_method_names = ['get', 'post', 'head', 'options']
+    STUDENT_ACTIONS = {'save_answers', 'submit_answer', 'submit'}
+
+    def get_permissions(self):
+        if self.action in self.STUDENT_ACTIONS:
+            return [IsAuthenticated(), IsObjectStudent()]
+        if self.action in ['grade', 'grade_answer']:
+            return [IsTeachingStaff(), ManagesObjectCourse()]
+        if self.action == 'create':
+            return [IsTeachingStaff(), ManagesObjectCourse()]
+        return [IsAuthenticated()]
+
+    def course_of(self, obj):
+        return obj.quiz.course
+
+    def create(self, request, *args, **kwargs):
+        return Response({'error': "Utilisez /quiz/quizzes/{id}/start_attempt/ pour commencer un quiz."},
+                        status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(detail=True, methods=['post'], url_path='save_answers')
     def save_answers(self, request, pk=None):
@@ -409,7 +485,7 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
 
                 # Handle choice selections
                 if selected_choice_ids:
-                    choices = QuizChoice.objects.filter(id__in=selected_choice_ids)
+                    choices = QuizChoice.objects.filter(id__in=selected_choice_ids, question=question)
                     answer.selected_choices.set(choices)
 
                 saved_count += 1
@@ -466,7 +542,7 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
 
             # Handle choice selections
             if selected_choice_ids:
-                choices = QuizChoice.objects.filter(id__in=selected_choice_ids)
+                choices = QuizChoice.objects.filter(id__in=selected_choice_ids, question=question)
                 answer.selected_choices.set(choices)
 
                 # Auto-grade if possible
@@ -527,7 +603,7 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
                 # Handle choice selections
                 selected_choice_ids = answer_data.get('selected_choices', [])
                 if selected_choice_ids:
-                    choices = QuizChoice.objects.filter(id__in=selected_choice_ids)
+                    choices = QuizChoice.objects.filter(id__in=selected_choice_ids, question=question)
                     answer.selected_choices.set(choices)
 
                     # Auto-grade if possible
@@ -621,17 +697,9 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
             final_score = attempt.score if attempt.score is not None else 0
             normalized = round((float(final_score) / float(max_pts)) * 20, 2)
 
-            Grade.objects.update_or_create(
-                student=attempt.student,
-                course=course,
-                category=quiz_cat,
-                session_number=quiz.id,
-                defaults={
-                    'value': normalized,
-                    'max_value': 20,
-                    'label': quiz.title or 'Quiz',
-                }
-            )
+            # Report dans le carnet de notes, si la feuille du cours est encore en brouillon.
+            from apps.grades.workflow import sync_grade
+            sync_grade(attempt.student, course, quiz_cat, quiz.id, normalized, quiz.title or 'Quiz')
         # ─────────────────────────────────────────────────────────────────
 
         serializer = QuizAttemptSerializer(attempt)

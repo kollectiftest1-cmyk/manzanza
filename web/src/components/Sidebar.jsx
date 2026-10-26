@@ -12,8 +12,8 @@ const Sidebar = () => {
   
 
   // Define admin roles for reuse in permission checks
-  const adminRoles = ['iadmin', 'pdg', 'directeur_general', 'sga', 'sgad'];
-  const academicManagementRoles = ['sga', 'iadmin' ];
+  const adminRoles = ['pdg', 'directeur_general', 'sga', 'sgad'];
+  const academicManagementRoles = ['sga', 'pdg' ];
   const teacherRoles = ['enseignant', 'assistant'];
 
   const navGroups = [
@@ -63,10 +63,10 @@ const Sidebar = () => {
     // Groupes généraux
     {
       title: "Académique",
-      roles: ["chef_section,", "chef_departement", "sga", "iadmin",'enseignant', 'assistant'],
+      roles: ["chef_section,", "chef_departement", "sga", "pdg",'enseignant', 'assistant'],
       items: [
         { path: "/auditoires", icon: "fa-school", text: "Gestion Auditoires", requiredRoles: [...academicManagementRoles, ...teacherRoles], },
-        { path: "/gestion-inscriptions", icon: "fa-user-plus", text: "Inscriptions", requiredRoles: ["sga", "iadmin"] },
+        { path: "/gestion-inscriptions", icon: "fa-user-plus", text: "Inscriptions", requiredRoles: ["sga", "pdg"] },
         { path: "/tptd", icon: "fa-file-alt", text: "TP/TD", requiredRoles: ["etudiant", ...teacherRoles, "chef_section","chef_departement"] },
         { path: "/quiz", icon: "fa-question-circle", text: "Quiz", requiredRoles: ["etudiant", ...teacherRoles, "chef_section","chef_departement"] },
         { path: "/students", icon: "fa-user-graduate", text: "Tous les Étudiants", requiredRoles: academicManagementRoles },
@@ -80,18 +80,18 @@ const Sidebar = () => {
         { path: "/library", icon: "fa-book-reader", text: "Bibliothèque", requiredRoles: [] },
         { path: "/notifications", icon: "fa-book-reader", text: "Notifications", requiredRoles: [] },
         { path: "/paiements", icon: "fa-dollar-sign", text: "Mes Paiements", requiredRoles: ["etudiant"] },
-        { path: "/caisse", icon: "fa-cash-register", text: "Caisse", requiredRoles: ["caisse", "iadmin", "directeur_general"] },
-        { path: "/gestion-frais", icon: "fa-coins", text: "Gestion Frais", requiredRoles: ["iadmin", "sgad", "caisse", "pdg", "directeur_general"] },
+        { path: "/caisse", icon: "fa-cash-register", text: "Caisse", requiredRoles: ["caisse", "pdg", "directeur_general"] },
+        { path: "/gestion-frais", icon: "fa-coins", text: "Gestion Frais", requiredRoles: ["pdg", "sgad", "caisse", "directeur_general"] },
       ],
     },
     {
       title: "Administration",
       items: [
         { path: "/administration", icon: "fa-users-cog", text: "Utilisateurs", requiredRoles: adminRoles },
-        { path: "/rh", icon: "fa-users", text: "Ressources Humaines", requiredRoles: ["sgad", "iadmin"] },
-        { path: "/comptabilite", icon: "fa-calculator", text: "Comptabilité", requiredRoles: ["caisse", "sgad", "iadmin", "directeur_general"] },
-        { path: "/apparitorat", icon: "fa-user-check", text: "Apparitorat", requiredRoles: ["apparitorat", "sga", "iadmin"] },
-        { path: "/service-it", icon: "fa-laptop-code", text: "Service IT", requiredRoles: ["service_it", "iadmin"] },
+        { path: "/rh", icon: "fa-users", text: "Ressources Humaines", requiredRoles: ["sgad", "pdg"] },
+        { path: "/comptabilite", icon: "fa-calculator", text: "Comptabilité", requiredRoles: ["caisse", "sgad", "pdg", "directeur_general"] },
+        { path: "/apparitorat", icon: "fa-user-check", text: "Apparitorat", requiredRoles: ["apparitorat", "sga", "pdg"] },
+        { path: "/service-it", icon: "fa-laptop-code", text: "Service IT", requiredRoles: ["service_it", "pdg"] },
       ],
     },
   ]
@@ -170,7 +170,7 @@ const Sidebar = () => {
       </style>
       <div className="sidebar border-end bg-light">
         <div className="sidebar-header p-3 text-center">
-          <h4 className="text-primary fw-bold">Syntax GU</h4>
+          <h4 className="text-primary fw-bold">Université MAZANZA</h4>
         </div>
         <Nav className="flex-column p-2">
           {navGroups.map(renderNavGroup)}

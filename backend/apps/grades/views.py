@@ -16,11 +16,13 @@ from .serializers import (
     AcademicConfigSerializer, GradeCategorySerializer, CourseGradeWeightSerializer,
     GradeSerializer, ExamSessionSerializer, TranscriptSerializer
 )
-from apps.users.permissions import IsTeacherOrAdmin, IsSGAOrAdmin, IsAdminUser
+from apps.users.permissions import IsTeacherOrAdmin, IsSGAOrAdmin, IsAdminUser, IsAcademicAdmin, manages_course
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from apps.core.audit import audit
 
 
 def _is_admin(user):
-    return user.is_staff or user.role in ['iadmin', 'pdg', 'directeur_general', 'sga', 'sgad']
+    return user.is_staff or user.role in ['pdg', 'directeur_general', 'sga', 'sgad']
 
 
 def _is_teacher(user):
@@ -198,6 +200,10 @@ class AcademicConfigViewSet(viewsets.ViewSet):
 
         if not user_id:
             return Response({'error': 'user_id requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        if str(request.user.pk) != str(user_id) and not (
+            _is_admin(request.user) or request.user.role in ['chef_section', 'chef_departement']
+        ):
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             teacher = User.objects.get(pk=user_id)
@@ -268,6 +274,13 @@ class AcademicConfigViewSet(viewsets.ViewSet):
         course_id = request.query_params.get('course_id')
         if not course_id:
             return Response({'error': 'course_id requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.courses.models import Course as _Course
+        _course = _Course.objects.select_related('auditoire__filiere').filter(pk=course_id).first()
+        if _course is None:
+            return Response({'error': 'Cours non trouvé.'}, status=status.HTTP_404_NOT_FOUND)
+        # Les moyennes de toute la classe ne sont pas visibles par les étudiants.
+        if request.user.role == 'etudiant' or not _can_access_course(request.user, _course):
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
 
         config = AcademicConfig.load()
         grades = Grade.objects.filter(
@@ -358,6 +371,11 @@ class AcademicConfigViewSet(viewsets.ViewSet):
             auditoire = Auditoire.objects.get(pk=auditoire_id)
         except Auditoire.DoesNotExist:
             return Response({'error': 'Auditoire non trouvé.'}, status=status.HTTP_404_NOT_FOUND)
+        if request.user.role == 'etudiant' or not (
+            _is_admin(request.user)
+            or _accessible_transcript_auditoires(request.user).filter(pk=auditoire.pk).exists()
+        ):
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
 
         config = AcademicConfig.load()
         courses = CourseModel.objects.filter(auditoire=auditoire, is_active=True)
@@ -460,8 +478,8 @@ class GradeCategoryViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.request.method in ['GET', 'HEAD', 'OPTIONS']:
             return [IsAuthenticated()]
-        # SGA and teachers can create/update categories
-        return [IsTeacherOrAdmin()]
+        # Le barème institutionnel est fixé par le SGA, pas par les enseignants.
+        return [IsAcademicAdmin()]
 
 
 class CourseGradeWeightViewSet(viewsets.ModelViewSet):
@@ -488,6 +506,31 @@ class CourseGradeWeightViewSet(viewsets.ModelViewSet):
             ).values_list('id', flat=True)
             return qs.filter(course__in=teacher_courses)
         return qs.none()
+
+    def _check(self, serializer):
+        course = serializer.validated_data.get('course') or serializer.instance.course
+        if not manages_course(self.request.user, course):
+            raise PermissionDenied("Vous ne pouvez régler que la pondération de vos propres cours.")
+        weight = serializer.validated_data.get('weight', getattr(serializer.instance, 'weight', 0))
+        others = CourseGradeWeight.objects.filter(course=course)
+        if serializer.instance is not None:
+            others = others.exclude(pk=serializer.instance.pk)
+        total = sum(float(w.weight) for w in others) + float(weight or 0)
+        if total > 100.0001:
+            raise ValidationError({'weight': f"La somme des pondérations du cours dépasserait 100 % ({total:.2f} %)."})
+
+    def perform_create(self, serializer):
+        self._check(serializer)
+        serializer.save()
+
+    def perform_update(self, serializer):
+        self._check(serializer)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not manages_course(self.request.user, instance.course):
+            raise PermissionDenied("Vous ne pouvez modifier que vos propres cours.")
+        instance.delete(user=self.request.user)
 
 
 class GradeViewSet(viewsets.ModelViewSet):
@@ -531,14 +574,46 @@ class GradeViewSet(viewsets.ModelViewSet):
 
         return qs.none()
 
+    def _check_write(self, course, student):
+        """Seuls les enseignants du cours (ou chefs/SGA du périmètre) notent, et seulement
+        les étudiants de l'auditoire du cours."""
+        if not manages_course(self.request.user, course):
+            raise PermissionDenied("Vous ne pouvez noter que dans vos propres cours.")
+        if student is None or student.role != 'etudiant' or student.auditoire_id != course.auditoire_id:
+            raise ValidationError({'student': "Cet étudiant n'appartient pas à l'auditoire du cours."})
+
+    def _assert_sheet(self, course, exam_session):
+        from .workflow import assert_editable
+        return assert_editable(course, exam_session or 1)
+
     def perform_create(self, serializer):
         """When a grade is saved, auto-update the transcript."""
-        grade = serializer.save()
+        data = serializer.validated_data
+        self._check_write(data.get('course'), data.get('student'))
+        self._assert_sheet(data.get('course'), data.get('exam_session', 1))
+        # Une note naît en brouillon ; elle devient visible à l'approbation de la feuille.
+        grade = serializer.save(status='draft')
+        audit('grade', grade, details={'action': 'creation', 'valeur': str(grade.value), 'statut': grade.status})
         _recompute_transcript(grade.student, grade.course.auditoire)
 
     def perform_update(self, serializer):
-        grade = serializer.save()
+        instance = serializer.instance
+        before = str(instance.value)
+        self._check_write(serializer.validated_data.get('course', instance.course),
+                          serializer.validated_data.get('student', instance.student))
+        self._assert_sheet(instance.course, instance.exam_session)
+        grade = serializer.save(status=instance.status)
+        audit('grade', grade, details={'action': 'modification', 'avant': before, 'apres': str(grade.value),
+                                       'statut': grade.status})
         _recompute_transcript(grade.student, grade.course.auditoire)
+
+    def perform_destroy(self, instance):
+        if not manages_course(self.request.user, instance.course):
+            raise PermissionDenied("Vous ne pouvez supprimer que les notes de vos propres cours.")
+        self._assert_sheet(instance.course, instance.exam_session)
+        student, auditoire = instance.student, instance.course.auditoire
+        instance.delete(user=self.request.user)
+        _recompute_transcript(student, auditoire)
 
     @action(detail=False, methods=['get'], url_path='my-grades')
     def my_grades(self, request):
@@ -904,7 +979,7 @@ class GradeViewSet(viewsets.ModelViewSet):
         if error_response:
             return error_response
 
-        if request.user.role == 'etudiant':
+        if request.user.role == 'etudiant' or not manages_course(request.user, course):
             return Response({'error': 'Permission refusee.'}, status=status.HTTP_403_FORBIDDEN)
 
         category_id = request.data.get('category')
@@ -929,9 +1004,16 @@ class GradeViewSet(viewsets.ModelViewSet):
         if max_value <= 0:
             return Response({'error': 'max_value doit etre positif.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        requested_status = request.data.get('status') or 'draft'
-        if requested_status not in ['draft', 'validated']:
-            return Response({'error': 'status invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            exam_session = int(request.data.get('exam_session') or 1)
+        except (TypeError, ValueError):
+            exam_session = 1
+        if exam_session not in (1, 2):
+            return Response({'error': 'exam_session invalide (1 ou 2).'}, status=status.HTTP_400_BAD_REQUEST)
+        from .workflow import assert_editable
+        assert_editable(course, exam_session)
+        # Le statut d'une note suit sa feuille : brouillon tant que la feuille n'est pas approuvée.
+        requested_status = 'draft'
 
         entries = request.data.get('entries') or []
         if not isinstance(entries, list):
@@ -939,7 +1021,7 @@ class GradeViewSet(viewsets.ModelViewSet):
 
         session_number = request.data.get('session_number')
         if session_number in [None, '']:
-            current_max = Grade.objects.filter(course=course, category=category).aggregate(value=Max('session_number'))['value'] or 0
+            current_max = Grade.all_objects.filter(course=course, category=category, exam_session=exam_session).aggregate(value=Max('session_number'))['value'] or 0
             session_number = current_max + 1
         else:
             try:
@@ -972,6 +1054,7 @@ class GradeViewSet(viewsets.ModelViewSet):
                         course=course,
                         category=category,
                         session_number=session_number,
+                        exam_session=exam_session,
                     ).delete()
                     deleted_count += deleted
                     touched_students.add(student_id)
@@ -984,12 +1067,17 @@ class GradeViewSet(viewsets.ModelViewSet):
                 if value < 0 or value > max_value:
                     return Response({'error': f'Note hors intervalle pour etudiant {student_id}.'}, status=status.HTTP_400_BAD_REQUEST)
 
-                Grade.objects.update_or_create(
+                # all_objects : une note précédemment mise à la corbeille est réactivée
+                # au lieu de provoquer un doublon.
+                Grade.all_objects.update_or_create(
                     student_id=student_id,
                     course=course,
                     category=category,
                     session_number=session_number,
+                    exam_session=exam_session,
                     defaults={
+                        'deleted_at': None,
+                        'deleted_by': None,
                         'label': label,
                         'value': value,
                         'max_value': max_value,
@@ -1111,6 +1199,27 @@ class ExamSessionViewSet(viewsets.ModelViewSet):
 
         return qs.none()
 
+    def _check(self, serializer):
+        course = serializer.validated_data.get('course') or serializer.instance.course
+        if not manages_course(self.request.user, course):
+            raise PermissionDenied("Vous ne pouvez planifier que les examens de vos propres cours.")
+        auditoire = serializer.validated_data.get('auditoire') or getattr(serializer.instance, 'auditoire', None)
+        if auditoire is not None and auditoire.pk != course.auditoire_id:
+            raise ValidationError({'auditoire': "L'auditoire doit être celui du cours."})
+
+    def perform_create(self, serializer):
+        self._check(serializer)
+        serializer.save()
+
+    def perform_update(self, serializer):
+        self._check(serializer)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not manages_course(self.request.user, instance.course):
+            raise PermissionDenied("Vous ne pouvez modifier que vos propres cours.")
+        instance.delete(user=self.request.user)
+
 
 class TranscriptViewSet(viewsets.ModelViewSet):
     serializer_class = TranscriptSerializer
@@ -1122,9 +1231,11 @@ class TranscriptViewSet(viewsets.ModelViewSet):
     ]
     ordering_fields = ['year', 'semester', 'average', 'created_at', 'updated_at']
 
+    http_method_names = ['get', 'head', 'options', 'post', 'patch', 'put']  # un bulletin ne se supprime pas
+
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsSGAOrAdmin()]
+            return [IsAcademicAdmin()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
@@ -1159,3 +1270,110 @@ class TranscriptViewSet(viewsets.ModelViewSet):
         transcripts = Transcript.objects.filter(student=request.user).select_related('auditoire')
         serializer = TranscriptSerializer(transcripts, many=True)
         return Response(serializer.data)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Feuilles de notes & demandes de correction (workflow phase 2)
+# ═══════════════════════════════════════════════════════════════════════════
+from .models import GradeSheet, GradeCorrectionRequest  # noqa: E402
+from .serializers import GradeSheetSerializer, GradeCorrectionRequestSerializer  # noqa: E402
+from . import workflow  # noqa: E402
+
+
+class GradeSheetViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    GET  /grades/sheets/?course=&session=&status=   feuilles visibles selon le rôle
+    POST /grades/sheets/ensure/ {course, session}   crée la feuille si besoin
+    POST /grades/sheets/{id}/submit/                titulaire
+    POST /grades/sheets/{id}/approve/               chef de filière / section / SGA
+    POST /grades/sheets/{id}/send-back/ {reason}    renvoi en brouillon
+    """
+    serializer_class = GradeSheetSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['course', 'session', 'status']
+
+    def get_queryset(self):
+        from apps.courses.models import Course
+        user = self.request.user
+        qs = GradeSheet.objects.select_related('course__auditoire__filiere', 'course__titulaire',
+                                               'submitted_by', 'approved_by')
+        if _is_admin(user):
+            return qs
+        if user.role == 'chef_section':
+            sid = user.section_id or getattr(getattr(user, 'managed_section', None), 'id', None)
+            return qs.filter(course__auditoire__filiere__section_id=sid)
+        if user.role == 'chef_departement':
+            fid = user.filiere_id or getattr(getattr(user, 'managed_filiere', None), 'id', None)
+            return qs.filter(course__auditoire__filiere_id=fid)
+        if _is_teacher(user):
+            ids = Course.objects.filter(Q(titulaire=user) | Q(assistants=user)).values_list('id', flat=True)
+            return qs.filter(course_id__in=ids)
+        return qs.none()
+
+    @action(detail=False, methods=['post'])
+    def ensure(self, request):
+        from apps.courses.models import Course
+        course = Course.objects.filter(pk=request.data.get('course')).first()
+        if course is None or not _can_access_course(request.user, course) or request.user.role == 'etudiant':
+            return Response({'error': 'Cours introuvable ou inaccessible.'}, status=status.HTTP_404_NOT_FOUND)
+        sheet = workflow.get_sheet(course, int(request.data.get('session') or 1))
+        return Response(GradeSheetSerializer(sheet).data)
+
+    @action(detail=False, methods=['get'])
+    def mine(self, request):
+        """Feuilles des cours que j'enseigne (créées au besoin) pour la session demandée."""
+        from apps.courses.models import Course
+        session = int(request.query_params.get('session') or 1)
+        user = request.user
+        courses = Course.objects.filter(Q(titulaire=user) | Q(assistants=user), is_active=True).distinct()
+        sheets = [workflow.get_sheet(c, session) for c in courses]
+        return Response(GradeSheetSerializer(sheets, many=True).data)
+
+    @action(detail=True, methods=['post'])
+    def submit(self, request, pk=None):
+        return Response(GradeSheetSerializer(workflow.submit(self.get_object(), request.user)).data)
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        return Response(GradeSheetSerializer(workflow.approve(self.get_object(), request.user)).data)
+
+    @action(detail=True, methods=['post'], url_path='send-back')
+    def send_back(self, request, pk=None):
+        sheet = workflow.send_back(self.get_object(), request.user, request.data.get('reason'))
+        return Response(GradeSheetSerializer(sheet).data)
+
+
+class GradeCorrectionRequestViewSet(viewsets.ModelViewSet):
+    serializer_class = GradeCorrectionRequestSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'head', 'options']
+    filterset_fields = ['status']
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = GradeCorrectionRequest.objects.select_related('grade__student', 'grade__course',
+                                                           'requested_by', 'decided_by')
+        if _is_admin(user):
+            return qs
+        if user.role == 'etudiant':
+            return qs.none()
+        from apps.scolarite.models import Deliberation
+        presided = Deliberation.objects.filter(president=user).values_list('auditoire_id', flat=True)
+        return qs.filter(Q(requested_by=user) | Q(grade__course__auditoire_id__in=list(presided)))
+
+    def create(self, request, *args, **kwargs):
+        grade = Grade.objects.select_related('course').filter(pk=request.data.get('grade')).first()
+        if grade is None:
+            return Response({'error': 'Note introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            new_value = Decimal(str(request.data.get('new_value')))
+        except Exception:
+            return Response({'error': 'Nouvelle note invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+        req = workflow.request_correction(grade, request.user, new_value, request.data.get('reason'))
+        return Response(GradeCorrectionRequestSerializer(req).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def decide(self, request, pk=None):
+        accept = str(request.data.get('accept', '')).lower() in ('1', 'true', 'oui')
+        req = workflow.decide_correction(self.get_object(), request.user, accept, request.data.get('note', ''))
+        return Response(GradeCorrectionRequestSerializer(req).data)

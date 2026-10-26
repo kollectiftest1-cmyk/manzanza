@@ -12,6 +12,8 @@ Architecture:
   Optionally linked to a Term for term-aware scheduling.
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 from apps.courses.models import Course
 from apps.auditoires.models import Auditoire
@@ -21,7 +23,7 @@ from apps.auditoires.models import Auditoire
 # ACADEMIC CALENDAR MODELS
 # ═══════════════════════════════════════════════════════════════════════════
 
-class AcademicYear(models.Model):
+class AcademicYear(SoftDeleteModel):
     """
     Année académique (ex: 2024-2025).
     Contient des Terms (trimestres/semestres) et des événements.
@@ -59,7 +61,7 @@ class AcademicYear(models.Model):
         super().save(*args, **kwargs)
 
 
-class Term(models.Model):
+class Term(SoftDeleteModel):
     """
     Trimestre ou semestre au sein d'une année académique.
     Chaque Term a ses propres dates, périodes d'examen et de rattrapage.
@@ -143,7 +145,8 @@ class Term(models.Model):
         """
         from datetime import timedelta
         # Delete previous auto-generated events for this term
-        AcademicEvent.objects.filter(term=self, is_auto_generated=True).delete()
+        # Régénération système : les anciens événements automatiques sont remplacés (pas de corbeille).
+        AcademicEvent.all_objects.filter(term=self, is_auto_generated=True).hard_delete()
 
         events_to_create = []
         year = self.academic_year
@@ -232,7 +235,7 @@ class Term(models.Model):
         return len(events_to_create)
 
 
-class AcademicEvent(models.Model):
+class AcademicEvent(SoftDeleteModel):
     """
     Événement académique: vacances, jours fériés, examens, rattrapages, etc.
     Peut être lié à un Term spécifique ou à l'année entière.
@@ -281,7 +284,7 @@ class AcademicEvent(models.Model):
         return f"{self.name} ({self.start_date} → {self.end_date})"
 
 
-class Room(models.Model):
+class Room(SoftDeleteModel):
     ROOM_TYPE_CHOICES = [
         ('salle', 'Salle de cours'),
         ('amphitheatre', 'Amphitheatre'),
@@ -300,7 +303,7 @@ class Room(models.Model):
         return f"{self.name} ({self.building})"
 
 
-class RoomReservation(models.Model):
+class RoomReservation(SoftDeleteModel):
     STATUS_CHOICES = [
         ('pending', 'En attente'),
         ('confirmed', 'Confirmee'),
@@ -332,7 +335,7 @@ class RoomReservation(models.Model):
         return f"{self.room} - {self.date} {self.start_time}-{self.end_time}"
 
 
-class TimeSlot(models.Model):
+class TimeSlot(SoftDeleteModel):
     """
     A time period (e.g. "1ère heure: 8h30-12h00"), independent of day.
     Linked to vacation_type so the correct periods appear for jour vs soir auditoires.
@@ -364,7 +367,7 @@ class TimeSlot(models.Model):
         return f"{self.label} ({self.start_time.strftime('%H:%M')}-{self.end_time.strftime('%H:%M')}) [{self.get_vacation_type_display()}]"
 
 
-class Schedule(models.Model):
+class Schedule(SoftDeleteModel):
     """
     Represents one recurring (normal) or intensive (module) schedule slot.
 
@@ -463,7 +466,7 @@ class Schedule(models.Model):
         return f"{self.course} - {self.auditoire} - {day_label} {period}"
 
 
-class ScheduleException(models.Model):
+class ScheduleException(SoftDeleteModel):
     """Annulation, remplacement ou changement de salle pour une seance donnee."""
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='exceptions')
     date = models.DateField()
@@ -482,7 +485,7 @@ class ScheduleException(models.Model):
         return f"Exception {self.date} for {self.schedule}"
 
 
-class TeacherAvailability(models.Model):
+class TeacherAvailability(SoftDeleteModel):
     """
     Declare la disponibilite ou indisponibilite d'un enseignant pour une période.
     Utilise pour detecter les conflits d'horaire et aider la planification.

@@ -3,12 +3,14 @@ Models for TP/TD (Travaux Pratiques/Dirigés) System
 Professional and flexible assignment management
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.core.validators import MinValueValidator, MaxValueValidator
 from apps.users.models import User
 from apps.courses.models import Course
 
 
-class Assignment(models.Model):
+class Assignment(SoftDeleteModel):
     """
     TP/TD Assignment Model
     Support both practical work (TP) and directed exercises (TD)
@@ -92,7 +94,7 @@ class Assignment(models.Model):
         return self.questions.aggregate(total=models.Sum('points'))['total'] or self.max_points
 
 
-class AssignmentQuestion(models.Model):
+class AssignmentQuestion(SoftDeleteModel):
     """
     Questions for TP/TD
     Flexible question types

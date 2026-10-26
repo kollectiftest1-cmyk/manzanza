@@ -13,6 +13,10 @@ from .models import (
     AssignmentAnswer, AssignmentChoice
 )
 from apps.grades.models import Grade, GradeCategory
+from rest_framework.exceptions import PermissionDenied
+from apps.users.permissions import (
+    IsTeachingStaff, ManagesObjectCourse, IsObjectStudent, manages_course, ASSESSMENT_READ_ALL_ROLES,
+)
 from .serializers import (
     AssignmentSerializer, AssignmentQuestionSerializer,
     AssignmentSubmissionSerializer, AssignmentAnswerSerializer,
@@ -48,9 +52,28 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(course__auditoire__filiere__section=user.section)
             elif user.role == 'chef_departement' and user.filiere:
                 queryset = queryset.filter(course__auditoire__filiere=user.filiere)
-        # SGA/Admin see all
+            else:
+                queryset = queryset.none()
+        elif not (user.is_superuser or user.role in ASSESSMENT_READ_ALL_ROLES):
+            queryset = queryset.none()
 
         return queryset.distinct().order_by('-due_date')
+
+    STUDENT_ACTIONS = {'list', 'retrieve', 'questions', 'my_submission'}
+
+    def get_permissions(self):
+        if self.action in self.STUDENT_ACTIONS:
+            return [IsAuthenticated()]
+        return [IsTeachingStaff(), ManagesObjectCourse()]
+
+    def course_of(self, obj):
+        return obj.course
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # Les étudiants ne reçoivent jamais les réponses attendues.
+        context['hide_answers'] = getattr(self.request.user, 'role', None) == 'etudiant'
+        return context
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -58,14 +81,25 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         return AssignmentSerializer
 
     def perform_create(self, serializer):
+        if not manages_course(self.request.user, serializer.validated_data.get('course')):
+            raise PermissionDenied("Vous ne pouvez créer des TP/TD que pour vos propres cours.")
         serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        course = serializer.validated_data.get('course', serializer.instance.course)
+        if not manages_course(self.request.user, course):
+            raise PermissionDenied("Vous ne pouvez rattacher un TP/TD qu'à vos propres cours.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        instance.delete(user=self.request.user)
 
     @action(detail=True, methods=['get'])
     def questions(self, request, pk=None):
         """Get all questions for an assignment"""
         assignment = self.get_object()
         questions = assignment.questions.all()
-        serializer = AssignmentQuestionSerializer(questions, many=True)
+        serializer = AssignmentQuestionSerializer(questions, many=True, context=self.get_serializer_context())
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
@@ -192,11 +226,32 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
                 Q(assignment__course__titulaire=user) |
                 Q(assignment__course__assistants=user)
             )
+        elif user.role == 'chef_departement' and user.filiere_id:
+            queryset = queryset.filter(assignment__course__auditoire__filiere_id=user.filiere_id)
+        elif user.role == 'chef_section' and user.section_id:
+            queryset = queryset.filter(assignment__course__auditoire__filiere__section_id=user.section_id)
+        elif not (user.is_superuser or user.role in ASSESSMENT_READ_ALL_ROLES):
+            queryset = queryset.none()
 
         return queryset.distinct()
 
+    # Une copie ne se modifie que via les actions dédiées et ne se supprime jamais.
+    http_method_names = ['get', 'post', 'head', 'options']
+
+    def get_permissions(self):
+        if self.action == 'submit_answer':
+            return [IsAuthenticated(), IsObjectStudent()]
+        if self.action in ['grade', 'auto_grade']:
+            return [IsTeachingStaff(), ManagesObjectCourse()]
+        return [IsAuthenticated()]
+
+    def course_of(self, obj):
+        return obj.assignment.course
+
     def create(self, request, *args, **kwargs):
         """Create submission with answers"""
+        if request.user.role != 'etudiant':
+            return Response({'error': 'Seuls les étudiants déposent une copie.'}, status=status.HTTP_403_FORBIDDEN)
         # Extract assignment ID
         assignment_id = request.data.get('assignment')
 
@@ -207,12 +262,16 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            assignment = Assignment.objects.get(id=assignment_id)
+            assignment = Assignment.objects.select_related('course').get(
+                id=assignment_id, status='published', course__auditoire_id=request.user.auditoire_id
+            )
         except Assignment.DoesNotExist:
             return Response(
-                {'error': 'Assignment not found'},
+                {'error': 'TP/TD introuvable ou non ouvert pour votre auditoire.'},
                 status=status.HTTP_404_NOT_FOUND
             )
+        if assignment.due_date and timezone.now() > assignment.due_date:
+            return Response({'error': 'La date limite de remise est dépassée.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if student already submitted
         existing = AssignmentSubmission.objects.filter(
@@ -284,7 +343,7 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
                 # Handle selected choices
                 selected_choices = answer_data.get('selected_choices', [])
                 if selected_choices:
-                    choices = AssignmentChoice.objects.filter(id__in=selected_choices)
+                    choices = AssignmentChoice.objects.filter(id__in=selected_choices, question=question)
                     answer.selected_choices.set(choices)
 
                 answers_created += 1
@@ -349,17 +408,10 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
             max_pts = submission.assignment.max_points or 20
             normalized = round((float(score) / float(max_pts)) * 20, 2)
 
-            Grade.objects.update_or_create(
-                student=submission.student,
-                course=course,
-                category=tp_td_cat,
-                session_number=submission.assignment.id,  # use assignment id as session
-                defaults={
-                    'value': normalized,
-                    'max_value': 20,
-                    'label': submission.assignment.title or 'TP',
-                }
-            )
+            # Report dans le carnet de notes, si la feuille du cours est encore en brouillon.
+            from apps.grades.workflow import sync_grade
+            sync_grade(submission.student, course, tp_td_cat, submission.assignment.id, normalized,
+                       submission.assignment.title or 'TP')
         # ─────────────────────────────────────────────────────────────────
 
         return Response({
@@ -377,7 +429,9 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
         selected_choice_ids = request.data.get('selected_choice_ids', [])
 
         try:
-            question = AssignmentQuestion.objects.get(id=question_id)
+            if submission.status != 'submitted' and submission.status != 'draft':
+                return Response({'error': 'Cette copie est déjà corrigée.'}, status=status.HTTP_400_BAD_REQUEST)
+            question = AssignmentQuestion.objects.get(id=question_id, assignment=submission.assignment)
 
             # Create or update answer
             answer, created = AssignmentAnswer.objects.update_or_create(
@@ -391,7 +445,7 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
 
             # Handle multiple choice selections
             if selected_choice_ids:
-                choices = AssignmentChoice.objects.filter(id__in=selected_choice_ids)
+                choices = AssignmentChoice.objects.filter(id__in=selected_choice_ids, question=question)
                 answer.selected_choices.set(choices)
 
             serializer = AssignmentAnswerSerializer(answer)

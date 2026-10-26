@@ -1,8 +1,9 @@
+// Palette « Turquoise » — identique au web (cahier des charges v2, design system)
 export const theme = {
   colors: {
-    navy: '#0B1F3A', primary: '#1D5FD1', sky: '#EAF2FF',
-    surface: '#FFFFFF', background: '#F6F8FC', text: '#13213C',
-    muted: '#69758C', border: '#E2E8F2', success: '#16805C', danger: '#C1353A', warning: '#C77A00'
+    navy: '#0A6F7D', primary: '#0E8C9B', sky: '#E2F3F5',
+    surface: '#FFFFFF', background: '#EEF4F5', text: '#1F3A40',
+    muted: '#5F7A80', border: '#E1EBED', success: '#1A8754', danger: '#B83232', warning: '#C76A12'
   },
   radius: { sm: 10, md: 16, lg: 24 }
 }

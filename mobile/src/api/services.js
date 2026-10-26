@@ -36,6 +36,13 @@ export const api = {
   library: {
     books:p=>query('/library/books/',p).then(list), loans:()=>request('/library/loans/my_loans/').then(list), borrow:id=>request(`/library/books/${id}/borrow/`,{method:'POST'}), reserve:id=>request(`/library/books/${id}/reserve/`,{method:'POST'}), returnBook:id=>request(`/library/loans/${id}/return_book/`,{method:'POST'})
   },
+  tickets: {
+    list:()=>query('/core/tickets/').then(list), create:v=>request('/core/tickets/',json('POST',v)), close:id=>request(`/core/tickets/${id}/close/`,{method:'POST'})
+  },
+  scolarite: {
+    results:()=>request('/scolarite/resultats/me/').then(list), clearance:()=>request('/scolarite/clearance/me/'),
+    inscriptions:()=>request('/scolarite/inscriptions/me/').then(list), documents:()=>query('/scolarite/documents/').then(list)
+  },
   payments: {
     fees:()=>request('/payments/student-fees/my_fees/').then(list), payments:()=>query('/payments/').then(list), mobile:v=>request('/payments/mobile-money/',json('POST',v)), voucher:v=>request('/payments/vouchers/create-voucher/',json('POST',v)), vouchers:()=>query('/payments/vouchers/').then(list), receipts:()=>query('/payments/receipts/').then(list)
   },

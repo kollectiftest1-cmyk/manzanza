@@ -2,13 +2,15 @@
 Payment models
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 import uuid
 
 
-class FeeType(models.Model):
+class FeeType(SoftDeleteModel):
     """Fee types (tuition, library, lab, etc.)"""
 
     FEE_CATEGORIES = [
@@ -42,7 +44,7 @@ class FeeType(models.Model):
         return f"{self.name} - {self.amount}"
 
 
-class Fee(models.Model):
+class Fee(SoftDeleteModel):
     """
     Fee Campaign — Created by SGAD and targeted to a group of students.
     Calling generate_student_fees() auto-creates StudentFee records for every
@@ -135,6 +137,7 @@ class Fee(models.Model):
                 defaults={
                     'fee_type': self.fee_type,
                     'total_amount': self.amount,
+                    'currency': self.currency,
                     'due_date': self.due_date,
                     'status': 'impaye',
                 }
@@ -146,7 +149,7 @@ class Fee(models.Model):
         return created
 
 
-class StudentFee(models.Model):
+class StudentFee(SoftDeleteModel):
     """Fees assigned to students"""
 
     STATUS_CHOICES = [
@@ -164,6 +167,13 @@ class StudentFee(models.Model):
     fee_campaign = models.ForeignKey(Fee, on_delete=models.SET_NULL,
                                     null=True, blank=True,
                                     related_name='student_fees', verbose_name='Campagne de frais')
+
+    # Facturation automatique : la dette naît de l'inscription annuelle (phase 3)
+    inscription = models.ForeignKey('scolarite.InscriptionAnnuelle', on_delete=models.PROTECT,
+                                    null=True, blank=True, related_name='frais')
+    bareme = models.ForeignKey('payments.BaremeFrais', on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='dettes')
+    currency = models.CharField(max_length=5, default='USD', verbose_name='Devise')
 
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Montant total')
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0,
@@ -183,7 +193,9 @@ class StudentFee(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.student.get_full_name()} - {self.fee_type.name}"
+        label = (self.fee_campaign.name if self.fee_campaign_id else None) or \
+                (self.fee_type.name if self.fee_type_id else 'Frais')
+        return f"{self.student.get_full_name()} - {label}"
 
     @property
     def amount_remaining(self):
@@ -197,8 +209,18 @@ class StudentFee(models.Model):
             return 0
         return round((self.amount_paid / self.total_amount) * 100, 2)
 
+    def recompute_paid(self):
+        """Recalcule le montant payé à partir des seuls paiements confirmés (source de vérité)."""
+        from django.db.models import Sum
+        total = self.payments.filter(status='confirme').aggregate(t=Sum('amount'))['t'] or 0
+        self.amount_paid = total
+        self.update_status()
+
     def update_status(self):
         """Update payment status based on amount paid"""
+        if self.status == 'annule':
+            self.save()
+            return
         if self.amount_paid == 0:
             self.status = 'impaye'
         elif self.amount_paid < self.total_amount:
@@ -246,6 +268,8 @@ class Payment(models.Model):
                                            verbose_name='Numéro Mobile Money')
 
     reference = models.CharField(max_length=100, unique=True, verbose_name='Référence')
+    cash_session = models.ForeignKey('payments.CashSession', on_delete=models.PROTECT, null=True, blank=True,
+                                     related_name='payments', verbose_name='Session de caisse')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='en_attente',
                             verbose_name='Statut')
 
@@ -270,20 +294,29 @@ class Payment(models.Model):
         ordering = ['-payment_date']
 
     def __str__(self):
-        return f"{self.reference} - {self.amount} FCFA"
+        return f"{self.reference} - {self.amount} {self.currency}"
+
+    @property
+    def currency(self):
+        sf = self.student_fee
+        if sf.currency:
+            return sf.currency
+        campaign = getattr(sf, 'fee_campaign', None)
+        return getattr(campaign, 'currency', None) or 'USD'
 
     def save(self, *args, **kwargs):
-        """Override save to generate reference if not provided"""
+        """Référence unique non devinable (l'ancien « dernier id + 1 » créait des doublons)."""
         if not self.reference:
-            # Generate unique reference
-            prefix = 'PAY'
-            last_payment = Payment.objects.order_by('-id').first()
-            if last_payment:
-                last_id = last_payment.id
-            else:
-                last_id = 0
-            self.reference = f"{prefix}{str(last_id + 1).zfill(6)}"
+            from datetime import datetime
+            for _ in range(10):
+                candidate = f"PAY-{datetime.now():%Y%m%d}-{get_random_string(6, allowed_chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789')}"
+                if not Payment.objects.filter(reference=candidate).exists():
+                    self.reference = candidate
+                    break
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise RuntimeError("Un paiement ne se supprime jamais : il s'annule par contre-passation.")
 
 
 class PaymentVoucher(models.Model):
@@ -338,7 +371,7 @@ class PaymentVoucher(models.Model):
     )
     beneficiary_name = models.CharField(
         max_length=200,
-        default='SYNTAX GU',
+        default='UNIVERSITÉ MAZANZA',
         verbose_name='Nom du bénéficiaire'
     )
 
@@ -390,7 +423,7 @@ class PaymentVoucher(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.voucher_number} - {self.student.get_full_name()} - {self.amount} FCFA"
+        return f"{self.voucher_number} - {self.student.get_full_name()} - {self.amount}"
 
     def save(self, *args, **kwargs):
         """Generate unique voucher number if not provided"""
@@ -570,3 +603,99 @@ class PaymentAuditLog(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} - {self.timestamp}"
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 3 — barèmes, caisse, contre-passations
+# ═══════════════════════════════════════════════════════════════════════════
+
+class BaremeFrais(SoftDeleteModel):
+    """
+    Barème officiel : montant dû pour une année, éventuellement restreint à une filière,
+    un niveau, une vacation. À chaque inscription annuelle, les dettes correspondantes
+    sont créées automatiquement.
+    """
+    CURRENCY_CHOICES = [('USD', 'Dollar américain (USD)'), ('CDF', 'Franc congolais (CDF)')]
+
+    academic_year = models.ForeignKey('schedules.AcademicYear', on_delete=models.PROTECT, related_name='baremes')
+    fee_type = models.ForeignKey(FeeType, on_delete=models.PROTECT, related_name='baremes')
+    libelle = models.CharField(max_length=200)
+    filiere = models.ForeignKey('auditoires.Filiere', on_delete=models.PROTECT, null=True, blank=True)
+    niveau = models.CharField(max_length=2, blank=True, default='',
+                              choices=[('', 'Tous'), ('L1', 'L1'), ('L2', 'L2'), ('L3', 'L3'), ('M1', 'M1'), ('M2', 'M2')])
+    vacation = models.CharField(max_length=10, blank=True, default='',
+                                choices=[('', 'Toutes'), ('jour', 'Jour'), ('soir', 'Soir')])
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=5, choices=CURRENCY_CHOICES, default='USD')
+    due_date = models.DateField()
+    is_mandatory = models.BooleanField(default=True)
+    required_for_admin_validation = models.BooleanField(
+        default=False, verbose_name="Doit être réglé pour valider l'inscription administrative")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['academic_year', 'libelle']
+        verbose_name = 'Barème de frais'
+        verbose_name_plural = 'Barèmes de frais'
+
+    def __str__(self):
+        return f"{self.libelle} — {self.amount} {self.currency} ({self.academic_year})"
+
+    def applies_to(self, auditoire):
+        return ((not self.filiere_id or self.filiere_id == auditoire.filiere_id)
+                and (not self.niveau or self.niveau == auditoire.niveau)
+                and (not self.vacation or self.vacation == auditoire.vacation))
+
+
+class CashSession(models.Model):
+    """
+    Session de caisse d'un caissier : ouverture avec fonds de caisse, encaissements en
+    espèces rattachés, clôture avec comptage par devise et justification des écarts.
+    """
+    STATUS_CHOICES = [('open', 'Ouverte'), ('closed', 'Clôturée')]
+
+    cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='cash_sessions')
+    status = models.CharField(max_length=6, choices=STATUS_CHOICES, default='open')
+    opened_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    opening_float = models.JSONField(default=dict, help_text='Fonds de caisse par devise, ex. {"USD": 50}')
+    expected = models.JSONField(default=dict, blank=True)
+    counted = models.JSONField(default=dict, blank=True)
+    difference = models.JSONField(default=dict, blank=True)
+    justification = models.TextField(blank=True, default='')
+
+    class Meta:
+        ordering = ['-opened_at']
+        verbose_name = 'Session de caisse'
+        verbose_name_plural = 'Sessions de caisse'
+
+    def __str__(self):
+        return f"Caisse {self.cashier} — {self.opened_at:%d/%m/%Y %H:%M} ({self.get_status_display()})"
+
+    def delete(self, *args, **kwargs):
+        raise RuntimeError("Une session de caisse ne se supprime pas.")
+
+
+class Contrepassation(models.Model):
+    """Annulation motivée d'un paiement confirmé, approuvée par une autre personne."""
+    STATUS_CHOICES = [('pending', 'En attente'), ('approved', 'Approuvée'), ('rejected', 'Refusée')]
+
+    payment = models.OneToOneField(Payment, on_delete=models.PROTECT, related_name='contrepassation')
+    reason = models.TextField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                   related_name='+')
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(blank=True, default='')
+
+    class Meta:
+        ordering = ['-requested_at']
+        verbose_name = 'Contre-passation'
+        verbose_name_plural = 'Contre-passations'
+
+    def __str__(self):
+        return f"Contre-passation {self.payment.reference} ({self.get_status_display()})"

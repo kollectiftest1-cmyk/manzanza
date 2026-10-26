@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Spinner, Alert, Tabs, Tab } from 'react-bootstrap';
-import LeaveList from '../../components/RH/LeaveList';
+import LeaveList from '../../components/rh/LeaveList';
 import { getLeaves } from '../../services/hrService';
 
 export default function HrLeavesPage() {

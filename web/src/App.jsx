@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, useLocation } from "react-router-dom"
 import { useSelector } from "react-redux"
 import { useEffect } from "react"
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js'
@@ -45,6 +45,24 @@ import PublicInscription from "./pages/PublicInscription"
 import GestionInscriptions from "./pages/GestionInscriptions"
 import InscriptionDetail from "./pages/InscriptionDetail"
 import ProtectedRoute from "./components/Auth/ProtectedRoute"
+import Corbeille from "./pages/Corbeille"
+import JournalAudit from "./pages/JournalAudit"
+// Refonte v2 — scolarité, évaluation, finances, pilotage
+import InscriptionsAnnuelles from "./pages/InscriptionsAnnuelles"
+import ValidationNotes from "./pages/ValidationNotes"
+import Deliberations from "./pages/Deliberations"
+import Memoires from "./pages/Memoires"
+import FinancesScolarite from "./pages/FinancesScolarite"
+import DocumentsOfficiels from "./pages/DocumentsOfficiels"
+import Pilotage from "./pages/Pilotage"
+import MesResultats from "./pages/MesResultats"
+import VerifierDocument from "./pages/VerifierDocument"
+import Affectations from "./pages/Affectations"
+import ParametresInstitution from "./pages/ParametresInstitution"
+import UnitesEnseignement from "./pages/UnitesEnseignement"
+import Presences from "./pages/RH/Presences"
+import HeuresPrestees from "./pages/RH/HeuresPrestees"
+import MonEspaceRH from "./pages/RH/MonEspaceRH"
 
 // Import Horaire page
 import Horaire from "./pages/Horaire"
@@ -70,24 +88,34 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 
 function App() {
   const { isAuthenticated } = useSelector((state) => state.auth)
+  const location = useLocation()
 
   // Define roles that can view user lists
-  const canViewUsersRoles = ['iadmin', 'sga', 'chef_section', 'chef_departement', 'directeur_general', 'pdg'];
+  const canViewUsersRoles = ['pdg', 'sga', 'chef_section', 'chef_departement', 'directeur_general'];
 
   // Apply theme on mount
   useEffect(() => {
     applyTheme(getCurrentThemeName())
   }, [])
 
+  // Vérification publique des documents (QR code) : page autonome, connecté ou non.
+  if (location.pathname.startsWith("/verifier/")) {
+    return (
+      <Routes>
+        <Route path="/verifier/:code" element={<VerifierDocument />} />
+      </Routes>
+    )
+  }
+
   return (
     <div className="App">
       {isAuthenticated ? (
         <div className="container-fluid hh p-0" style={{ height: '100vh', overflow: 'hidden' }}>
-          <Row className="row g-0" style={{ height: '100%' }}>
+          <Row className="row g-0" style={{ height: '100%', flexWrap: 'nowrap' }}>
             <Col lg={2.3} className="col-auto" style={{ height: '100%' }}>
               <ModernSidebar />
             </Col>
-            <Col lg={9.7} className="col" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Col lg={9.7} className="col" style={{ height: '100%', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               <ModernHeader />
               <div
                 className="main-content"
@@ -104,7 +132,7 @@ function App() {
                     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                     <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
                     <Route path="/courses/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
-                    <Route path="/courses/:id/assessments" element={<ProtectedRoute roles={['enseignant', 'assistant', 'chef_section', 'chef_departement', 'sga', 'iadmin', 'pdg', 'directeur_general']}><CourseAssessments /></ProtectedRoute>} />
+                    <Route path="/courses/:id/assessments" element={<ProtectedRoute roles={['enseignant', 'assistant', 'chef_section', 'chef_departement', 'sga', 'pdg', 'directeur_general']}><CourseAssessments /></ProtectedRoute>} />
                     <Route path="/auditoires" element={<ProtectedRoute><Auditoires /></ProtectedRoute>} />
                     <Route path="/auditoires/:id" element={<ProtectedRoute><AuditoireDetail /></ProtectedRoute>} />
                     <Route path="/sections/:id" element={<ProtectedRoute><SectionDetail /></ProtectedRoute>} />
@@ -126,38 +154,38 @@ function App() {
                     <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
 
                     {/* RH Routes */}
-                    <Route path="/rh/employees" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><HrEmployeePage /></ProtectedRoute>} />
-                    <Route path="/rh/employees/:id" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><EmployeeDetail /></ProtectedRoute>} />
-                    <Route path="/rh/employees/edit/:id" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><EmployeeForm /></ProtectedRoute>} />
+                    <Route path="/rh/employees" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><HrEmployeePage /></ProtectedRoute>} />
+                    <Route path="/rh/employees/:id" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><EmployeeDetail /></ProtectedRoute>} />
+                    <Route path="/rh/employees/edit/:id" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><EmployeeForm /></ProtectedRoute>} />
 
-                    <Route path="/rh/contracts" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><HrContractsPage /></ProtectedRoute>} />
-                    <Route path="/rh/contracts/new" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><ContractForm /></ProtectedRoute>} />
-                    <Route path="/rh/contracts/edit/:id" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><ContractForm /></ProtectedRoute>} />
+                    <Route path="/rh/contracts" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><HrContractsPage /></ProtectedRoute>} />
+                    <Route path="/rh/contracts/new" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><ContractForm /></ProtectedRoute>} />
+                    <Route path="/rh/contracts/edit/:id" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><ContractForm /></ProtectedRoute>} />
 
-                    <Route path="/rh/payrolls" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><HrPayrollsPage /></ProtectedRoute>} />
-                    <Route path="/rh/payrolls/new" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><PayrollForm /></ProtectedRoute>} />
-                    <Route path="/rh/payrolls/edit/:id" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><PayrollForm /></ProtectedRoute>} />
+                    <Route path="/rh/payrolls" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general', 'comptable', 'caisse']}><HrPayrollsPage /></ProtectedRoute>} />
+                    <Route path="/rh/payrolls/new" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><PayrollForm /></ProtectedRoute>} />
+                    <Route path="/rh/payrolls/edit/:id" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><PayrollForm /></ProtectedRoute>} />
 
-                    <Route path="/rh/leaves" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><HrLeavesPage /></ProtectedRoute>} />
-                    <Route path="/rh/leaves/new" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><LeaveForm /></ProtectedRoute>} />
-                    <Route path="/rh/leaves/edit/:id" element={<ProtectedRoute roles={['iadmin', 'sgad', 'directeur_general']}><LeaveForm /></ProtectedRoute>} />
+                    <Route path="/rh/leaves" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><HrLeavesPage /></ProtectedRoute>} />
+                    <Route path="/rh/leaves/new" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><LeaveForm /></ProtectedRoute>} />
+                    <Route path="/rh/leaves/edit/:id" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><LeaveForm /></ProtectedRoute>} />
 
-                    <Route path="/comptabilite" element={<ProtectedRoute roles={['iadmin', 'caisse', 'sgad', 'directeur_general']}><Comptabilite /></ProtectedRoute>} />
-                    <Route path="/service-it" element={<ProtectedRoute roles={['iadmin', 'service_it']}><ServiceIT /></ProtectedRoute>} />
-                    <Route path="/apparitorat" element={<ProtectedRoute roles={['iadmin', 'apparitorat', 'sga']}><Apparitorat /></ProtectedRoute>} />
+                    <Route path="/comptabilite" element={<ProtectedRoute roles={['pdg', 'caisse', 'comptable', 'sgad', 'directeur_general']}><Comptabilite /></ProtectedRoute>} />
+                    <Route path="/service-it" element={<ProtectedRoute roles={['pdg', 'service_it']}><ServiceIT /></ProtectedRoute>} />
+                    <Route path="/apparitorat" element={<ProtectedRoute roles={['pdg', 'apparitorat', 'sga']}><Apparitorat /></ProtectedRoute>} />
                     <Route path="/paiements" element={<ProtectedRoute roles={['etudiant']}><Paiements /></ProtectedRoute>} />
-                    <Route path="/gestion-frais" element={<ProtectedRoute roles={['iadmin', 'sgad', 'caisse', 'pdg', 'directeur_general']}><GestionFrais /></ProtectedRoute>} />
-                    <Route path="/caisse" element={<ProtectedRoute roles={['caisse', 'iadmin', 'directeur_general']}><Caisse /></ProtectedRoute>} />
+                    <Route path="/gestion-frais" element={<ProtectedRoute roles={['pdg', 'sgad', 'caisse', 'directeur_general']}><GestionFrais /></ProtectedRoute>} />
+                    <Route path="/caisse" element={<ProtectedRoute roles={['caisse', 'pdg', 'directeur_general']}><Caisse /></ProtectedRoute>} />
                     <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="/profile/:id" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="/administration" element={<ProtectedRoute roles={canViewUsersRoles}><Administration /></ProtectedRoute>} />
                     
                     {/* Inscription Management Routes */}
-                    <Route path="/gestion-inscriptions" element={<ProtectedRoute roles={['iadmin', 'sga']}><GestionInscriptions /></ProtectedRoute>} />
-                    <Route path="/gestion-inscriptions/:id" element={<ProtectedRoute roles={['iadmin', 'sga']}><InscriptionDetail /></ProtectedRoute>} />
+                    <Route path="/gestion-inscriptions" element={<ProtectedRoute roles={['pdg', 'sga', 'apparitorat', 'caisse', 'commission_admission']}><GestionInscriptions /></ProtectedRoute>} />
+                    <Route path="/gestion-inscriptions/:id" element={<ProtectedRoute roles={['pdg', 'sga', 'apparitorat', 'caisse', 'commission_admission']}><InscriptionDetail /></ProtectedRoute>} />
                     
-                    <Route path="/library" element={<ProtectedRoute roles={['iadmin', 'bibliothecaire', 'sga', 'etudiant', 'enseignant', 'assistant', 'chef_section','chef_departement']}><Library /></ProtectedRoute>} />
+                    <Route path="/library" element={<ProtectedRoute roles={['pdg', 'bibliothecaire', 'sga', 'etudiant', 'enseignant', 'assistant', 'chef_section','chef_departement']}><Library /></ProtectedRoute>} />
                     <Route path="/book-detail/:id" element={<ProtectedRoute><BookDetail /></ProtectedRoute>} />
 
                     {/* Student & Teacher routes → redirect to unified management pages */}
@@ -167,11 +195,28 @@ function App() {
                     <Route path="/teachers/*" element={<ProtectedRoute roles={canViewUsersRoles}><GestionEnseignants /></ProtectedRoute>} />
 
                     {/* Academic Management Modules */}
-                    <Route path="/gestion-enseignants" element={<ProtectedRoute roles={['iadmin', 'sga', 'chef_section', 'chef_departement', 'directeur_general']}><GestionEnseignants /></ProtectedRoute>} />
-                    <Route path="/gestion-etudiants" element={<ProtectedRoute roles={['iadmin', 'sga', 'chef_section', 'chef_departement', 'directeur_general']}><GestionEtudiants /></ProtectedRoute>} />
-                    <Route path="/configuration-notes" element={<ProtectedRoute roles={['iadmin', 'sga']}><ConfigurationAcademique /></ProtectedRoute>} />
-                    <Route path="/releves-cotes" element={<ProtectedRoute roles={['iadmin', 'sga', 'sgad', 'pdg', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant', 'etudiant']}><RelevesCotes /></ProtectedRoute>} />
-                    <Route path="/transcripts" element={<ProtectedRoute roles={['iadmin', 'sga', 'sgad', 'pdg', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant', 'etudiant']}><RelevesCotes /></ProtectedRoute>} />
+                    <Route path="/gestion-enseignants" element={<ProtectedRoute roles={['pdg', 'sga', 'chef_section', 'chef_departement', 'directeur_general']}><GestionEnseignants /></ProtectedRoute>} />
+                    <Route path="/gestion-etudiants" element={<ProtectedRoute roles={['pdg', 'sga', 'chef_section', 'chef_departement', 'directeur_general']}><GestionEtudiants /></ProtectedRoute>} />
+                    <Route path="/configuration-notes" element={<ProtectedRoute roles={['pdg', 'sga']}><ConfigurationAcademique /></ProtectedRoute>} />
+                    <Route path="/releves-cotes" element={<ProtectedRoute roles={['pdg', 'sga', 'sgad', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant', 'etudiant']}><RelevesCotes /></ProtectedRoute>} />
+                    <Route path="/inscriptions-annuelles" element={<ProtectedRoute roles={['pdg', 'sga', 'apparitorat', 'chef_section', 'chef_departement', 'directeur_general', 'sgad', 'caisse', 'comptable']}><InscriptionsAnnuelles /></ProtectedRoute>} />
+                    <Route path="/validation-notes" element={<ProtectedRoute roles={['pdg', 'sga', 'chef_section', 'chef_departement', 'enseignant', 'assistant']}><ValidationNotes /></ProtectedRoute>} />
+                    <Route path="/memoires" element={<ProtectedRoute roles={['pdg', 'sga', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant', 'jury', 'etudiant']}><Memoires /></ProtectedRoute>} />
+                    <Route path="/deliberations" element={<ProtectedRoute roles={['pdg', 'sga', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant', 'jury', 'apparitorat']}><Deliberations /></ProtectedRoute>} />
+                    <Route path="/finances" element={<ProtectedRoute roles={['pdg', 'sgad', 'caisse', 'comptable', 'directeur_general']}><FinancesScolarite /></ProtectedRoute>} />
+                    <Route path="/documents-officiels" element={<ProtectedRoute roles={['pdg', 'sga', 'apparitorat', 'directeur_general']}><DocumentsOfficiels /></ProtectedRoute>} />
+                    <Route path="/pilotage" element={<ProtectedRoute roles={['pdg', 'sga', 'sgad', 'directeur_general', 'chef_section', 'chef_departement', 'apparitorat', 'comptable', 'caisse', 'commission_admission']}><Pilotage /></ProtectedRoute>} />
+                    <Route path="/mes-resultats" element={<ProtectedRoute roles={['etudiant']}><MesResultats /></ProtectedRoute>} />
+                    <Route path="/rh/presences" element={<ProtectedRoute roles={['pdg', 'sgad', 'directeur_general']}><Presences /></ProtectedRoute>} />
+                    <Route path="/rh/heures" element={<ProtectedRoute roles={['pdg', 'sgad', 'sga', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant']}><HeuresPrestees /></ProtectedRoute>} />
+                    <Route path="/rh/mes-bulletins" element={<ProtectedRoute><MonEspaceRH /></ProtectedRoute>} />
+                    <Route path="/assistance" element={<ProtectedRoute><ServiceIT /></ProtectedRoute>} />
+                    <Route path="/unites-enseignement" element={<ProtectedRoute roles={['pdg', 'sga', 'chef_section', 'chef_departement', 'directeur_general']}><UnitesEnseignement /></ProtectedRoute>} />
+                    <Route path="/parametres" element={<ProtectedRoute roles={['pdg', 'directeur_general', 'sga', 'sgad']}><ParametresInstitution /></ProtectedRoute>} />
+                    <Route path="/affectations" element={<ProtectedRoute roles={['pdg', 'sga', 'sgad']}><Affectations /></ProtectedRoute>} />
+                    <Route path="/corbeille" element={<ProtectedRoute><Corbeille /></ProtectedRoute>} />
+                    <Route path="/journal-audit" element={<ProtectedRoute roles={['pdg', 'directeur_general']}><JournalAudit /></ProtectedRoute>} />
+                    <Route path="/transcripts" element={<ProtectedRoute roles={['pdg', 'sga', 'sgad', 'directeur_general', 'chef_section', 'chef_departement', 'enseignant', 'assistant', 'etudiant']}><RelevesCotes /></ProtectedRoute>} />
                   </Routes>
                 </div>
               </div>

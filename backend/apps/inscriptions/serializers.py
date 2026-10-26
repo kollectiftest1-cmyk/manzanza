@@ -26,10 +26,16 @@ class PreInscriptionSerializer(serializers.ModelSerializer):
             
             'carte_identite', 'certificat_naissance', 'certificat_etude_primaire',
             'bulletin_5', 'bulletin_6', 'diplome_etat',
-            
+            'etablissement_origine', 'releve_notes_precedent',
+
+            'dossier_status', 'dossier_comment', 'dossier_verified_at',
+            'frais_dossier_paye', 'frais_dossier_reference',
+            'commission_decision', 'commission_comment', 'decided_at',
             'status', 'created_at'
         ]
-        read_only_fields = ['status', 'created_at', 'filiere_name']
+        read_only_fields = ['status', 'created_at', 'filiere_name', 'dossier_status', 'dossier_comment',
+                            'dossier_verified_at', 'frais_dossier_paye', 'frais_dossier_reference',
+                            'commission_decision', 'commission_comment', 'decided_at']
         extra_kwargs = {
             # Set fields from the frontend that are not required in the backend
             'post_nom': {'required': False, 'allow_blank': True},
@@ -51,6 +57,8 @@ class PreInscriptionSerializer(serializers.ModelSerializer):
             'points_diplome_etat': {'required': False, 'allow_null': True},
             'carte_identite': {'required': True},
             'certificat_etude_primaire': {'required': True},
+            'etablissement_origine': {'required': False, 'allow_blank': True},
+            'releve_notes_precedent': {'required': False, 'allow_null': True},
         }
 
 
@@ -71,6 +79,48 @@ class PreInscriptionSerializer(serializers.ModelSerializer):
             else:
                 raise serializers.ValidationError("Une demande d'inscription avec cette adresse e-mail est déjà en cours.")
         return value
+
+    ALLOWED_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png'}
+    MAX_FILE_SIZE = 5 * 1024 * 1024
+    FILE_FIELDS = ['carte_identite', 'certificat_naissance', 'certificat_etude_primaire',
+                   'bulletin_5', 'bulletin_6', 'diplome_etat']
+    UPLOAD_FIELDS = FILE_FIELDS + ['releve_notes_precedent']
+
+    def validate(self, data):
+        import os
+        errors = {}
+        for name in self.UPLOAD_FIELDS:
+            upload = data.get(name)
+            if not upload or not hasattr(upload, 'size'):
+                continue
+            ext = os.path.splitext(upload.name or '')[1].lower()
+            if ext not in self.ALLOWED_EXTENSIONS:
+                errors[name] = "Format refusé : seuls PDF, JPG et PNG sont acceptés."
+            elif upload.size > self.MAX_FILE_SIZE:
+                errors[name] = "Fichier trop volumineux (5 Mo maximum)."
+            else:
+                head = upload.read(8)
+                upload.seek(0)
+                is_pdf = head.startswith(b'%PDF')
+                is_png = head.startswith(b'\x89PNG')
+                is_jpg = head[:3] == b'\xff\xd8\xff'
+                if not (is_pdf or is_png or is_jpg):
+                    errors[name] = "Le contenu du fichier ne correspond pas à un PDF, JPG ou PNG."
+        niveau = data.get('niveau', getattr(self.instance, 'niveau', 'L1'))
+        if niveau and niveau != 'L1':
+            # Entrée en cours de cursus = transfert : établissement d'origine et relevé exigés.
+            if not (data.get('etablissement_origine') or '').strip():
+                errors['etablissement_origine'] = "Obligatoire pour une admission au-delà de L1 (transfert)."
+            if not data.get('releve_notes_precedent') and not getattr(self.instance, 'releve_notes_precedent', None):
+                errors['releve_notes_precedent'] = "Le relevé de notes de l'établissement d'origine est exigé."
+        email, year = data.get('email'), data.get('academic_year')
+        if email and year and PreInscription.objects.filter(email=email, academic_year=year).exclude(
+            pk=getattr(self.instance, 'pk', None)
+        ).exclude(status='rejetee').exists():
+            errors['email'] = "Une candidature existe déjà avec cet e-mail pour cette année académique."
+        if errors:
+            raise serializers.ValidationError(errors)
+        return data
 
     def validate_academic_year(self, value):
         value = normalize_academic_year_label(value)

@@ -21,3 +21,7 @@ L'application conserve les jetons dans le stockage sécurisé, rafraîchit autom
 - Profil, avatar, mot de passe et reprise de session.
 
 Les dates de gestion utilisent le format ISO (`2026-09-15T10:00:00Z`) ou `AAAA-MM-JJ` selon le champ.
+
+## Guide d’utilisation
+
+La marche à suivre de chaque opération étudiante et enseignante est détaillée dans [GUIDE_OPERATIONS_MOBILE.md](GUIDE_OPERATIONS_MOBILE.md). Le guide indique aussi les contrôles à effectuer lorsque le backend est inaccessible ou refuse une action.

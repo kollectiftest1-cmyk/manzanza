@@ -8,6 +8,7 @@ import "./App.css"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "@fortawesome/fontawesome-free/css/all.min.css"
 import "./styles/modern-design.css"
+import "./styles/mz-design-system.css"
 import { applyTheme, getCurrentThemeName } from "./config/theme"
 
 // Appliquer le thème au démarrage

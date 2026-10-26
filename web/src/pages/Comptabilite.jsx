@@ -95,8 +95,8 @@ const Comptabilite = () => {
   const totalExpected = Number(d.total_expected || 0)
   const totalPending = Number(d.total_pending || 0)
 
-  const allowedRoles = ['caisse', 'sgad', 'iadmin', 'pdg', 'directeur_general']
-  const canAction = ['iadmin', 'directeur_general'].includes(user?.role) || user?.is_staff
+  const allowedRoles = ['caisse', 'comptable', 'sgad', 'pdg', 'directeur_general']
+  const canAction = ['pdg', 'directeur_general'].includes(user?.role) || user?.is_staff
   if (!allowedRoles.includes(user?.role) && !user?.is_staff) {
     return (
       <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>

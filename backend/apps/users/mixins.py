@@ -28,9 +28,17 @@ class RoleBasedFilterMixin:
         if not user.is_authenticated:
             return queryset.none()
 
-        # SGA et admins voient TOUT
-        if user.role in ['sga', 'admin', 'iadmin']:
+        # SGA, admins et direction voient TOUT (la direction consulte, n'opère pas)
+        if user.is_superuser or user.role in ['sga', 'admin', 'pdg', 'directeur_general']:
             return queryset
+
+        # Lecture de la structure académique (ciblage des frais, apparitorat)
+        if model_type in ['section', 'filiere', 'auditoire'] and user.role in ['sgad', 'caisse', 'apparitorat']:
+            return queryset
+
+        # Finances : besoin de retrouver les étudiants (affectation des frais, encaissement)
+        if model_type == 'user' and user.role in ['sgad', 'caisse']:
+            return queryset.filter(role='etudiant')
 
         # Chef de section
         if user.role == 'chef_section':

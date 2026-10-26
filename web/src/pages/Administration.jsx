@@ -37,8 +37,8 @@ const ROLE_OPTIONS = [
   { value: 'service_it', label: 'Service IT' },
   { value: 'jury', label: 'Jury' },
   { value: 'directeur_general', label: 'Directeur General' },
-  { value: 'pdg', label: 'PDG' },
-  { value: 'iadmin', label: 'IAdmin' },
+  { value: 'comptable', label: 'Comptable' },
+  { value: 'pdg', label: 'PDG (administrateur général)' },
 ]
 
 const Administration = () => {
@@ -255,11 +255,11 @@ const Administration = () => {
                     <option value="chef_departement">Chef de Département</option>
                     <option value="chef_section">Chef de Section</option>
                     <option value="sga">SGA</option>
-                    <option value="iadmin">IAdmin</option>
                     <option value="sgad">SGAD</option>
                     <option value="bibliothecaire">Bibliothecaire</option>
                     <option value="apparitorat">Apparitorat</option>
                     <option value="caisse">Caisse</option>
+                    <option value="comptable">Comptable</option>
                     <option value="service_it">Service IT</option>
                     <option value="jury">Jury</option>
                     <option value="directeur_general">Directeur General</option>

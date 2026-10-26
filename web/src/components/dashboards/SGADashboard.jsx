@@ -2,7 +2,6 @@ import { Container, Row, Col } from "react-bootstrap"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { getSgaDashboardStats } from "../../services/statsService"
-import { getSections } from "../../services/sectionService"
 import { getAcademicCalendarEvents } from "../../services/coreService"
 import api from "../../services/api"
 import gradeService from "../../services/gradeService"
@@ -30,27 +29,30 @@ const SGADashboard = ({ user }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, sectionsRes, calendarRes, auditoiresRes] = await Promise.all([
+        const [statsRes, calendarRes, auditoiresRes] = await Promise.all([
           getSgaDashboardStats(),
-          getSections(),
           getAcademicCalendarEvents(),
           api.get('/auditoires/'),
         ])
         setStats(statsRes.data)
-        setSections(sectionsRes.data?.results || sectionsRes.data || [])
         setCalendarEvents(calendarRes.data?.results || calendarRes.data || [])
-        const auditoires = auditoiresRes.data?.results || auditoiresRes.data || []
+        const allAuds = auditoiresRes.data?.results || auditoiresRes.data || []
+        // Année en cours uniquement (les groupes des années passées gardent le même nom)
+        const years = [...new Set(allAuds.map(a => a.annee_academique).filter(Boolean))].sort()
+        const current = years[years.length - 1]
+        const auditoires = allAuds.filter(a => !current || a.annee_academique === current)
+        const bySection = {}
+        auditoires.forEach(a => { const k = a.section_name || 'Sans section'; bySection[k] = (bySection[k] || 0) + Number(a.etudiants_count || 0) })
+        setSections(Object.entries(bySection).map(([nom, total_students]) => ({ nom, total_students })))
         const performance = await Promise.all(
           auditoires.slice(0, 6).map(auditoire =>
             gradeService.getAuditoireAverages(auditoire.id)
               .then(res => ({
-                label: auditoire.nom || auditoire.name || `Auditoire ${auditoire.id}`,
-                average: Number(res.data?.auditoire_average || 0),
+                label: auditoire.nom || `Auditoire ${auditoire.id}`,
+                // pourcentage → note sur 20
+                average: Math.round(Number(res.data?.auditoire_average || 0) * 20) / 100,
               }))
-              .catch(() => ({
-                label: auditoire.nom || auditoire.name || `Auditoire ${auditoire.id}`,
-                average: 0,
-              }))
+              .catch(() => ({ label: auditoire.nom || `Auditoire ${auditoire.id}`, average: 0 }))
           )
         )
         setAcademicPerformance(performance)
@@ -85,32 +87,14 @@ const SGADashboard = ({ user }) => {
     labels: academicPerformance.length ? academicPerformance.map(item => item.label) : ['Aucune donnée'],
     datasets: [
       {
-        label: 'Moyenne générale (%)',
+        label: 'Moyenne des notes validées (/20)',
         data: academicPerformance.length ? academicPerformance.map(item => item.average) : [0],
-        borderColor: 'rgba(28, 200, 138, 1)',
-        backgroundColor: 'rgba(28, 200, 138, 0.1)',
-        tension: 0.4,
-        fill: true,
+        borderColor: '#0e7c86',
+        backgroundColor: academicPerformance.map(item => item.average >= 10 ? 'rgba(14, 124, 134, 0.75)' : 'rgba(220, 53, 69, 0.7)'),
+        borderRadius: 6,
       },
     ]
   }
-
-  const sgaActivities = [
-    ...(Number(stats.pending_inscriptions || 0) > 0 ? [{
-      id: 'pending-inscriptions',
-      type: 'user',
-      title: 'Inscriptions en attente',
-      description: `${stats.pending_inscriptions} dossier(s) à traiter`,
-      time: '',
-    }] : []),
-    ...calendarEvents.slice(0, 3).map((event, index) => ({
-      id: `calendar-${event.id || index}`,
-      type: 'file',
-      title: event.title || event.name || 'Événement académique',
-      description: event.description || event.event_type || '',
-      time: event.start_date || event.date || '',
-    })),
-  ]
   /*
     {
       id: 1,
@@ -218,8 +202,6 @@ const SGADashboard = ({ user }) => {
             value={loading ? '...' : stats.total_students?.toString() || '0'}
             icon={FiUsers}
             color="info"
-            trend="up"
-            trendValue="+12% ce semestre"
             delay={0.2}
           />
         </Col>
@@ -263,8 +245,8 @@ const SGADashboard = ({ user }) => {
         <Row className="mb-4">
           <Col lg={6} className="mb-4">
             <ChartCard
-              title="Répartition des Étudiants par Section"
-              subtitle="Top 6 sections"
+              title="Étudiants inscrits par section"
+              subtitle="Année en cours"
               chartType="doughnut"
               data={sectionsData}
               delay={0.4}
@@ -273,10 +255,11 @@ const SGADashboard = ({ user }) => {
           </Col>
           <Col lg={6} className="mb-4">
             <ChartCard
-              title="Performance Académique Globale"
-              subtitle="Évolution sur 6 mois"
-              chartType="line"
+              title="Moyenne par groupe"
+              subtitle="Notes validées de l'année en cours, sur 20"
+              chartType="bar"
               data={performanceData}
+              options={{ scales: { y: { min: 0, max: 20, ticks: { stepSize: 5 } } } }}
               delay={0.45}
               height={300}
             />
@@ -293,14 +276,13 @@ const SGADashboard = ({ user }) => {
         </Col>
         <Col xl={4} lg={6} className="mb-4">
           <ScheduleWidget
-            schedule={sgaSchedule}
+            source="agenda"
             date={new Date()}
             delay={0.6}
           />
         </Col>
         <Col xl={4} lg={6} className="mb-4">
           <RecentActivity
-            activities={sgaActivities}
             delay={0.7}
           />
         </Col>

@@ -2,10 +2,12 @@
 Chat models
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 
 
-class ChatChannel(models.Model):
+class ChatChannel(SoftDeleteModel):
     """Chat Channel Model - Support multiple channel types"""
 
     CHANNEL_TYPES = [
@@ -56,7 +58,7 @@ class ChatChannel(models.Model):
         return self.members.filter(is_active=True).count()
 
 
-class Message(models.Model):
+class Message(SoftDeleteModel):
     """Message Model"""
 
     channel = models.ForeignKey(ChatChannel, on_delete=models.CASCADE,

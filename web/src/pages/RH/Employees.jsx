@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Container, Tabs, Tab, Row, Col, Spinner, Alert } from 'react-bootstrap';
-import EmployeeList from '../../components/RH/EmployeeList';
-import PotentialEmployeeList from '../../components/RH/PotentialEmployeeList';
+import EmployeeList from '../../components/rh/EmployeeList';
+import PotentialEmployeeList from '../../components/rh/PotentialEmployeeList';
 import { getEmployees, getPotentialEmployees } from '../../services/hrService';
 
 export default function HrEmployeePage() {

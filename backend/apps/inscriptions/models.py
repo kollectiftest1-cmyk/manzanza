@@ -2,6 +2,8 @@
 Models for the inscriptions (pre-registration) process.
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from apps.auditoires.models import Filiere
 
 def inscription_upload_path(instance, filename):
@@ -13,10 +15,13 @@ def inscription_upload_path(instance, filename):
     # A better approach might involve saving the file after the object is created.
     # For now, let's use a temporary unique identifier if id is not present.
     import uuid
+    from django.utils.text import get_valid_filename, slugify
     instance_id = instance.id or uuid.uuid4().hex
-    return f'inscriptions/{instance_id}_{instance.last_name}/{filename}'
+    folder = slugify(instance.last_name or '') or 'candidat'
+    # Nom de fichier assaini + préfixe aléatoire : chemins non devinables.
+    return f'inscriptions/{instance_id}_{folder}/{uuid.uuid4().hex[:8]}_{get_valid_filename(filename)}'
 
-class PreInscription(models.Model):
+class PreInscription(SoftDeleteModel):
     """
     Represents a pre-registration request from a potential student.
     """
@@ -29,7 +34,8 @@ class PreInscription(models.Model):
     first_name = models.CharField(max_length=150, verbose_name="Prénom")
     last_name = models.CharField(max_length=150, verbose_name="Nom")
     post_nom = models.CharField(max_length=150, verbose_name="Post-nom", null=True, blank=True)
-    email = models.EmailField(unique=True, verbose_name="Adresse e-mail")
+    # Unicité par année académique : un candidat refusé peut recandidater l'année suivante.
+    email = models.EmailField(verbose_name="Adresse e-mail")
     phone = models.CharField(max_length=30, verbose_name="Téléphone") # Increased length for international format
     sexe = models.CharField(max_length=1, choices=SEXE_CHOICES, verbose_name="Sexe")
     date_naissance = models.DateField(verbose_name="Date de naissance")
@@ -68,6 +74,36 @@ class PreInscription(models.Model):
     bulletin_6 = models.FileField(upload_to=inscription_upload_path, verbose_name="Bulletin 6ème Humanités")
     diplome_etat = models.FileField(upload_to=inscription_upload_path, verbose_name="Diplôme d'État ou équivalent")
 
+    # --- Transfert / équivalence (obligatoire pour une entrée au-delà de L1) ---
+    etablissement_origine = models.CharField(max_length=200, blank=True, default='',
+                                             verbose_name="Établissement d'origine")
+    releve_notes_precedent = models.FileField(upload_to=inscription_upload_path, null=True, blank=True,
+                                              verbose_name="Relevé de notes de l'établissement d'origine")
+
+    # --- Contrôle du dossier (apparitorat) ---
+    DOSSIER_CHOICES = [('a_verifier', 'À vérifier'), ('conforme', 'Conforme'), ('a_completer', 'À compléter')]
+    dossier_status = models.CharField(max_length=12, choices=DOSSIER_CHOICES, default='a_verifier',
+                                      verbose_name='Contrôle des pièces')
+    dossier_comment = models.TextField(blank=True, default='')
+    dossier_verified_by = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True,
+                                            related_name='+')
+    dossier_verified_at = models.DateTimeField(null=True, blank=True)
+
+    # --- Frais de dossier ---
+    frais_dossier_paye = models.BooleanField(default=False, verbose_name='Frais de dossier payés')
+    frais_dossier_reference = models.CharField(max_length=100, blank=True, default='')
+    frais_dossier_enregistre_par = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True,
+                                                     blank=True, related_name='+')
+
+    # --- Décision de la commission d'admission ---
+    DECISION_CHOICES = [('en_attente', 'En attente'), ('admis', 'Admis'), ('liste_attente', "Liste d'attente"),
+                        ('refuse', 'Refusé')]
+    commission_decision = models.CharField(max_length=15, choices=DECISION_CHOICES, default='en_attente')
+    commission_comment = models.TextField(blank=True, default='')
+    decided_by = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='+')
+    decided_at = models.DateTimeField(null=True, blank=True)
+
     # --- Status ---
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='en_attente', verbose_name="Statut")
 
@@ -79,6 +115,9 @@ class PreInscription(models.Model):
         verbose_name = "Pré-inscription"
         verbose_name_plural = "Pré-inscriptions"
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['email', 'academic_year'], name='uniq_preinscription_email_annee'),
+        ]
 
     def __str__(self):
         return f"{self.first_name} {self.post_nom or ''} {self.last_name} - {self.email}"
@@ -88,10 +127,6 @@ class PreInscription(models.Model):
         # The file path depends on the id, so we need to save the model first,
         # then save the files if they exist.
         is_new = not self.pk
-        old_status = None
-        if not is_new:
-            old = type(self).objects.get(pk=self.pk)
-            old_status = old.status
         # File handling (unchanged)
         if is_new:
             _files = {}
@@ -106,15 +141,5 @@ class PreInscription(models.Model):
             super().save(update_fields=_files.keys())
         else:
             super().save(*args, **kwargs)
-        # Automate User creation if status changed to 'validee'
-        if old_status != 'validee' and self.status == 'validee':
-            from apps.users.models import User
-            if not User.objects.filter(email=self.email).exists():
-                user = User.objects.create(
-                    email=self.email,
-                    first_name=self.first_name,
-                    last_name=self.last_name,
-                    phone=self.phone,
-                    role='etudiant',
-                    status='actif',
-                )
+        # La création du compte étudiant se fait UNIQUEMENT via l'action « validate » de l'API
+        # (affectation d'auditoire, matricule, journal d'audit).

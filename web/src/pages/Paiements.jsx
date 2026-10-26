@@ -83,16 +83,25 @@ const Paiements = () => {
 
   useEffect(() => { loadMyFees() }, [loadMyFees])
 
-  // Summary totals
-  const totals = myFees.reduce((acc, sf) => {
-    acc.due += parseFloat(sf.total_amount || 0)
-    acc.paid += parseFloat(sf.amount_paid || 0)
-    acc.remaining += parseFloat(sf.amount_remaining || 0)
+  // Années : par défaut la plus récente ; USD et CDF ne sont JAMAIS additionnés.
+  const years = [...new Set(myFees.map(sf => sf.academic_year_name).filter(Boolean))].sort().reverse()
+  const [year, setYear] = useState('')
+  const activeYear = year || years[0] || ''
+  const shownFees = myFees
+    .filter(sf => !activeYear || sf.academic_year_name === activeYear || !sf.academic_year_name)
+    .filter(sf => sf.status !== 'annule')
+    .sort((a, b) => (a.status === 'paye') - (b.status === 'paye') || String(a.due_date).localeCompare(String(b.due_date)))
+  const byCurrency = shownFees.reduce((acc, sf) => {
+    const c = sf.fee_campaign_currency || 'USD'
+    acc[c] = acc[c] || { due: 0, paid: 0, remaining: 0 }
+    acc[c].due += parseFloat(sf.total_amount || 0)
+    acc[c].paid += parseFloat(sf.amount_paid || 0)
+    acc[c].remaining += parseFloat(sf.amount_remaining || 0)
     return acc
-  }, { due: 0, paid: 0, remaining: 0 })
-  const pct = totals.due > 0 ? Math.round((totals.paid / totals.due) * 100) : 0
-  // Dominant currency from fees (fallback USD)
-  const mainCurrency = myFees.length > 0 ? (myFees[0].fee_campaign_currency || 'USD') : 'USD'
+  }, {})
+  const currencies = Object.keys(byCurrency).sort().reverse()
+  // Progression = devise la moins réglée (règle « en règle dans chaque devise »)
+  const pct = currencies.length ? Math.min(...currencies.map(c => byCurrency[c].due > 0 ? Math.round(byCurrency[c].paid * 100 / byCurrency[c].due) : 100)) : 0
 
   // ── Mobile Money ──────────────────────────────────────────────────────────
   const openMM = (sf) => {
@@ -119,7 +128,7 @@ const Paiements = () => {
         phone_number: mmPhone.trim(),
       })
       setMmResult(res.data)
-      toast.success('Paiement Mobile Money confirmé !')
+      toast.info(res.data?.message || 'Demande enregistrée : en attente de vérification.')
       loadMyFees()
     } catch (err) {
       toast.error(err.response?.data?.error || err.response?.data?.detail || 'Erreur paiement.')
@@ -148,7 +157,7 @@ const Paiements = () => {
         amount: amt,
         description: bonSF.fee_name || bonSF.fee_campaign_name || 'Frais étudiants',
         beneficiary_account: 'SYNTAX-GU-001',
-        beneficiary_name: 'SYNTAX GU',
+        beneficiary_name: 'UNIVERSITÉ MAZANZA',
         expiry_days: 30,
         payment_method: bonMethod,
       })
@@ -168,12 +177,12 @@ const Paiements = () => {
       <title>BON DE PAIEMENT — Université Mazanza</title>
       <style>
         body{font-family:'Segoe UI',Arial,sans-serif;padding:20px;color:#1a1a1a;font-size:13px}
-        .header{text-align:center;border-bottom:2px solid #0d6efd;padding-bottom:12px;margin-bottom:16px}
-        .header h1{font-size:22px;font-weight:900;color:#0d6efd;margin:0}
+        .header{text-align:center;border-bottom:2px solid #0E8C9B;padding-bottom:12px;margin-bottom:16px}
+        .header h1{font-size:22px;font-weight:900;color:#0E8C9B;margin:0}
         .header .sub{font-size:11px;color:#666;margin:2px 0}
-        .header .title{font-size:13px;font-weight:700;background:#f0f4ff;padding:4px 12px;border-radius:6px;display:inline-block;margin-top:6px}
-        .bon-num{background:#f0f4ff;border:2px dashed #0d6efd;border-radius:10px;padding:12px;text-align:center;margin:16px 0}
-        .bon-num .code{font-size:20px;font-weight:900;font-family:monospace;color:#0d6efd;letter-spacing:3px}
+        .header .title{font-size:13px;font-weight:700;background:#E2F3F5;padding:4px 12px;border-radius:6px;display:inline-block;margin-top:6px}
+        .bon-num{background:#E2F3F5;border:2px dashed #0E8C9B;border-radius:10px;padding:12px;text-align:center;margin:16px 0}
+        .bon-num .code{font-size:20px;font-weight:900;font-family:monospace;color:#0E8C9B;letter-spacing:3px}
         table{width:100%;border-collapse:collapse;margin:12px 0}
         td{padding:6px 10px;border:1px solid #dee2e6;font-size:13px}
         td:first-child{font-weight:600;background:#f8f9fa;width:45%;color:#444}
@@ -216,23 +225,32 @@ const Paiements = () => {
 
       {/* Summary card */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.1 } }} style={{ marginBottom: '20px' }}>
-        <Card style={{ border: 'none', borderRadius: '14px', background: 'linear-gradient(135deg, #1e3a5f, #0d6efd)', boxShadow: '0 6px 20px rgba(13,110,253,0.25)', overflow: 'hidden' }}>
+        <Card style={{ border: 'none', borderRadius: '14px', background: 'linear-gradient(135deg, #0A6F7D, #0E8C9B)', boxShadow: '0 6px 20px rgba(14,140,155,0.25)', overflow: 'hidden' }}>
           <Card.Body style={{ padding: '20px 24px' }}>
-            <Row className="g-3 align-items-center">
-              {[
-                { label: 'Total dû',       val: fmtCur(totals.due, mainCurrency),       color: '#fff' },
-                { label: 'Payé',           val: fmtCur(totals.paid, mainCurrency),      color: '#6ee7b7' },
-                { label: 'Reste à payer',  val: fmtCur(totals.remaining, mainCurrency), color: totals.remaining > 0 ? '#fca5a5' : '#6ee7b7' },
-              ].map(s => (
-                <Col md={4} key={s.label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '600', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>{s.label}</div>
-                  <div style={{ fontSize: '26px', fontWeight: '900', color: s.color }}>{s.val}</div>
-                </Col>
-              ))}
-            </Row>
+            {years.length > 1 && (
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                {years.map(y => (
+                  <button key={y} onClick={() => setYear(y)} style={{ border: 'none', borderRadius: '999px', padding: '3px 12px', fontSize: '12px', fontWeight: 700, background: y === activeYear ? '#fff' : 'rgba(255,255,255,0.18)', color: y === activeYear ? '#0A6F7D' : '#fff' }}>{y}</button>
+                ))}
+              </div>
+            )}
+            {currencies.map(c => (
+              <Row className="g-3 align-items-center" key={c} style={{ marginBottom: '6px' }}>
+                {[
+                  { label: `Total dû (${c})`, val: fmtCur(byCurrency[c].due, c), color: '#fff' },
+                  { label: 'Payé', val: fmtCur(byCurrency[c].paid, c), color: '#6ee7b7' },
+                  { label: 'Reste à payer', val: fmtCur(byCurrency[c].remaining, c), color: byCurrency[c].remaining > 0 ? '#fca5a5' : '#6ee7b7' },
+                ].map(s => (
+                  <Col md={4} key={s.label} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '600', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>{s.label}</div>
+                    <div style={{ fontSize: '22px', fontWeight: '900', color: s.color }}>{s.val}</div>
+                  </Col>
+                ))}
+              </Row>
+            ))}
             <div style={{ marginTop: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Progression globale</span>
+                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Progression (devise la moins réglée — USD et CDF ne s'additionnent pas)</span>
                 <span style={{ fontWeight: '800', color: '#fff', fontSize: '14px' }}>{pct}%</span>
               </div>
               <ProgressBar now={pct} style={{ height: '8px', borderRadius: '4px', background: 'rgba(255,255,255,0.2)' }}
@@ -243,7 +261,7 @@ const Paiements = () => {
       </motion.div>
 
       {/* Fees list */}
-      {myFees.length === 0 ? (
+      {shownFees.length === 0 ? (
         <Card style={{ border: 'none', borderRadius: '12px', background: 'var(--color-cardBg)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
           <Card.Body style={{ textAlign: 'center', padding: '60px', color: 'var(--color-textSecondary)' }}>
             <FiCheckCircle size={40} style={{ opacity: 0.3, marginBottom: '12px' }} /><br />
@@ -252,7 +270,7 @@ const Paiements = () => {
         </Card>
       ) : (
         <Row className="g-3">
-          {myFees.map((sf, idx) => {
+          {shownFees.map((sf, idx) => {
             const cfg = STATUS_CFG[sf.status] || STATUS_CFG.impaye
             const StatusIcon = cfg.icon
             const pctFee = sf.payment_percentage ?? 0
@@ -268,7 +286,7 @@ const Paiements = () => {
                           <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--color-text)', lineHeight: 1.3 }}>
                             {sf.fee_name || sf.fee_campaign_name || 'Frais étudiants'}
                           </div>
-                          {sf.fee_type_name && <div style={{ fontSize: '11px', color: 'var(--color-textSecondary)', marginTop: '2px' }}>{sf.fee_type_name}</div>}
+                          {sf.fee_type_name && <div style={{ fontSize: '11px', color: 'var(--color-textSecondary)', marginTop: '2px' }}>{sf.fee_type_name}{sf.academic_year_name ? ` · ${sf.academic_year_name}` : ''}</div>}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px', borderRadius: '8px', background: cfg.bg, color: cfg.text, fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap' }}>
                           <StatusIcon size={11} /> {cfg.label}
@@ -330,12 +348,13 @@ const Paiements = () => {
         <Modal.Body style={{ background: 'var(--color-cardBg)', padding: '20px' }}>
           {mmResult ? (
             <div style={{ textAlign: 'center', padding: '20px' }}>
-              <div style={{ fontSize: '50px', marginBottom: '12px' }}>✅</div>
-              <div style={{ fontWeight: '800', fontSize: '18px', color: '#198754', marginBottom: '8px' }}>Paiement confirmé !</div>
+              <div style={{ fontSize: '50px', marginBottom: '12px' }}>⏳</div>
+              <div style={{ fontWeight: '800', fontSize: '18px', color: '#C76A12', marginBottom: '8px' }}>Demande envoyée — en attente de vérification</div>
+              <div style={{ fontSize: '13px', color: 'var(--color-textSecondary)', marginBottom: '12px' }}>Votre solde sera mis à jour dès que la caisse aura confirmé la transaction.</div>
               <div style={{ background: '#d1fae5', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px' }}>
                 <div style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: '700', color: '#065f46' }}>{mmResult.payment?.reference}</div>
                 <div style={{ fontSize: '12px', color: '#047857', marginTop: '4px' }}>Transaction ID : {mmResult.transaction_id}</div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#059669', marginTop: '6px' }}>{fmtCur(mmResult.payment?.amount, selectedSF?.fee_campaign_currency)} payés</div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#059669', marginTop: '6px' }}>{fmtCur(mmResult.payment?.amount, selectedSF?.fee_campaign_currency)} en attente</div>
               </div>
               <Button onClick={() => setShowMMModal(false)}
                 style={{ borderRadius: '8px', background: 'linear-gradient(135deg, #43e97b, #38f9d7)', border: 'none', fontWeight: '700', color: '#155724' }}>
@@ -391,7 +410,7 @@ const Paiements = () => {
       <Modal show={showBonModal} onHide={() => setShowBonModal(false)} centered size="md">
         <Modal.Header closeButton style={{ background: 'var(--color-cardBg)', borderBottom: '1px solid var(--color-border)' }}>
           <Modal.Title style={{ fontWeight: '700', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FiPrinter style={{ color: '#0d6efd' }} /> BON de Paiement
+            <FiPrinter style={{ color: '#0E8C9B' }} /> BON de Paiement
           </Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ background: 'var(--color-cardBg)', padding: '20px' }}>
@@ -417,7 +436,7 @@ const Paiements = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {BON_METHODS.map(m => (
                     <button key={m.id} type="button" onClick={() => setBonMethod(m.id)}
-                      style={{ padding: '10px', borderRadius: '10px', border: `2px solid ${bonMethod === m.id ? '#0d6efd' : 'var(--color-border)'}`, background: bonMethod === m.id ? '#0d6efd11' : 'var(--color-bodyBg)', cursor: 'pointer', fontWeight: '600', fontSize: '12px', color: 'var(--color-text)', transition: 'all 0.15s' }}>
+                      style={{ padding: '10px', borderRadius: '10px', border: `2px solid ${bonMethod === m.id ? '#0E8C9B' : 'var(--color-border)'}`, background: bonMethod === m.id ? '#0E8C9B11' : 'var(--color-bodyBg)', cursor: 'pointer', fontWeight: '600', fontSize: '12px', color: 'var(--color-text)', transition: 'all 0.15s' }}>
                       {m.label}
                     </button>
                   ))}
@@ -426,7 +445,7 @@ const Paiements = () => {
               <div style={{ display: 'flex', gap: '10px' }}>
                 <Button variant="outline-secondary" onClick={() => setShowBonModal(false)} style={{ flex: 1, borderRadius: '8px' }}>Annuler</Button>
                 <Button onClick={submitBon}
-                  style={{ flex: 2, borderRadius: '8px', background: 'linear-gradient(135deg, #0d6efd, #0050d8)', border: 'none', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  style={{ flex: 2, borderRadius: '8px', background: 'linear-gradient(135deg, #0E8C9B, #0A6F7D)', border: 'none', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   <FiPrinter size={14} /> Générer le BON
                 </Button>
               </div>
@@ -434,14 +453,14 @@ const Paiements = () => {
           ) : bonData ? (
             <>
               <div ref={bonRef}>
-                <div className="header" style={{ textAlign: 'center', borderBottom: '2px solid #0d6efd', paddingBottom: '12px', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '22px', fontWeight: '900', color: '#0d6efd', letterSpacing: '1px' }}>SYNTAX GU</div>
+                <div className="header" style={{ textAlign: 'center', borderBottom: '2px solid #0E8C9B', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '22px', fontWeight: '900', color: '#0E8C9B', letterSpacing: '1px' }}>UNIVERSITÉ MAZANZA</div>
                   <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>Grandes Universités · Système de Gestion Académique et Décisionnelle</div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a1a', marginTop: '6px', background: '#f0f4ff', padding: '4px 12px', borderRadius: '6px', display: 'inline-block' }}>BON DE PAIEMENT</div>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a1a', marginTop: '6px', background: '#E2F3F5', padding: '4px 12px', borderRadius: '6px', display: 'inline-block' }}>BON DE PAIEMENT</div>
                 </div>
-                <div className="bon-num" style={{ background: '#f0f4ff', border: '2px dashed #0d6efd', borderRadius: '10px', padding: '12px', textAlign: 'center', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '11px', color: '#0d6efd', fontWeight: '600', marginBottom: '4px' }}>N° BON</div>
-                  <div className="code" style={{ fontSize: '20px', fontWeight: '900', fontFamily: 'monospace', color: '#0d6efd', letterSpacing: '3px' }}>{bonData.voucher_number}</div>
+                <div className="bon-num" style={{ background: '#E2F3F5', border: '2px dashed #0E8C9B', borderRadius: '10px', padding: '12px', textAlign: 'center', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '11px', color: '#0E8C9B', fontWeight: '600', marginBottom: '4px' }}>N° BON</div>
+                  <div className="code" style={{ fontSize: '20px', fontWeight: '900', fontFamily: 'monospace', color: '#0E8C9B', letterSpacing: '3px' }}>{bonData.voucher_number}</div>
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12px', fontSize: '13px' }}>
                   <tbody>
@@ -471,13 +490,13 @@ const Paiements = () => {
                 </div>
                 <div className="footer" style={{ fontSize: '10px', color: '#888', textAlign: 'center', marginTop: '12px', borderTop: '1px dashed #ccc', paddingTop: '8px', lineHeight: 1.6 }}>
                   Présentez ce BON à la caisse ou à votre banque pour effectuer le paiement.<br />
-                  SYNTAX GU · Système de Gestion Académique et Décisionnelle
+                  UNIVERSITÉ MAZANZA · Système de gestion universitaire
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                 <Button variant="outline-secondary" onClick={() => setShowBonModal(false)} style={{ flex: 1, borderRadius: '8px' }}>Fermer</Button>
                 <Button onClick={handlePrintBon}
-                  style={{ flex: 2, borderRadius: '8px', background: 'linear-gradient(135deg, #0d6efd, #0050d8)', border: 'none', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  style={{ flex: 2, borderRadius: '8px', background: 'linear-gradient(135deg, #0E8C9B, #0A6F7D)', border: 'none', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   <FiPrinter size={14} /> Imprimer / Sauvegarder PDF
                 </Button>
               </div>

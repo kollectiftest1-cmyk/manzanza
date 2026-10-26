@@ -1,0 +1,54 @@
+Code mort et fichiers inutilisés à supprimer (jamais importés par l'application).
+Depuis la racine du dépôt, dans Git Bash :
+
+git rm -r --ignore-unmatch -- \
+  "web/src/index.css" \
+  "web/src/components/DashboardTemplate.jsx" \
+  "web/src/components/Payments/ValidationPaiement.jsx" \
+  "web/src/components/Attendance/PointagePresences.jsx" \
+  "web/src/components/dashboards/ModernSimpleDashboards.jsx" \
+  "web/src/components/dashboards/AdminDashboard.jsx" \
+  "web/src/components/dashboards/QuizzesWidget.jsx" \
+  "web/src/components/dashboards/ModernDashboard.jsx" \
+  "web/src/components/dashboards/AssignmentsWidget.jsx" \
+  "web/src/components/rh/PayrollList.jsx" \
+  "web/src/services/courseMaterialService.js" \
+  "web/src/services/assistantService.js" \
+  "web/src/app/rh/employees/page.jsx" \
+  "web/src/styles/theme-switcher.css" \
+  "web/src/styles/sidebar.css" \
+  "web/src/styles/navbar.css" \
+  "web/src/styles/theme.css" \
+  "web/src/pages/RH.jsx" \
+  "web/src/pages/StudentListPage.jsx" \
+  "web/src/pages/TeacherListPage.jsx" \
+  "backend/test_teacher_stats_api.py" \
+  "backend/test_all_endpoints.py" \
+  "backend/create_existing_chats.py" \
+  "backend/test_auditoires_stats.py" \
+  "backend/test_course_api.py" \
+  "backend/test_endpoints_http.py" \
+  "backend/test_teacher_counting.py" \
+  "backend/test_auditoires_api.py" \
+  "backend/test_teacher_stats.py" \
+  "backend/create_test_users.py" \
+  "web/app" \
+  "web/components" \
+  "web/styles" \
+  "web/public/index.html" \
+  "web/public/administrator-working-on-laptop.png" \
+  "web/public/app-store-badge.png" \
+  "web/public/google-play-badge.png" \
+  "web/public/modern-university-dashboard-interface.png" \
+  "web/public/placeholder-logo.png" \
+  "web/public/placeholder-logo.svg" \
+  "web/public/placeholder-user.jpg" \
+  "web/public/placeholder.jpg" \
+  "web/public/placeholder.svg" \
+  "web/public/responsive-devices-showing-university-app.png" \
+  "web/public/students-learning-together-with-laptops.png" \
+  "web/public/teacher-in-classroom-with-students.png" \
+  "web/public/vite.svg"
+git commit -m "Nettoyage : suppression du code mort"
+
+Ce fichier peut ensuite être supprimé.

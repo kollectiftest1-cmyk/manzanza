@@ -1,4 +1,7 @@
+import tempfile
 from datetime import date, time
+
+from django.test import override_settings
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
@@ -14,6 +17,7 @@ from apps.schedules.models import AcademicYear, Room, RoomReservation, Schedule,
 from apps.users.models import User
 
 
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix='mz-test-media-'))
 class UniversityWorkflowSmokeTests(APITestCase):
     password = "Password123!"
 
@@ -29,7 +33,7 @@ class UniversityWorkflowSmokeTests(APITestCase):
         )
 
     def setUp(self):
-        self.admin = self.create_user("iadmin", is_staff=True, is_superuser=True)
+        self.admin = self.create_user("pdg", is_staff=True, is_superuser=True)
         self.dg = self.create_user("directeur_general")
         self.sga = self.create_user("sga")
         self.sgad = self.create_user("sgad")
@@ -125,7 +129,9 @@ class UniversityWorkflowSmokeTests(APITestCase):
             self.jury,
         ]
 
+        from django.core.cache import cache
         for user in roles:
+            cache.clear()  # la connexion est limitée à 10 tentatives/minute par IP
             response = self.client.post(
                 "/api/auth/login/",
                 {"email": user.email, "password": self.password},
@@ -187,7 +193,7 @@ class UniversityWorkflowSmokeTests(APITestCase):
         self.assertEqual(options_response.data[1]["value"], "2027-2028")
 
         file_fields = {
-            name: SimpleUploadedFile(f"{name}.pdf", b"test", content_type="application/pdf")
+            name: SimpleUploadedFile(f"{name}.pdf", b"%PDF-1.4 test", content_type="application/pdf")
             for name in [
                 "carte_identite",
                 "certificat_naissance",
@@ -216,9 +222,27 @@ class UniversityWorkflowSmokeTests(APITestCase):
         create_response = self.client.post("/api/inscriptions/", payload, format="multipart")
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED, create_response.data)
 
+        pid = create_response.data['id']
         self.client.force_authenticate(self.sga)
-        validate_response = self.client.post(f"/api/inscriptions/{create_response.data['id']}/validate/")
+        # Circuit d'admission : pas de décision sans pièces conformes ni frais de dossier.
+        early = self.client.post(f"/api/inscriptions/{pid}/validate/")
+        self.assertEqual(early.status_code, status.HTTP_400_BAD_REQUEST)
+        checked = self.client.post(f"/api/inscriptions/{pid}/verify-dossier/", {"dossier_status": "conforme"},
+                                   format="json")
+        self.assertEqual(checked.status_code, status.HTTP_200_OK, checked.data)
+        self.assertEqual(self.client.post(f"/api/inscriptions/{pid}/mark-fee-paid/",
+                                          {"reference": "R-1"}, format="json").status_code,
+                         status.HTTP_403_FORBIDDEN)  # l'encaissement relève de la caisse
+        self.client.force_authenticate(self.caisse)
+        paid = self.client.post(f"/api/inscriptions/{pid}/mark-fee-paid/", {"reference": "R-1"}, format="json")
+        self.assertEqual(paid.status_code, status.HTTP_200_OK, paid.data)
+        self.client.force_authenticate(self.sga)
+        validate_response = self.client.post(f"/api/inscriptions/{pid}/validate/")
         self.assertEqual(validate_response.status_code, status.HTTP_200_OK, validate_response.data)
+        from apps.scolarite.models import InscriptionAnnuelle
+        ins = InscriptionAnnuelle.objects.get(pk=validate_response.data["inscription_annuelle"])
+        self.assertEqual(ins.statut, "en_attente")
+        self.assertEqual(ins.academic_year.name, "2027-2028")
         self.assertEqual(validate_response.data["academic_year"], "2027-2028")
 
         student = User.objects.get(email="future.student@example.test")
@@ -331,7 +355,7 @@ class UniversityWorkflowSmokeTests(APITestCase):
             start_time=time(8, 0),
             end_time=time(10, 0),
             is_finalized=True,
-            created_by=self.teacher,
+            created_by=self.assistant,  # séance tenue par l'assistant (TP) : c'est lui qui est payé
         )
         AttendanceSession.objects.create(
             course=self.course,
@@ -339,7 +363,7 @@ class UniversityWorkflowSmokeTests(APITestCase):
             start_time=time(10, 0),
             end_time=time(12, 0),
             is_finalized=False,
-            created_by=self.teacher,
+            created_by=self.assistant,
         )
 
         self.client.force_authenticate(self.sgad)
@@ -397,7 +421,12 @@ class UniversityWorkflowSmokeTests(APITestCase):
         self.assertEqual(invalid.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_transcript_module_is_generated_and_scoped_by_role(self):
+        # Le barème institutionnel est fixé par le SGA ; l'enseignant ne fait que noter.
         self.client.force_authenticate(self.teacher)
+        forbidden = self.client.post("/api/grades/categories/", {"name": "X", "category_type": "examen",
+                                                                  "weight": "10"}, format="json")
+        self.assertEqual(forbidden.status_code, status.HTTP_403_FORBIDDEN)
+        self.client.force_authenticate(self.sga)
         category_response = self.client.post(
             "/api/grades/categories/",
             {
@@ -409,6 +438,7 @@ class UniversityWorkflowSmokeTests(APITestCase):
             format="json",
         )
         self.assertEqual(category_response.status_code, status.HTTP_201_CREATED, category_response.data)
+        self.client.force_authenticate(self.teacher)
 
         grade_response = self.client.post(
             "/api/grades/grades/",
@@ -425,6 +455,24 @@ class UniversityWorkflowSmokeTests(APITestCase):
         )
         self.assertEqual(grade_response.status_code, status.HTTP_201_CREATED, grade_response.data)
 
+        # Note en brouillon : invisible tant que la feuille n'est pas approuvée.
+        transcript = Transcript.objects.get(student=self.student, auditoire=self.auditoire)
+        self.assertEqual(transcript.average, 0)
+        sheet = self.client.post("/api/grades/sheets/ensure/", {"course": self.course.id, "session": 1},
+                                 format="json")
+        self.assertEqual(sheet.status_code, status.HTTP_200_OK, sheet.data)
+        submitted = self.client.post(f"/api/grades/sheets/{sheet.data['id']}/submit/")
+        self.assertEqual(submitted.status_code, status.HTTP_200_OK, submitted.data)
+        # Feuille soumise : l'enseignant ne peut plus modifier, ni s'auto-approuver.
+        locked = self.client.patch(f"/api/grades/grades/{grade_response.data['id']}/", {"value": "19.00"},
+                                   format="json")
+        self.assertIn(locked.status_code, (status.HTTP_400_BAD_REQUEST, status.HTTP_403_FORBIDDEN,
+                                           status.HTTP_409_CONFLICT))
+        self.assertEqual(self.client.post(f"/api/grades/sheets/{sheet.data['id']}/approve/").status_code,
+                         status.HTTP_403_FORBIDDEN)
+        self.client.force_authenticate(self.sga)
+        approved = self.client.post(f"/api/grades/sheets/{sheet.data['id']}/approve/")
+        self.assertEqual(approved.status_code, status.HTTP_200_OK, approved.data)
         transcript = Transcript.objects.get(student=self.student, auditoire=self.auditoire)
         self.assertEqual(transcript.year, "2026-2027")
         self.assertEqual(transcript.average, 80)
@@ -473,7 +521,17 @@ class UniversityWorkflowSmokeTests(APITestCase):
         self.assertEqual(fee_response.data["assigned_count"], 1)
 
         student_fee = StudentFee.objects.get(student=self.student)
+        # La direction consulte mais n'encaisse pas.
+        self.assertEqual(self.client.post("/api/payments/", {"student_fee": student_fee.id, "amount": "1.00",
+                                                             "payment_method": "especes"}, format="json").status_code,
+                         status.HTTP_403_FORBIDDEN)
         self.client.force_authenticate(self.caisse)
+        no_session = self.client.post("/api/payments/", {"student_fee": student_fee.id, "amount": "1.00",
+                                                         "payment_method": "especes"}, format="json")
+        self.assertEqual(no_session.status_code, status.HTTP_400_BAD_REQUEST)
+        opened = self.client.post("/api/payments/cash-sessions/open/", {"opening_float": {"USD": "20"}},
+                                  format="json")
+        self.assertEqual(opened.status_code, status.HTTP_201_CREATED, opened.data)
         payment_response = self.client.post(
             "/api/payments/",
             {

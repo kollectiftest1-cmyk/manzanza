@@ -12,6 +12,8 @@ from django.utils import timezone
 from .models import FeeType, Fee, StudentFee, Payment
 from .serializers import FeeTypeSerializer, FeeSerializer, StudentFeeSerializer, PaymentSerializer
 from apps.users.permissions import IsCaisseOrAdmin, IsDGOrIAdmin
+from apps.core.audit import audit
+from decimal import Decimal, InvalidOperation
 
 
 class FeeTypeViewSet(viewsets.ModelViewSet):
@@ -89,7 +91,8 @@ class FeeViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
         """SGAD dashboard: collected, pending, total assigned."""
-        if request.user.role not in ['iadmin', 'caisse', 'sgad', 'pdg', 'directeur_general']:
+        from apps.users.permissions import has_role
+        if not has_role(request.user, 'caisse', 'comptable', 'sgad', 'directeur_general'):
             return Response({'error': 'Non autorisé.'}, status=403)
 
         total_student_fees = StudentFee.objects.count()
@@ -100,6 +103,18 @@ class FeeViewSet(viewsets.ModelViewSet):
         total_expected = float(agg['total_expected'] or 0)
         total_paid = float(agg['total_paid'] or 0)
         total_pending = total_expected - total_paid
+
+        # Totaux par devise : on n'additionne jamais des USD et des CDF.
+        by_currency = {}
+        for row in StudentFee.objects.values('fee_campaign__currency').annotate(
+            expected=Sum('total_amount'), paid=Sum('amount_paid')
+        ):
+            cur = row['fee_campaign__currency'] or 'USD'
+            bucket = by_currency.setdefault(cur, {'expected': 0.0, 'paid': 0.0})
+            bucket['expected'] += float(row['expected'] or 0)
+            bucket['paid'] += float(row['paid'] or 0)
+        for bucket in by_currency.values():
+            bucket['pending'] = bucket['expected'] - bucket['paid']
 
         return Response({
             'total_fees_campaigns': Fee.objects.count(),
@@ -112,6 +127,7 @@ class FeeViewSet(viewsets.ModelViewSet):
             'total_paid': total_paid,
             'total_pending': total_pending,
             'collection_rate': round(total_paid / total_expected * 100, 1) if total_expected else 0,
+            'by_currency': by_currency,
         })
 
 
@@ -131,7 +147,7 @@ class StudentFeeViewSet(viewsets.ModelViewSet):
         """Filter fees based on user role"""
         user = self.request.user
 
-        if user.role in ['iadmin', 'caisse', 'sgad']:
+        if user.role in ['pdg', 'caisse', 'sgad', 'directeur_general'] or user.is_superuser:
             return self.queryset
         elif user.role == 'etudiant':
             # Students see only their own fees
@@ -141,8 +157,12 @@ class StudentFeeViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsCaisseOrAdmin()]
+            return [IsDGOrIAdmin()] if self.action == 'destroy' else [IsCaisseOrAdmin()]
         return super().get_permissions()
+
+    def perform_destroy(self, instance):
+        # Corbeille ; refusée automatiquement si des paiements existent.
+        instance.delete(user=self.request.user)
 
     @action(detail=False, methods=['get'])
     def my_fees(self, request):
@@ -167,35 +187,54 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['iadmin', 'caisse', 'sgad', 'pdg', 'directeur_general']:
+        from apps.users.permissions import has_role
+        if has_role(user, 'pdg', 'caisse', 'comptable', 'sgad', 'directeur_general'):
             return self.queryset
         elif user.role == 'etudiant':
             return self.queryset.filter(student_fee__student=user)
         return self.queryset.none()
 
+    # Un paiement est immuable : ni modification ni suppression. Les corrections passent
+    # par le rejet (paiement en attente) ou une contre-passation (phase 1).
+    http_method_names = ['get', 'post', 'head', 'options']
+
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ['create', 'confirm', 'reject']:
             return [IsCaisseOrAdmin()]
         return super().get_permissions()
 
     def perform_create(self, serializer):
-        payment = serializer.save(processed_by=self.request.user)
-        if payment.status == 'confirme':
-            sf = payment.student_fee
-            sf.amount_paid = (sf.amount_paid or 0) + payment.amount
-            sf.update_status()
+        from rest_framework.exceptions import PermissionDenied, ValidationError
+        from apps.users.permissions import has_role
+        from .models import CashSession
+        user = self.request.user
+        # Séparation des tâches : seul un caissier encaisse ; la direction consulte.
+        if not has_role(user, 'caisse', 'pdg'):
+            raise PermissionDenied("L'encaissement est réservé à la caisse.")
+        session = None
+        if serializer.validated_data.get('payment_method') == 'especes':
+            session = CashSession.objects.filter(cashier=user, status='open').first()
+            if session is None:
+                raise ValidationError({'detail': "Ouvrez votre session de caisse avant d'encaisser des espèces."})
+        payment = serializer.save(processed_by=user, cash_session=session)
+        payment.student_fee.recompute_paid()
+        audit('payment', payment, details={'action': 'saisie', 'montant': str(payment.amount),
+                                           'statut': payment.status, 'mode': payment.payment_method})
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
-        """Confirm a pending payment (cashier/admin action)."""
+        """Confirmer un paiement EN ATTENTE (caisse uniquement)."""
+        from apps.users.permissions import has_role
+        if not has_role(request.user, 'caisse', 'comptable', 'pdg'):
+            return Response({'error': 'Confirmation réservée à la caisse / comptabilité.'}, status=403)
         payment = self.get_object()
-        if payment.status == 'confirme':
-            return Response({'error': 'Ce paiement est déjà confirmé.'}, status=400)
+        if payment.status != 'en_attente':
+            return Response({'error': 'Seul un paiement en attente peut être confirmé.'}, status=400)
         payment.status = 'confirme'
+        payment.processed_by = request.user
         payment.save()
-        sf = payment.student_fee
-        sf.amount_paid = (sf.amount_paid or 0) + payment.amount
-        sf.update_status()
+        payment.student_fee.recompute_paid()
+        audit('payment', payment, details={'action': 'confirmation', 'montant': str(payment.amount)})
         return Response({'detail': 'Paiement confirmé.', 'payment': PaymentSerializer(payment).data})
 
     @action(detail=True, methods=['post'])
@@ -204,8 +243,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
         payment = self.get_object()
         if payment.status != 'en_attente':
             return Response({'error': 'Seuls les paiements en attente peuvent être rejetés.'}, status=400)
+        reason = (request.data.get('reason') or '').strip()
+        if not reason:
+            return Response({'error': 'Le motif du rejet est obligatoire.'}, status=400)
         payment.status = 'rejete'
+        payment.notes = ((payment.notes or '') + f"\nRejet : {reason}").strip()
+        payment.processed_by = request.user
         payment.save()
+        payment.student_fee.recompute_paid()
+        audit('payment', payment, details={'action': 'rejet', 'motif': reason})
         return Response({'detail': 'Paiement rejeté.'})
 
     @action(detail=False, methods=['post'], url_path='mobile-money')
@@ -235,10 +281,17 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if sf.status == 'paye':
             return Response({'error': 'Ce frais est déjà entièrement payé.'}, status=400)
 
-        amount = float(amount)
-        remaining = float(sf.amount_remaining)
-        if amount > remaining + 0.01:
+        try:
+            amount = Decimal(str(amount))
+        except (InvalidOperation, TypeError):
+            return Response({'error': 'Montant invalide.'}, status=400)
+        if amount <= 0:
+            return Response({'error': 'Le montant doit être positif.'}, status=400)
+        remaining = sf.amount_remaining
+        if amount > remaining + Decimal('0.01'):
             return Response({'error': f'Montant dépasse le solde dû ({remaining}).'}, status=400)
+        if request.user.role not in ['etudiant', 'caisse', 'pdg'] and not request.user.is_superuser:
+            return Response({'error': 'Non autorisé.'}, status=403)
 
         # Generate transaction ID
         import uuid as _uuid
@@ -251,19 +304,21 @@ class PaymentViewSet(viewsets.ModelViewSet):
             mobile_money_provider=provider,
             mobile_money_number=phone_number,
             transaction_id=txn_id,
-            status='confirme',  # Simulated instant confirm
+            # SÉCURITÉ : jamais de confirmation automatique. Le paiement reste « en attente »
+            # jusqu'au rappel signé de l'opérateur (intégration à venir) ou au rapprochement
+            # par la caisse via /payments/{id}/confirm/.
+            status='en_attente',
             processed_by=request.user,
             notes=f'Mobile Money {provider.upper()} — {phone_number}',
         )
-
-        # Update student fee balance
-        sf.amount_paid = float(sf.amount_paid or 0) + amount
-        sf.update_status()
+        audit('payment', payment, details={'action': 'mobile_money_initie', 'montant': str(amount),
+                                           'operateur': provider})
         sf.refresh_from_db()
 
         return Response({
             'success': True,
-            'message': f'Paiement Mobile Money confirmé ({provider.upper()}).',
+            'message': (f'Demande de paiement Mobile Money enregistrée ({provider.upper()}). '
+                        'Elle sera confirmée après vérification de la transaction.'),
             'payment': PaymentSerializer(payment).data,
             'student_fee_status': sf.status,
             'transaction_id': txn_id,

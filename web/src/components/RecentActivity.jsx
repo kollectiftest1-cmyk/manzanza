@@ -7,7 +7,13 @@
 import { motion } from "framer-motion"
 import { FiUser, FiFileText, FiAward, FiTrendingUp, FiCheckCircle } from "react-icons/fi"
 
-const RecentActivity = ({ activities = [], delay = 0 }) => {
+import { useHome, timeAgo } from "./dashboards/homeData"
+
+// L'activité affichée est TOUJOURS l'activité réelle (notifications + journal d'audit) :
+// les listes de démonstration passées par d'anciens tableaux de bord sont ignorées.
+const RecentActivity = ({ delay = 0 }) => {
+  const home = useHome()
+  const activities = (home?.activity || []).map((a) => ({ ...a, time: timeAgo(a.at) }))
   const getIcon = (type) => {
     const icons = {
       'user': FiUser,
@@ -69,7 +75,7 @@ const RecentActivity = ({ activities = [], delay = 0 }) => {
         }}>
           Activités Récentes
         </h5>
-        <a href="/activities" style={{
+        <a href="/notifications" style={{
           fontSize: '0.85rem',
           color: 'var(--color-primary)',
           textDecoration: 'none',

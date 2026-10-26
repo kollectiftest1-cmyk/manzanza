@@ -16,4 +16,4 @@ function Root() {
   return <View style={styles.root}><StatusBar style={user?'dark':'light'} backgroundColor={user?'#FFFFFF':theme.colors.navy}/>{user?<Dashboard initialUser={user} onSessionEnd={()=>setUser(null)}/>:<LoginScreen onLogin={async(email,password)=>setUser(await login(email,password))}/>}</View>
 }
 export default function App(){return <SafeAreaProvider><Root/></SafeAreaProvider>}
-const styles=StyleSheet.create({root:{flex:1,backgroundColor:theme.colors.background},loading:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:theme.colors.navy},loadingLine:{width:64,height:4,borderRadius:2,backgroundColor:'#547CC0',marginTop:22}})
+const styles=StyleSheet.create({root:{flex:1,backgroundColor:theme.colors.background},loading:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:theme.colors.navy},loadingLine:{width:64,height:4,borderRadius:2,backgroundColor:'#7FD3DC',marginTop:22}})

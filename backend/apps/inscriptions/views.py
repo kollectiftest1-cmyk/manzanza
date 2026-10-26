@@ -11,10 +11,43 @@ from django.db import transaction
 
 from .models import PreInscription
 from .serializers import PreInscriptionSerializer
-from apps.users.permissions import IsSGAOrAdmin
+from apps.users.permissions import IsSGAOrAdmin, IsAcademicAdmin, has_role
+from rest_framework.permissions import BasePermission
+from apps.core.audit import audit
 from apps.auditoires.models import Auditoire # Import Auditoire model
 
 User = get_user_model()
+
+
+class CanReviewInscriptions(BasePermission):
+    """
+    Lecture : SGA, PDG, apparitorat, commission, caisse. Chaque action du circuit vérifie
+    ensuite son propre rôle (pièces → apparitorat, frais → caisse, décision → commission).
+    """
+    ACTION_ROLES = {'verify_dossier', 'mark_fee_paid', 'waitlist', 'validate_inscription', 'reject_inscription'}
+
+    def has_permission(self, request, view):
+        readers = ('sga', 'pdg', 'apparitorat', 'commission_admission', 'caisse')
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return has_role(request.user, *readers)
+        if getattr(view, 'action', None) in self.ACTION_ROLES:
+            return has_role(request.user, *readers)
+        return has_role(request.user, 'sga', 'pdg')
+
+
+def generate_matricule(academic_year=''):
+    """Matricule permanent et unique : MZ-<année d'entrée>-<séquence sur 6 chiffres>."""
+    year = (academic_year or '')[:4]
+    if not year.isdigit():
+        from django.utils import timezone
+        year = str(timezone.localdate().year)
+    prefix = f"MZ-{year}-"
+    last = User.all_objects.filter(matricule__startswith=prefix).order_by('-matricule').values_list(
+        'matricule', flat=True).first()
+    seq = int(last.rsplit('-', 1)[-1]) + 1 if last and last.rsplit('-', 1)[-1].isdigit() else 1
+    while User.all_objects.filter(matricule=f"{prefix}{seq:06d}").exists():
+        seq += 1
+    return f"{prefix}{seq:06d}"
 
 class PreInscriptionViewSet(viewsets.ModelViewSet):
     """
@@ -32,8 +65,17 @@ class PreInscriptionViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'academic_year_options']:
             self.permission_classes = [AllowAny]
         else:
-            self.permission_classes = [IsSGAOrAdmin]
+            self.permission_classes = [CanReviewInscriptions]
         return super().get_permissions()
+
+    def get_throttles(self):
+        # Formulaire public : limite anti-spam par adresse IP.
+        if self.action == 'create':
+            self.throttle_scope = 'public_form'
+        return super().get_throttles()
+
+    def perform_destroy(self, instance):
+        instance.delete(user=self.request.user)
 
     @action(detail=False, methods=['get'], url_path='academic-year-options')
     def academic_year_options(self, request):
@@ -41,96 +83,182 @@ class PreInscriptionViewSet(viewsets.ModelViewSet):
         from apps.auditoires.utils import get_public_academic_year_options
         return Response(get_public_academic_year_options())
 
+    # --- Circuit d'admission -------------------------------------------------
+    #   1. Apparitorat : contrôle des pièces (conforme / à compléter)
+    #   2. Caisse      : encaissement des frais de dossier (si exigés)
+    #   3. Commission  : admis / liste d'attente / refusé (SGA ou membre de commission)
+    #   4. Admis       : compte étudiant + matricule + inscription annuelle « en attente »
+    #                    (frais facturés automatiquement selon les barèmes)
+
+    @action(detail=True, methods=['get'], url_path=r'document/(?P<field>[a-z_0-9]+)')
+    def document(self, request, pk=None, field=None):
+        from django.http import FileResponse, Http404
+        from .serializers import PreInscriptionSerializer as S
+        if field not in S.UPLOAD_FIELDS:
+            raise Http404
+        obj = self.get_object()
+        f = getattr(obj, field)
+        if not f:
+            raise Http404
+        audit('export', obj, details={'action': 'consultation_piece', 'piece': field})
+        return FileResponse(f.open('rb'), filename=f.name.rsplit('/', 1)[-1])
+
+    @action(detail=True, methods=['post'], url_path='verify-dossier')
+    def verify_dossier(self, request, pk=None):
+        from django.utils import timezone
+        if not has_role(request.user, 'apparitorat', 'sga', 'pdg'):
+            return Response({'error': "Contrôle des pièces : apparitorat ou SGA."}, status=status.HTTP_403_FORBIDDEN)
+        obj = self.get_object()
+        if obj.status != 'en_attente':
+            return Response({'error': 'Cette demande a déjà été traitée.'}, status=status.HTTP_400_BAD_REQUEST)
+        value = request.data.get('dossier_status')
+        comment = (request.data.get('comment') or '').strip()
+        if value not in ('conforme', 'a_completer'):
+            return Response({'error': "Valeur attendue : conforme ou a_completer."}, status=status.HTTP_400_BAD_REQUEST)
+        if value == 'a_completer' and not comment:
+            return Response({'error': "Précisez les pièces à compléter."}, status=status.HTTP_400_BAD_REQUEST)
+        obj.dossier_status = value
+        obj.dossier_comment = comment
+        obj.dossier_verified_by = request.user
+        obj.dossier_verified_at = timezone.now()
+        obj.save()
+        audit('inscription', obj, details={'action': 'controle_pieces', 'resultat': value, 'commentaire': comment})
+        return Response(self.get_serializer(obj).data)
+
+    @action(detail=True, methods=['post'], url_path='mark-fee-paid')
+    def mark_fee_paid(self, request, pk=None):
+        if not has_role(request.user, 'caisse', 'pdg'):
+            return Response({'error': "L'encaissement des frais de dossier relève de la caisse."},
+                            status=status.HTTP_403_FORBIDDEN)
+        obj = self.get_object()
+        reference = (request.data.get('reference') or '').strip()
+        if not reference:
+            return Response({'error': "Référence du reçu obligatoire."}, status=status.HTTP_400_BAD_REQUEST)
+        obj.frais_dossier_paye = True
+        obj.frais_dossier_reference = reference
+        obj.frais_dossier_enregistre_par = request.user
+        obj.save()
+        audit('payment', obj, details={'action': 'frais_dossier', 'reference': reference})
+        return Response(self.get_serializer(obj).data)
+
+    def _commission_guard(self, request, obj):
+        from apps.core.models import InstitutionSettings
+        if not has_role(request.user, 'sga', 'pdg', 'commission_admission'):
+            return Response({'error': "Décision réservée à la commission d'admission."},
+                            status=status.HTTP_403_FORBIDDEN)
+        if obj.status != 'en_attente':
+            return Response({'error': 'Cette demande a déjà été traitée.'}, status=status.HTTP_400_BAD_REQUEST)
+        if obj.dossier_status != 'conforme':
+            return Response({'error': "Le dossier doit être déclaré conforme par l'apparitorat."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if InstitutionSettings.load().admission_requires_application_fee and not obj.frais_dossier_paye:
+            return Response({'error': "Les frais de dossier ne sont pas encaissés."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return None
+
+    @action(detail=True, methods=['post'], url_path='waitlist')
+    def waitlist(self, request, pk=None):
+        from django.utils import timezone
+        obj = self.get_object()
+        denied = self._commission_guard(request, obj)
+        if denied:
+            return denied
+        obj.commission_decision = 'liste_attente'
+        obj.commission_comment = (request.data.get('comment') or '').strip()
+        obj.decided_by = request.user
+        obj.decided_at = timezone.now()
+        obj.save()
+        audit('inscription', obj, details={'decision': 'liste_attente'})
+        return Response(self.get_serializer(obj).data)
+
     @action(detail=True, methods=['post'], url_path='validate')
     @transaction.atomic
     def validate_inscription(self, request, pk=None):
-        """
-        Validates a pre-inscription, creates a new student user,
-        and assigns them to the correct auditoire.
-        If the auditoire doesn't exist, it will be created automatically.
-        """
+        """Admission : crée le compte étudiant et son inscription annuelle (en attente de paiement)."""
+        from django.utils import timezone
         from apps.auditoires.utils import find_or_create_auditoire
+        from apps.scolarite.models import InscriptionAnnuelle
+        from apps.scolarite.services.enrollment import create_inscription
 
         pre_inscription = self.get_object()
+        denied = self._commission_guard(request, pre_inscription)
+        if denied:
+            return denied
 
-        if pre_inscription.status != 'en_attente':
-            return Response({'error': 'Cette demande a déjà été traitée.'}, status=status.HTTP_400_BAD_REQUEST)
+        target_auditoire, created = find_or_create_auditoire(
+            filiere=pre_inscription.filiere, niveau=pre_inscription.niveau, vacation=pre_inscription.vacation,
+            annee_academique=pre_inscription.academic_year, created_by=request.user)
+        auditoire_status = "créé automatiquement" if created else "existant"
 
-        # 1. Find or create the target auditoire
-        try:
-            target_auditoire, created = find_or_create_auditoire(
-                filiere=pre_inscription.filiere,
-                niveau=pre_inscription.niveau,
-                vacation=pre_inscription.vacation,
-                annee_academique=pre_inscription.academic_year,
-                created_by=request.user
-            )
-
-            auditoire_status = "créé automatiquement" if created else "existant"
-
-        except Exception as e:
+        # Capacité d'accueil : dépassement possible uniquement sur décision explicite du SGA.
+        effectif = InscriptionAnnuelle.objects.filter(
+            auditoire=target_auditoire, statut__in=InscriptionAnnuelle.ACTIVE_STATUTS).count()
+        override = str(request.data.get('override_capacity', '')).lower() in ('1', 'true', 'oui') \
+            and has_role(request.user, 'sga', 'pdg')
+        if target_auditoire.capacite_max and effectif >= target_auditoire.capacite_max and not override:
+            transaction.set_rollback(True)
             return Response({
-                'error': f"Erreur lors de la recherche/création de l'auditoire: {str(e)}"
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'error': (f"L'auditoire « {target_auditoire.nom} » est complet "
+                          f"({effectif}/{target_auditoire.capacite_max}). Placez le candidat en liste d'attente, "
+                          "confirmez le dépassement (override_capacity) ou augmentez la capacité."),
+                'capacity_full': True,
+            }, status=status.HTTP_409_CONFLICT)
 
-        # 2. Create the user — copy all relevant pre-inscription fields
         temp_password = get_random_string(12)
-        try:
-            user = User.objects.create_user(
-                email=pre_inscription.email,
-                password=temp_password,
-                first_name=pre_inscription.first_name,
-                last_name=pre_inscription.last_name,
-                post_nom=pre_inscription.post_nom or '',
-                phone=pre_inscription.phone,
-                sexe=pre_inscription.sexe,
-                date_naissance=pre_inscription.date_naissance,
-                adresse=pre_inscription.adresse,
-                role='etudiant',
-                status='actif'
-            )
-            # Assign the found/created auditoire to the student
-            user.auditoire = target_auditoire
-            user.save()
+        user = User.objects.create_user(
+            email=pre_inscription.email, password=temp_password,
+            first_name=pre_inscription.first_name, last_name=pre_inscription.last_name,
+            post_nom=pre_inscription.post_nom or '', phone=pre_inscription.phone, sexe=pre_inscription.sexe,
+            date_naissance=pre_inscription.date_naissance, adresse=pre_inscription.adresse,
+            role='etudiant', status='actif',
+            matricule=generate_matricule(target_auditoire.annee_academique),
+        )
+        user.auditoire = target_auditoire
+        if hasattr(user, 'must_change_password'):
+            user.must_change_password = True
+        user.save()
 
-        except Exception as e:
-            # This will roll back the transaction if user creation fails
-            return Response({'error': f"Erreur lors de la création de l'utilisateur: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        type_ins = 'nouvelle' if pre_inscription.niveau == 'L1' else 'transfert'
+        if target_auditoire.capacite_max and effectif >= target_auditoire.capacite_max:
+            # dépassement autorisé : on relève la capacité pour tracer la décision
+            target_auditoire.capacite_max = effectif + 1
+            target_auditoire.save()
+        ins = create_inscription(user, target_auditoire, user=request.user, type_inscription=type_ins)
 
-        # 3. Update the pre-inscription status
         pre_inscription.status = 'validee'
+        pre_inscription.commission_decision = 'admis'
+        pre_inscription.commission_comment = (request.data.get('comment') or '').strip()
+        pre_inscription.decided_by = request.user
+        pre_inscription.decided_at = timezone.now()
         pre_inscription.save()
+        audit('inscription', pre_inscription, details={
+            'decision': 'admis', 'etudiant_id': user.id, 'matricule': user.matricule,
+            'auditoire': target_auditoire.nom, 'inscription_annuelle': ins.id, 'type': type_ins,
+            'depassement_capacite': override,
+        })
 
-        # 4. Send a welcome email with credentials
         try:
             from django.core.mail import send_mail
             from django.conf import settings
-            subject = "Bienvenue — Vos identifiants de connexion"
-            message = (
-                f"Bonjour {user.first_name} {user.last_name},\n\n"
-                f"Votre inscription à l'université a été validée.\n\n"
-                f"Vos identifiants de connexion :\n"
-                f"  Email    : {user.email}\n"
-                f"  Mot de passe : {temp_password}\n\n"
-                f"Auditoire assigné : {target_auditoire.nom}\n\n"
-                f"Veuillez vous connecter et changer votre mot de passe dès que possible.\n\n"
-                f"Cordialement,\nL'administration"
-            )
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
+            send_mail(
+                "Admission — vos identifiants de connexion",
+                (f"Bonjour {user.first_name} {user.last_name},\n\n"
+                 f"Votre admission en {target_auditoire.nom} est prononcée. Matricule : {user.matricule}.\n"
+                 f"Identifiants : {user.email} / {temp_password}\n\n"
+                 "Votre inscription deviendra définitive après règlement des frais d'inscription "
+                 "auprès de la caisse. Changez votre mot de passe à la première connexion.\n\n"
+                 "Le Secrétariat Général Académique"),
+                settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
         except Exception:
-            pass  # Silently fail if email misconfigured — credentials already created
+            pass
 
         return Response({
-            'status': 'Inscription validée avec succès.',
-            'message': (
-                f"L'étudiant {user.first_name} {user.last_name} a été créé et affecté à "
-                f"l'auditoire '{target_auditoire.nom}' ({auditoire_status}). "
-                f"Un email de bienvenue a été envoyé à {user.email}."
-            ),
-            'user_id': user.id,
-            'email': user.email,
-            'auditoire_created': created,
-            'academic_year': target_auditoire.annee_academique
+            'status': 'Candidat admis.',
+            'message': (f"{user.first_name} {user.last_name} est admis(e) en « {target_auditoire.nom} » "
+                        f"({auditoire_status}). Inscription annuelle créée — en attente du paiement des frais."),
+            'user_id': user.id, 'email': user.email, 'matricule': user.matricule,
+            'inscription_annuelle': ins.id, 'auditoire_created': created,
+            'academic_year': target_auditoire.annee_academique,
         }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='reject')
@@ -139,13 +267,24 @@ class PreInscriptionViewSet(viewsets.ModelViewSet):
         Rejects a pre-inscription request.
         """
         pre_inscription = self.get_object()
+        if not has_role(request.user, 'sga', 'pdg', 'commission_admission'):
+            return Response({'error': "Décision réservée à la commission d'admission."},
+                            status=status.HTTP_403_FORBIDDEN)
 
         if pre_inscription.status != 'en_attente':
             return Response({'error': 'Cette demande a déjà été traitée.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        reason = request.data.get('reason', '')
+        reason = (request.data.get('reason') or '').strip()
+        if not reason:
+            return Response({'error': 'Le motif du refus est obligatoire.'}, status=status.HTTP_400_BAD_REQUEST)
+        from django.utils import timezone
         pre_inscription.status = 'rejetee'
+        pre_inscription.commission_decision = 'refuse'
+        pre_inscription.commission_comment = reason
+        pre_inscription.decided_by = request.user
+        pre_inscription.decided_at = timezone.now()
         pre_inscription.save()
+        audit('inscription', pre_inscription, details={'decision': 'rejetee', 'motif': reason})
 
         # Send rejection email
         try:

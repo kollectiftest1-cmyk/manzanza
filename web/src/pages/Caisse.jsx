@@ -13,6 +13,8 @@ import { FiSearch, FiCheckCircle, FiXCircle, FiClock, FiDollarSign, FiUser, FiHa
 import { useSearchParams } from "react-router-dom"
 import { toast } from "react-toastify"
 import { paymentService } from "../services/paymentService"
+import { Link } from "react-router-dom"
+import { financeAPI } from "../services/api"
 
 const Caisse = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -35,6 +37,9 @@ const Caisse = () => {
 
   // Receipt after validation
   const [receipt, setReceipt] = useState(null)
+  // Session de caisse : obligatoire pour encaisser des espèces
+  const [cashSession, setCashSession] = useState(undefined)
+  useEffect(() => { financeAPI.currentCashSession().then(({ data }) => setCashSession(data)).catch(() => setCashSession(null)) }, [])
 
   const inputRef = useRef(null)
 
@@ -137,8 +142,9 @@ const Caisse = () => {
   const printReceipt = () => {
     if (!receipt) return
     const w = window.open('', '_blank')
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]))
     w.document.write(`
-      <html><head><title>Reçu ${receipt.receipt_number}</title>
+      <html><head><title>Reçu ${esc(receipt.receipt_number)}</title>
       <style>body{font-family:Arial;padding:40px;max-width:600px;margin:auto}
       h1{text-align:center;border-bottom:2px solid #333;padding-bottom:10px}
       table{width:100%;border-collapse:collapse;margin:20px 0}
@@ -147,17 +153,17 @@ const Caisse = () => {
       .footer{text-align:center;margin-top:30px;color:#666;font-size:12px}
       </style></head><body>
       <h1>REÇU DE PAIEMENT</h1>
-      <p style="text-align:center;font-size:18px;color:#333">${receipt.receipt_number}</p>
+      <p style="text-align:center;font-size:18px;color:#333">${esc(receipt.receipt_number)}</p>
       <table>
-        <tr><td>Étudiant</td><td>${voucher?.student_name || '-'}</td></tr>
-        <tr><td>Matricule</td><td>${voucher?.student_matricule || '-'}</td></tr>
-        <tr><td>Frais</td><td>${voucher?.fee_type_name || '-'}</td></tr>
+        <tr><td>Étudiant</td><td>${esc(voucher?.student_name || '-')}</td></tr>
+        <tr><td>Matricule</td><td>${esc(voucher?.student_matricule || '-')}</td></tr>
+        <tr><td>Frais</td><td>${esc(voucher?.fee_type_name || '-')}</td></tr>
         <tr><td>Montant</td><td><strong>${formatMoney(receipt.amount_paid, voucher?.currency)}</strong></td></tr>
-        <tr><td>Méthode</td><td>${receipt.payment_method || '-'}</td></tr>
+        <tr><td>Méthode</td><td>${esc(receipt.payment_method || '-')}</td></tr>
         <tr><td>Date</td><td>${new Date(receipt.payment_date).toLocaleDateString('fr-FR')}</td></tr>
-        <tr><td>N° Bordereau</td><td>${receipt.bank_slip_number || '-'}</td></tr>
+        <tr><td>N° Bordereau</td><td>${esc(receipt.bank_slip_number || '-')}</td></tr>
       </table>
-      <p class="footer">Université MAZANZA — Document généré automatiquement<br/>Code vérification: ${receipt.verification_code || '-'}</p>
+      <p class="footer">Université MAZANZA — Document généré automatiquement<br/>Code vérification: ${esc(receipt.verification_code || '-')}</p>
       </body></html>
     `)
     w.document.close()
@@ -196,6 +202,17 @@ const Caisse = () => {
           Saisissez le numéro du BON de paiement pour valider
         </p>
       </motion.div>
+
+      {cashSession !== undefined && (
+        <div className={`mz-banner mb-3 ${cashSession ? 'mz-banner--success' : 'mz-banner--error'}`}>
+          <span style={{ flex: 1 }}>
+            {cashSession
+              ? <>Session de caisse ouverte depuis le {new Date(cashSession.opened_at).toLocaleString('fr-FR')} — {cashSession.payments_count} encaissement(s).</>
+              : <>Aucune session de caisse ouverte : les paiements en espèces seront refusés.</>}
+          </span>
+          <Link to="/finances" className="btn btn-sm btn-outline-primary">{cashSession ? 'Clôturer / voir ma caisse' : 'Ouvrir ma caisse'}</Link>
+        </div>
+      )}
 
       {/* Search Bar */}
       <Row className="mb-4">

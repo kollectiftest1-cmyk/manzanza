@@ -15,6 +15,8 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30000, // 30 secondes
+  // Le refresh token est un cookie httpOnly (jamais lisible par le JavaScript) :
+  withCredentials: true,
 });
 
 // Intercepteur pour ajouter le token JWT à chaque requête
@@ -31,6 +33,8 @@ api.interceptors.request.use(
   }
 );
 
+let refreshPromise = null;
+
 // Intercepteur pour gérer les erreurs et rafraîchir le token
 api.interceptors.response.use(
   (response) => response,
@@ -38,29 +42,27 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Si erreur 401 et pas déjà tenté de rafraîchir
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !String(originalRequest.url).includes('/auth/login')) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-            refresh: refreshToken,
-          });
-
-          const { access } = response.data;
-          localStorage.setItem('access_token', access);
-
-          // Réessayer la requête originale avec le nouveau token
-          originalRequest.headers.Authorization = `Bearer ${access}`;
-          return api(originalRequest);
+        // Un seul rafraîchissement à la fois, partagé par les requêtes en échec.
+        if (!refreshPromise) {
+          refreshPromise = axios.post(`${API_BASE_URL}/auth/token/refresh/`, {}, {
+            withCredentials: true, headers: { 'X-Auth-Mode': 'cookie' },
+          }).finally(() => { refreshPromise = null; });
         }
+        const response = await refreshPromise;
+        const { access } = response.data;
+        localStorage.setItem('access_token', access);
+        originalRequest.headers.Authorization = `Bearer ${access}`;
+        return api(originalRequest);
       } catch (refreshError) {
         // Si le refresh échoue, déconnecter l'utilisateur
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        if (!window.location.pathname.startsWith('/login')) window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
@@ -74,15 +76,13 @@ api.interceptors.response.use(
 // ============================================
 
 export const authAPI = {
-  login: (credentials) => api.post('/auth/login/', credentials),
-  logout: () => api.post('/auth/logout/', {
-    refresh: localStorage.getItem('refresh_token')
-  }),
+  login: (credentials) => api.post('/auth/login/', credentials, { headers: { 'X-Auth-Mode': 'cookie' } }),
+  logout: () => api.post('/auth/logout/', {}),
   register: (userData) => api.post('/auth/users/', userData), // This one is correct as it's for user registration via auth app
   getCurrentUser: () => api.get('/auth/users/me/'), // This one is correct as it's for current user via auth app
   updateProfile: (data) => api.put('/auth/users/update_profile/', data), // This one is correct as it's for current user via auth app
   changePassword: (data) => api.post('/auth/users/change_password/', data), // This one is correct as it's for current user via auth app
-  refreshToken: (refreshToken) => api.post('/auth/token/refresh/', { refresh: refreshToken }),
+  refreshToken: () => api.post('/auth/token/refresh/', {}, { headers: { 'X-Auth-Mode': 'cookie' } }),
 };
 
 // ============================================
@@ -244,7 +244,8 @@ export const paymentsAPI = {
   getPayments: (params) => api.get('/payments/', { params }),
   createPayment: (data) => api.post('/payments/', data),
   confirmPayment: (id) => api.post(`/payments/${id}/confirm/`),
-  rejectPayment: (id) => api.post(`/payments/${id}/reject/`),
+  // Le motif est obligatoire (traçabilité) : demandé à la caisse si absent.
+  rejectPayment: (id, reason) => api.post(`/payments/${id}/reject/`, { reason: reason ?? window.prompt("Motif du rejet du paiement :") ?? "" }),
 };
 
 // ============================================
@@ -293,4 +294,131 @@ export const notificationsAPI = {
 };
 
 // Export de l'instance axios par défaut
+// Corbeille, journal d'audit et paramètres système (apps.core)
+export const trashAPI = {
+  list: (params) => api.get('/core/trash/', { params }),
+  contents: (id) => api.get(`/core/trash/${id}/contents/`),
+  restore: (id) => api.post(`/core/trash/${id}/restore/`),
+  getSettings: () => api.get('/core/settings/'),
+  updateSettings: (data) => api.patch('/core/settings/', data),
+  auditLogs: (params) => api.get('/core/audit-logs/', { params }),
+};
+
+// ============================================
+// SCOLARITÉ (inscriptions annuelles, UE, délibérations, documents) — refonte v2
+// ============================================
+export const scolariteAPI = {
+  ues: (params) => api.get('/scolarite/ues/', { params }),
+  memoires: (params) => api.get('/scolarite/memoires/', { params }),
+  memoireOptions: () => api.get('/scolarite/memoires/options/'),
+  createMemoire: (data) => api.post('/scolarite/memoires/', data),
+  updateMemoire: (id, data) => api.patch(`/scolarite/memoires/${id}/`, data),
+  decideMemoire: (id, accept, motif) => api.post(`/scolarite/memoires/${id}/decide/`, { accept, motif }),
+  depositMemoire: (id, file) => { const fd = new FormData(); fd.append('fichier', file); return api.post(`/scolarite/memoires/${id}/deposit/`, fd, { headers: { 'Content-Type': undefined } }) },
+  scheduleMemoire: (id, data) => api.post(`/scolarite/memoires/${id}/schedule/`, data),
+  gradeMemoire: (id, data) => api.post(`/scolarite/memoires/${id}/grade/`, data),
+  createUE: (data) => api.post('/scolarite/ues/', data),
+  updateUE: (id, data) => api.patch(`/scolarite/ues/${id}/`, data),
+  deleteUE: (id) => api.delete(`/scolarite/ues/${id}/`),
+  ueCandidates: (id) => api.get(`/scolarite/ues/${id}/candidates/`),
+  setUECourses: (id, courses) => api.post(`/scolarite/ues/${id}/set-courses/`, { courses }),
+
+  inscriptions: (params) => api.get('/scolarite/inscriptions/', { params }),
+  inscription: (id) => api.get(`/scolarite/inscriptions/${id}/`),
+  myInscriptions: () => api.get('/scolarite/inscriptions/me/'),
+  createInscription: (data) => api.post('/scolarite/inscriptions/', data),
+  validateAdmin: (id, force = false) => api.post(`/scolarite/inscriptions/${id}/validate-admin/`, { force }),
+  validatePeda: (id) => api.post(`/scolarite/inscriptions/${id}/validate-peda/`),
+  changeStatus: (id, statut, reason) => api.post(`/scolarite/inscriptions/${id}/change-status/`, { statut, reason }),
+
+  affectations: (params) => api.get('/scolarite/affectations/', { params }),
+  createAffectation: (data) => api.post('/scolarite/affectations/', data),
+  updateAffectation: (id, data) => api.patch(`/scolarite/affectations/${id}/`, data),
+  deleteAffectation: (id) => api.delete(`/scolarite/affectations/${id}/`),
+
+  deliberations: (params) => api.get('/scolarite/deliberations/', { params }),
+  createDeliberation: (data) => api.post('/scolarite/deliberations/', data),
+  deliberationResults: (id) => api.get(`/scolarite/deliberations/${id}/resultats/`),
+  openDeliberation: (id, force = false) => api.post(`/scolarite/deliberations/${id}/open/`, { force }),
+  computeDeliberation: (id) => api.post(`/scolarite/deliberations/${id}/compute/`),
+  closeDeliberation: (id) => api.post(`/scolarite/deliberations/${id}/close/`),
+  publishDeliberation: (id, publication_date) => api.post(`/scolarite/deliberations/${id}/publish/`, { publication_date }),
+  downloadPV: (id) => api.get(`/scolarite/deliberations/${id}/pv/`, { responseType: 'blob' }),
+  prepareReinscriptions: (id, academic_year) => api.post(`/scolarite/deliberations/${id}/prepare-reinscriptions/`, { academic_year }),
+  overrideResult: (id, data) => api.post(`/scolarite/resultats/${id}/override/`, data),
+  myResults: () => api.get('/scolarite/resultats/me/'),
+  myClearance: () => api.get('/scolarite/clearance/me/'),
+
+  documents: (params) => api.get('/scolarite/documents/', { params }),
+  issueDocument: (data) => api.post('/scolarite/documents/issue/', data),
+  downloadDocument: (id) => api.get(`/scolarite/documents/${id}/download/`, { responseType: 'blob' }),
+  revokeDocument: (id, reason) => api.post(`/scolarite/documents/${id}/revoke/`, { reason }),
+  verify: (code) => api.get(`/scolarite/verify/${code}/`),
+};
+
+export const gradeWorkflowAPI = {
+  sheets: (params) => api.get('/grades/sheets/', { params }),
+  mySheets: (session = 1) => api.get('/grades/sheets/mine/', { params: { session } }),
+  submit: (id) => api.post(`/grades/sheets/${id}/submit/`),
+  approve: (id) => api.post(`/grades/sheets/${id}/approve/`),
+  sendBack: (id, reason) => api.post(`/grades/sheets/${id}/send-back/`, { reason }),
+  corrections: (params) => api.get('/grades/corrections/', { params }),
+  requestCorrection: (data) => api.post('/grades/corrections/', data),
+  decideCorrection: (id, accept, note) => api.post(`/grades/corrections/${id}/decide/`, { accept, note }),
+};
+
+export const financeAPI = {
+  baremes: (params) => api.get('/payments/baremes/', { params }),
+  createBareme: (data) => api.post('/payments/baremes/', data),
+  updateBareme: (id, data) => api.patch(`/payments/baremes/${id}/`, data),
+  deleteBareme: (id) => api.delete(`/payments/baremes/${id}/`),
+  applyBareme: (id) => api.post(`/payments/baremes/${id}/apply/`),
+  feeTypes: () => api.get('/payments/fee-types/'),
+  cashSessions: (params) => api.get('/payments/cash-sessions/', { params }),
+  currentCashSession: () => api.get('/payments/cash-sessions/current/'),
+  openCashSession: (opening_float) => api.post('/payments/cash-sessions/open/', { opening_float }),
+  closeCashSession: (id, counted, justification) => api.post(`/payments/cash-sessions/${id}/close/`, { counted, justification }),
+  contrepassations: (params) => api.get('/payments/contrepassations/', { params }),
+  requestContrepassation: (payment, reason) => api.post('/payments/contrepassations/', { payment, reason }),
+  decideContrepassation: (id, approve, note) => api.post(`/payments/contrepassations/${id}/decide/`, { approve, note }),
+  payments: (params) => api.get('/payments/', { params }),
+};
+
+export const pilotageAPI = {
+  kpis: (params) => api.get('/stats/kpis/', { params }),
+  exportCSV: (kind, params) => api.get(`/stats/export/${kind}/`, { params, responseType: 'blob' }),
+};
+
+export const academicYearsAPI = {
+  list: () => api.get('/schedules/academic-years/', { params: { page_size: 100 } }),
+};
+
+export const filieresAPI = {
+  getAll: (params) => api.get('/filieres/', { params }),
+};
+
+export const sectionsAPI = {
+  getAll: (params) => api.get('/sections/', { params }),
+};
+
+export const admissionAPI = {
+  verifyDossier: (id, dossier_status, comment) => api.post(`/inscriptions/${id}/verify-dossier/`, { dossier_status, comment }),
+  markFeePaid: (id, reference) => api.post(`/inscriptions/${id}/mark-fee-paid/`, { reference }),
+  waitlist: (id, comment) => api.post(`/inscriptions/${id}/waitlist/`, { comment }),
+};
+
+/** Enregistre une réponse blob (PDF, CSV) sous le nom indiqué. */
+export const saveBlob = (response, fallbackName) => {
+  const disposition = response.headers?.['content-disposition'] || ''
+  const match = disposition.match(/filename="?([^";]+)"?/)
+  const url = URL.createObjectURL(response.data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = match ? match[1] : fallbackName
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export default api;

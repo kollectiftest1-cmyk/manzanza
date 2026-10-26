@@ -3,13 +3,15 @@ Models for Quiz System
 Professional and flexible like Google Forms or better
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from apps.users.models import User
 from apps.courses.models import Course
 
 
-class Quiz(models.Model):
+class Quiz(SoftDeleteModel):
     """
     Quiz Model - Main quiz container
     """
@@ -110,7 +112,7 @@ class Quiz(models.Model):
         return self.questions.aggregate(total=models.Sum('points'))['total'] or self.max_points
 
 
-class QuizQuestion(models.Model):
+class QuizQuestion(SoftDeleteModel):
     """
     Quiz Question Model
     Ultra flexible - supports multiple question types

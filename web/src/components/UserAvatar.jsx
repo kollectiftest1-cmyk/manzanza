@@ -42,11 +42,10 @@ const UserAvatar = ({
   // Couleurs de fond basées sur le rôle
   const getRoleColor = () => {
     const roleColors = {
-      'iadmin': 'linear-gradient(135deg, #001F54, #00143A)',
-      'pdg': 'linear-gradient(135deg, #001F54, #00143A)',
-      'directeur_general': 'linear-gradient(135deg, #001F54, #00143A)',
-      'sga': 'linear-gradient(135deg, #F4A900, #D4A017)',
-      'sgad': 'linear-gradient(135deg, #F4A900, #D4A017)',
+      'pdg': 'linear-gradient(135deg, #0E8C9B, #0A6F7D)',
+      'directeur_general': 'linear-gradient(135deg, #0E8C9B, #0A6F7D)',
+      'sga': 'linear-gradient(135deg, #F5A04D, #D9771C)',
+      'sgad': 'linear-gradient(135deg, #F5A04D, #D9771C)',
       'chef_departement': 'linear-gradient(135deg, #1CC88A, #13855C)',
       'chef_section': 'linear-gradient(135deg, #1CC88A, #13855C)',
       'enseignant': 'linear-gradient(135deg, #36B9CC, #258391)',
@@ -55,7 +54,7 @@ const UserAvatar = ({
       'bibliothecaire': 'linear-gradient(135deg, #E74A3B, #BE2617)',
       'caisse': 'linear-gradient(135deg, #F6C23E, #D4A017)',
       'apparitorat': 'linear-gradient(135deg, #858796, #6C757D)',
-      'service_it': 'linear-gradient(135deg, #001F54, #00143A)',
+      'service_it': 'linear-gradient(135deg, #0E8C9B, #0A6F7D)',
     }
     return roleColors[user?.role] || 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'
   }

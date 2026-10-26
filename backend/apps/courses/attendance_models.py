@@ -2,6 +2,8 @@
 Attendance tracking models
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 from django.utils import timezone
 from .models import Course
@@ -79,7 +81,7 @@ class Attendance(models.Model):
         return f"{self.student.get_full_name()} - {self.course.name} - {self.date} ({self.get_status_display()})"
 
 
-class AttendanceSession(models.Model):
+class AttendanceSession(SoftDeleteModel):
     """
     Attendance session for a specific course class/lecture
     Groups multiple attendance records together

@@ -1,13 +1,19 @@
 """
-User models for Syntax GU University Management System
+User models for Université MAZANZA — système de gestion universitaire
 """
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 from apps.auditoires.models import Auditoire, Section, Filiere
+from apps.core.softdelete import AllObjectsManager, SoftDeleteModel, SoftDeleteQuerySet
 
-class UserManager(BaseUserManager):
-    """Custom user manager"""
+
+class UserManager(BaseUserManager.from_queryset(SoftDeleteQuerySet)):
+    """Gestionnaire d'utilisateurs : les comptes placés dans la corbeille sont invisibles
+    (et ne peuvent donc plus se connecter)."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
 
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -21,14 +27,15 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', 'iadmin')
+        extra_fields.setdefault('role', 'pdg')
         return self.create_user(email, password, **extra_fields)
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(SoftDeleteModel, AbstractBaseUser, PermissionsMixin):
     """Custom User Model"""
 
+    # Le PDG est l'administrateur suprême de la plateforme (l'ancien rôle « iAdmin » lui est fusionné).
     ROLE_CHOICES = [
-        ('pdg', 'PDG'),
+        ('pdg', 'PDG (administrateur général)'),
         ('directeur_general', 'Directeur Général'),
         ('sga', 'SGA'),
         ('sgad', 'SGAD'),
@@ -39,10 +46,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('apparitorat', 'Apparitorat'),
         ('etudiant', 'Étudiant'),
         ('bibliothecaire', 'Bibliothécaire'),
-        ('caisse', 'Caissier / Comptable'),
+        ('caisse', 'Caissier'),
+        ('comptable', 'Comptable'),
         ('service_it', 'Service IT'),
         ('jury', 'Jury Memoire/Defense'),
-        ('iadmin', 'iAdmin'),
     ]
 
     STATUS_CHOICES = [('actif', 'Actif'), ('inactif', 'Inactif'), ('suspendu', 'Suspendu')]
@@ -69,8 +76,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         is_student = self.role == 'etudiant'
         old_auditoire = None
         if self.pk:
-            old = type(self).objects.get(pk=self.pk)
-            old_auditoire = old.auditoire
+            old = type(self).all_objects.filter(pk=self.pk).first()
+            old_auditoire = old.auditoire if old else None
         super().save(*args, **kwargs)
         # If student and auditoire changed, enroll in all courses of new auditoire
         if is_student and self.auditoire and self.auditoire != old_auditoire:
@@ -90,9 +97,22 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(default=timezone.now)
 
     objects = UserManager()
+    all_objects = AllObjectsManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
+
+    def trash_guard(self):
+        from apps.core.trash import TrashProtectedError
+        if self.is_superuser:
+            raise TrashProtectedError("Un compte super-administrateur ne peut pas être supprimé.")
+
+    def after_trash(self):
+        # Un compte dans la corbeille ne peut plus se connecter.
+        type(self).all_objects.filter(pk=self.pk).update(is_active=False, status='inactif')
+
+    def after_restore(self):
+        type(self).all_objects.filter(pk=self.pk).update(is_active=True, status='actif')
 
     def __str__(self):
         parts = [self.first_name, self.post_nom, self.last_name]

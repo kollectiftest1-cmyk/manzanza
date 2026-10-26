@@ -17,10 +17,25 @@ class AssignmentChoiceSerializer(serializers.ModelSerializer):
         fields = ['id', 'choice_text', 'is_correct', 'order']
         read_only_fields = ['id']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('hide_answers'):
+            data.pop('is_correct', None)
+        return data
+
 
 class AssignmentQuestionSerializer(serializers.ModelSerializer):
     """Serializer for assignment questions"""
-    choices = AssignmentChoiceSerializer(many=True, read_only=True)
+    choices = serializers.SerializerMethodField()
+
+    def get_choices(self, obj):
+        return AssignmentChoiceSerializer(obj.choices.all(), many=True, context=self.context).data
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('hide_answers'):
+            data.pop('correct_answer', None)
+        return data
 
     class Meta:
         model = AssignmentQuestion
@@ -53,7 +68,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
     def get_questions(self, obj):
         """Get questions for the assignment"""
         questions = obj.questions.all()
-        return AssignmentQuestionSerializer(questions, many=True).data
+        return AssignmentQuestionSerializer(questions, many=True, context=self.context).data
 
     def get_submission_count(self, obj):
         """Count of student submissions"""

@@ -140,7 +140,7 @@ def generate_payment_voucher_pdf(voucher):
     payment_data = [
         ['Type de frais:', voucher.student_fee.fee_type.name if voucher.student_fee.fee_type else 'N/A'],
         ['Description:', voucher.description],
-        ['Montant à payer:', f"{voucher.amount:,.2f} FCFA"],
+        ['Montant à payer:', f"{voucher.amount:,.2f} {getattr(getattr(voucher.student_fee, 'fee_campaign', None), 'currency', None) or 'USD'}"],
     ]
 
     payment_table = Table(payment_data, colWidths=[2.5*inch, 3.5*inch])
@@ -313,7 +313,7 @@ def generate_payment_receipt_pdf(receipt):
         ['Méthode de paiement:', receipt.payment_method],
         ['N° Bordereau bancaire:', receipt.bank_slip_number or '—'],
         ['Date bordereau:', receipt.bank_slip_date.strftime('%d/%m/%Y') if receipt.bank_slip_date else '—'],
-        ['Montant payé:', f"{receipt.amount_paid:,.2f} FCFA"],
+        ['Montant payé:', f"{receipt.amount_paid:,.2f} {getattr(getattr(receipt.voucher.student_fee, 'fee_campaign', None), 'currency', None) or 'USD'}"],
     ]
 
     if receipt.transaction_reference:

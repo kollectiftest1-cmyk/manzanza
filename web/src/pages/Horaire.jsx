@@ -79,7 +79,7 @@ const EMPTY_AVAILABILITY = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const isAdminOrSGA = (role) =>
-  ["iadmin", "sga", "pdg", "directeur_general", "sgad"].includes(role)
+  ["pdg", "sga", "directeur_general", "sgad"].includes(role)
 
 const isTeacher = (role) =>
   ["enseignant", "assistant", "chef_section", "chef_departement"].includes(role)
@@ -315,12 +315,14 @@ const Horaire = () => {
   // ── Data loaders ──────────────────────────────────────────────────────────
 
   const loadTimeslotsAndRooms = useCallback(async () => {
-    const [ts, rs] = await Promise.all([
-      scheduleService.getTimeslots(),
-      scheduleService.getRooms(),
-    ])
-    setTimeslots(Array.isArray(ts) ? ts : ts.results || [])
-    setRooms(Array.isArray(rs) ? rs : rs.results || [])
+    try {
+      const [ts, rs] = await Promise.all([
+        scheduleService.getTimeslots(),
+        scheduleService.getRooms(),
+      ])
+      setTimeslots(Array.isArray(ts) ? ts : ts?.results || [])
+      setRooms(Array.isArray(rs) ? rs : rs?.results || [])
+    } catch { setTimeslots([]); setRooms([]) }
   }, [])
 
   const loadMySchedule = useCallback(async () => {
@@ -1578,7 +1580,7 @@ const Horaire = () => {
         </Modal.Header>
         <Modal.Body>
           Supprimer ce créneau{toDelete ? ` (${toDelete.course_name || toDelete.course})` : ""} ?
-          Cette action est irréversible.
+          L'élément ira dans la corbeille et restera restaurable pendant la durée de conservation.
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>Annuler</Button>

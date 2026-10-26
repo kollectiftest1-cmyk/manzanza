@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { authAPI } from "../../services/api"
+import { clearHome } from "../../components/dashboards/homeData"
 
 const USER_ROLES = {
   PDG: "pdg",
@@ -15,8 +16,8 @@ const USER_ROLES = {
   SERVICE_IT: "service_it",
   ETUDIANT: "etudiant",
   BIBLIOTHECAIRE: "bibliothecaire",
+  COMPTABLE: "comptable",
   JURY: "jury",
-  IADMIN: "iadmin",
 }
 
 // Async thunks pour les appels API
@@ -24,12 +25,13 @@ export const login = createAsyncThunk(
   "auth/login",
   async ({ email, password }, { rejectWithValue }) => {
     try {
+      clearHome()
       const response = await authAPI.login({ email, password })
-      const { access, refresh, user } = response.data
+      const { access, user } = response.data
 
-      // Stocker les tokens
+      // Access token court en mémoire locale ; le refresh token est un cookie httpOnly.
       localStorage.setItem("access_token", access)
-      localStorage.setItem("refresh_token", refresh)
+      localStorage.removeItem("refresh_token")
       localStorage.setItem("user", JSON.stringify(user))
 
       return user
@@ -50,7 +52,8 @@ export const logout = createAsyncThunk(
     } catch (error) {
       // Continuer même si l'API échoue
     } finally {
-      // Nettoyer le localStorage
+      // Nettoyer le localStorage et les données d'accueil de l'utilisateur précédent
+      clearHome()
       localStorage.removeItem("access_token")
       localStorage.removeItem("refresh_token")
       localStorage.removeItem("user")

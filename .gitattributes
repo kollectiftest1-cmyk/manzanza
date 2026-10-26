@@ -1,0 +1,4 @@
+# Les scripts shell doivent garder des fins de ligne Unix (LF), même depuis Windows.
+*.sh      text eol=lf
+deploy/** text eol=lf
+*.py      text eol=lf

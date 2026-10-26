@@ -101,6 +101,8 @@ class CourseSerializer(serializers.ModelSerializer):
 
     # Prerequisites info
     prerequisites_detail = serializers.SerializerMethodField()
+    ue_code = serializers.CharField(source='ue.code', read_only=True, default=None)
+    volume_horaire_total = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Course
@@ -110,7 +112,8 @@ class CourseSerializer(serializers.ModelSerializer):
             'assistants', 'assistants_detail',
             'section', 'filiere', 'auditoire', 'auditoire_detail',
             'syllabus', 'resources', 'is_active',
-            'semester', 'annee_academique',
+            'semester', 'annee_academique', 'ue', 'ue_code',
+            'volume_cm', 'volume_td', 'volume_tp', 'volume_horaire_total',
             'prerequisites', 'prerequisites_detail', 'duration_terms',
             'students_count', 'progress_percentage',
             'materials', 'created_at', 'updated_at'
@@ -125,7 +128,16 @@ class CourseSerializer(serializers.ModelSerializer):
             'assistants': {'required': False, 'write_only': False},
             'auditoire': {'required': False, 'allow_null': True},
             'prerequisites': {'required': False},
+            'ue': {'required': False, 'allow_null': True},
         }
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        ue = attrs.get('ue', getattr(self.instance, 'ue', None))
+        auditoire = attrs.get('auditoire', getattr(self.instance, 'auditoire', None))
+        if ue and auditoire and (ue.filiere_id != auditoire.filiere_id or ue.niveau != auditoire.niveau):
+            raise serializers.ValidationError({'ue': "L'UE doit appartenir à la filière et au niveau du groupe du cours."})
+        return attrs
 
     def get_filiere(self, obj):
         """Get filiere through auditoire, handling None gracefully"""

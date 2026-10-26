@@ -1,7 +1,7 @@
 """
 Views for payment vouchers, receipts, and verification
 """
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -19,10 +19,16 @@ from .payment_serializers import (
 )
 from .utils import generate_payment_voucher_pdf, generate_payment_receipt_pdf, generate_qr_code
 from apps.users.permissions import IsAdminUser, IsSGAOrAdmin, IsCaisseOrAdmin, IsDGOrIAdmin
+from decimal import Decimal
+
+FINANCE_READ_ROLES = ['pdg', 'caisse', 'sgad', 'directeur_general']
 
 
-class PaymentVoucherViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing payment vouchers"""
+class PaymentVoucherViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """
+    Bons de paiement. Lecture + actions métier uniquement (create-voucher, validate-payment,
+    cancel) : aucun CRUD brut, un bon ne se modifie ni ne se supprime.
+    """
     queryset = PaymentVoucher.objects.select_related(
         'student', 'student_fee__fee_type', 'created_by', 'validated_by'
     ).all()
@@ -41,12 +47,9 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
         if user.role == 'etudiant':
             return self.queryset.filter(student=user)
 
-        # Admin/SGA can see all
-        return self.queryset
-
-    def perform_create(self, serializer):
-        """Set created_by to current user"""
-        serializer.save(created_by=self.request.user)
+        if user.is_superuser or user.role in FINANCE_READ_ROLES:
+            return self.queryset
+        return self.queryset.none()
 
     @action(detail=False, methods=['get'], url_path='lookup', permission_classes=[IsCaisseOrAdmin])
     def lookup(self, request):
@@ -119,6 +122,18 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
         student_fee = StudentFee.objects.select_related('student', 'fee_type').get(
             id=serializer.validated_data['student_fee_id']
         )
+        user = request.user
+        if user.role == 'etudiant':
+            if student_fee.student_id != user.id:
+                return Response({'error': 'Ces frais ne vous concernent pas.'}, status=status.HTTP_403_FORBIDDEN)
+        elif not (user.is_superuser or user.role in ['caisse', 'pdg', 'sgad']):
+            return Response({'error': 'Non autorisé.'}, status=status.HTTP_403_FORBIDDEN)
+        amount = serializer.validated_data['amount']
+        if amount <= 0 or amount > student_fee.amount_remaining + Decimal('0.01'):
+            return Response({'error': f'Montant invalide (solde dû : {student_fee.amount_remaining}).'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if student_fee.status in ['paye', 'annule']:
+            return Response({'error': 'Ces frais sont déjà soldés ou annulés.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if voucher already exists for this fee
         existing = PaymentVoucher.objects.filter(
@@ -137,7 +152,7 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
         expiry_date = timezone.now() + timedelta(days=expiry_days)
 
         # Create voucher
-        description = serializer.validated_data.get('description') or f"Paiement - {student_fee.fee_type.name}"
+        description = serializer.validated_data.get('description') or f"Paiement - {student_fee}"
 
         voucher = PaymentVoucher.objects.create(
             student=student_fee.student,
@@ -145,7 +160,7 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
             amount=serializer.validated_data['amount'],
             description=description,
             beneficiary_account=serializer.validated_data['beneficiary_account'],
-            beneficiary_name=serializer.validated_data.get('beneficiary_name', 'SYNTAX GU'),
+            beneficiary_name=serializer.validated_data.get('beneficiary_name', 'UNIVERSITÉ MAZANZA'),
             payment_method=serializer.validated_data.get('payment_method', 'especes'),
             expiry_date=expiry_date,
             created_by=request.user
@@ -172,18 +187,28 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
             'voucher': PaymentVoucherSerializer(voucher).data
         }, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'], url_path='validate-payment', permission_classes=[IsDGOrIAdmin])
+    @action(detail=True, methods=['post'], url_path='validate-payment', permission_classes=[IsCaisseOrAdmin])
     @transaction.atomic
     def validate_payment(self, request, pk=None):
         """
         Validate a payment and generate receipt.
         """
+        from apps.users.permissions import has_role
+        from .models import CashSession
+        if not has_role(request.user, 'caisse', 'pdg'):
+            return Response({'error': "L'encaissement est réservé à la caisse."}, status=status.HTTP_403_FORBIDDEN)
         voucher = self.get_object()
 
         if voucher.status != 'pending':
             return Response({
                 'error': f'Ce bon est déjà {voucher.get_status_display().lower()}.'
             }, status=status.HTTP_400_BAD_REQUEST)
+        cash_session = None
+        if (voucher.payment_method or 'especes') == 'especes':
+            cash_session = CashSession.objects.filter(cashier=request.user, status='open').first()
+            if cash_session is None:
+                return Response({'error': "Ouvrez votre session de caisse avant d'encaisser des espèces."},
+                                status=status.HTTP_400_BAD_REQUEST)
 
         serializer = ValidatePaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -207,12 +232,12 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
             status='confirme',
             transaction_id=serializer.validated_data.get('transaction_reference', ''),
             processed_by=request.user,
+            cash_session=cash_session,
             payment_date=timezone.now()
         )
 
-        # Update student fee
-        voucher.student_fee.amount_paid += voucher.amount
-        voucher.student_fee.update_status()
+        # Update student fee (recalculé depuis les paiements confirmés)
+        voucher.student_fee.recompute_paid()
 
         # Create receipt
         fee_type_name = voucher.student_fee.fee_type.name if voucher.student_fee.fee_type else 'N/A'
@@ -275,10 +300,14 @@ class PaymentVoucherViewSet(viewsets.ModelViewSet):
             'receipt': PaymentReceiptSerializer(receipt).data
         }, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], url_path='cancel', permission_classes=[IsDGOrIAdmin])
+    @action(detail=True, methods=['post'], url_path='cancel')
     def cancel_voucher(self, request, pk=None):
-        """Cancel a pending voucher"""
+        """Annuler un bon en attente : la caisse, ou l'étudiant pour son propre bon."""
         voucher = self.get_object()
+        user = request.user
+        if not (voucher.student_id == user.id or user.is_superuser
+                or user.role in ['caisse', 'pdg', 'sgad', 'directeur_general']):
+            return Response({'error': 'Non autorisé.'}, status=status.HTTP_403_FORBIDDEN)
 
         if voucher.status != 'pending':
             return Response({
@@ -325,8 +354,9 @@ class PaymentReceiptViewSet(viewsets.ReadOnlyModelViewSet):
         if user.role == 'etudiant':
             return self.queryset.filter(student=user)
 
-        # Admin/SGA can see all
-        return self.queryset
+        if user.is_superuser or user.role in FINANCE_READ_ROLES:
+            return self.queryset
+        return self.queryset.none()
 
     @action(detail=True, methods=['get'], url_path='download-pdf')
     def download_pdf(self, request, pk=None):
@@ -354,18 +384,21 @@ class ReceiptVerificationView(APIView):
     def get(self, request, verification_code):
         """Verify a receipt using its verification code"""
         try:
-            receipt = PaymentReceipt.objects.select_related('student').get(
+            receipt = PaymentReceipt.objects.select_related('student', 'payment').get(
                 verification_code=verification_code
             )
 
+            annulled = bool(receipt.payment_id and receipt.payment.status in ('annule', 'rejete'))
             response_data = {
-                'valid': True,
+                'valid': not annulled,
+                'annulled': annulled,
                 'receipt_number': receipt.receipt_number,
                 'student_name': receipt.student.get_full_name(),
                 'amount_paid': receipt.amount_paid,
                 'payment_date': receipt.payment_date,
                 'fee_type': receipt.fee_type_name,
-                'message': 'Reçu authentique et valide.'
+                'message': ('Reçu ANNULÉ : le paiement correspondant a été contre-passé.'
+                            if annulled else 'Reçu authentique et valide.'),
             }
 
             serializer = ReceiptVerificationSerializer(response_data)
@@ -382,7 +415,7 @@ class PaymentAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing payment audit logs"""
     queryset = PaymentAuditLog.objects.select_related('user', 'voucher', 'receipt').all()
     serializer_class = PaymentAuditLogSerializer
-    permission_classes = [IsAuthenticated, IsSGAOrAdmin]
+    permission_classes = [IsAuthenticated, IsCaisseOrAdmin]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['action', 'voucher', 'receipt', 'user']
     ordering_fields = ['timestamp']

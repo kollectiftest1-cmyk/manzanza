@@ -92,7 +92,7 @@ const CourseDetail = () => {
   const [savingGrade, setSavingGrade] = useState(false)
 
   const isTeacherOrAdmin = ['enseignant', 'assistant', 'chef_section', 'chef_departement',
-    'sga', 'iadmin', 'pdg', 'directeur_general'].includes(user?.role)
+    'sga', 'pdg', 'directeur_general'].includes(user?.role)
 
 
   useEffect(() => {

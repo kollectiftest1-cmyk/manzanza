@@ -110,10 +110,12 @@ const SGADDashboard = () => {
         </h5>
         <Row className="g-3 mb-4">
           {[
-            { label: 'Montant attendu', value: `$${fmt(d.total_expected || 0)}`, icon: FiCreditCard, color: '#4facfe' },
-            { label: 'Montant collecté', value: `$${fmt(d.total_paid || 0)}`, icon: FiTrendingUp, color: '#43e97b' },
-            { label: 'En attente', value: `$${fmt(d.total_pending || 0)}`, icon: FiClock, color: '#ffc107' },
-            { label: 'Campagnes actives', value: fmt(d.active_campaigns || 0), icon: FiTarget, color: '#f093fb' },
+            { label: 'Montant attendu (USD)', value: `$${fmt(d.total_expected || 0)}`, icon: FiCreditCard, color: '#4facfe' },
+            { label: 'Montant collecté (USD)', value: `$${fmt(d.total_paid || 0)}`, icon: FiTrendingUp, color: '#43e97b' },
+            { label: 'Reste à percevoir (USD)', value: `$${fmt(d.total_pending || 0)}`, icon: FiClock, color: '#ffc107' },
+            d.by_currency?.CDF
+              ? { label: 'Reste à percevoir (CDF)', value: `${fmt(Math.round(d.by_currency.CDF.expected - d.by_currency.CDF.paid))} FC`, icon: FiTarget, color: '#f093fb' }
+              : { label: 'Campagnes actives', value: fmt(d.active_campaigns || 0), icon: FiTarget, color: '#f093fb' },
           ].map((s, i) => (
             <Col md={3} sm={6} key={i}>
               <Card style={{ border: 'none', borderRadius: '14px', background: 'var(--color-cardBg)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>

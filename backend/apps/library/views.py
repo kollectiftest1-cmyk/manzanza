@@ -65,7 +65,7 @@ class BookViewSet(viewsets.ModelViewSet):
         loan = BookLoan.objects.create(
             book=book,
             borrower=borrower,
-            librarian=request.user if request.user.role in ['bibliothecaire', 'iadmin'] else None
+            librarian=request.user if request.user.role in ['bibliothecaire', 'pdg'] else None
         )
 
         # Update book availability
@@ -119,7 +119,7 @@ class BookLoanViewSet(viewsets.ModelViewSet):
         """Filter loans based on user role"""
         user = self.request.user
 
-        if user.role in ['iadmin', 'bibliothecaire', 'sga']:
+        if user.role in ['pdg', 'bibliothecaire', 'sga']:
             return self.queryset
         else:
             # Users see only their own loans
@@ -137,7 +137,7 @@ class BookLoanViewSet(viewsets.ModelViewSet):
         loan = self.get_object()
 
         # Only librarians can process returns
-        if request.user.role not in ['bibliothecaire', 'iadmin']:
+        if request.user.role not in ['bibliothecaire', 'pdg']:
             return Response(
                 {'error': 'Seuls les bibliothécaires peuvent traiter les retours.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -192,7 +192,7 @@ class BookReservationViewSet(viewsets.ModelViewSet):
         """Filter reservations based on user role"""
         user = self.request.user
 
-        if user.role in ['iadmin', 'bibliothecaire', 'sga']:
+        if user.role in ['pdg', 'bibliothecaire', 'sga']:
             return self.queryset
         else:
             return self.queryset.filter(user=user)
@@ -202,7 +202,7 @@ class BookReservationViewSet(viewsets.ModelViewSet):
         """Cancel a reservation"""
         reservation = self.get_object()
 
-        if reservation.user != request.user and request.user.role not in ['bibliothecaire', 'iadmin']:
+        if reservation.user != request.user and request.user.role not in ['bibliothecaire', 'pdg']:
             return Response(
                 {'error': 'Vous ne pouvez annuler que vos propres réservations.'},
                 status=status.HTTP_403_FORBIDDEN

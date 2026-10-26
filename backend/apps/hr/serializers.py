@@ -2,7 +2,7 @@
 HR serializers
 """
 from rest_framework import serializers
-from .models import Employee, Contract, Payroll, Leave
+from .models import Contract, Employee, Leave, Payroll, PayrollSettings, StaffAttendance
 from apps.users.models import User
 
 
@@ -29,6 +29,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'employee_id', 'position', 'position_display', 'department',
             'hire_date', 'end_date',
             'prestation_type', 'salaire_journalier', 'salaire_horaire', 'currency',
+            'base_monthly_salary', 'housing_allowance', 'transport_allowance', 'dependents',
+            'statutory_teaching_hours', 'extra_hour_rate', 'payment_account',
             'status', 'emergency_contact', 'emergency_phone',
             'notes', 'user_profiles_count', 'created_at', 'updated_at'
         ]
@@ -86,6 +88,8 @@ class PayrollSerializer(serializers.ModelSerializer):
         source='employee.salaire_horaire', max_digits=10, decimal_places=2, read_only=True)
     currency = serializers.CharField(source='employee.currency', read_only=True)
     period_label = serializers.CharField(read_only=True)
+    status_label = serializers.CharField(source='get_status_display', read_only=True)
+    validated_by_name = serializers.CharField(source='validated_by.name', read_only=True, default=None)
 
     class Meta:
         model = Payroll
@@ -94,14 +98,24 @@ class PayrollSerializer(serializers.ModelSerializer):
             'prestation_type', 'salaire_journalier', 'salaire_horaire', 'currency',
             'mois', 'annee', 'period_label',
             'jours_prestes', 'heures_prestees',
-            'base_salary', 'bonuses', 'deductions', 'net_salary', 'status',
+            'base_salary', 'bonuses', 'deductions', 'net_salary', 'status', 'status_label',
             'payment_date', 'payment_method', 'notes',
+            'jours_ouvrables', 'jours_absence_injustifiee', 'retenue_absences', 'heures_cours',
+            'heures_complementaires', 'montant_heures_complementaires', 'heures_supplementaires',
+            'montant_heures_supplementaires', 'indemnites', 'brut_imposable', 'inss_salarie', 'ipr',
+            'inss_patronal', 'inpp', 'onem', 'cout_employeur', 'details', 'computed_at',
+            'validated_by_name', 'validated_at',
             'created_at', 'updated_at'
         ]
+        # Tout le calcul est fait par le serveur (apps/hr/payroll.py) : seuls les primes,
+        # les retenues diverses (avances) et les notes se saisissent.
         read_only_fields = [
-            'id', 'base_salary', 'net_salary', 'period_label',
-            'jours_prestes', 'heures_prestees',  # Auto-calculated, not editable
-            'created_at', 'updated_at',
+            'id', 'base_salary', 'net_salary', 'period_label', 'status', 'payment_date',
+            'jours_prestes', 'heures_prestees', 'jours_ouvrables', 'jours_absence_injustifiee',
+            'retenue_absences', 'heures_cours', 'heures_complementaires', 'montant_heures_complementaires',
+            'heures_supplementaires', 'montant_heures_supplementaires', 'indemnites', 'brut_imposable',
+            'inss_salarie', 'ipr', 'inss_patronal', 'inpp', 'onem', 'cout_employeur', 'details',
+            'computed_at', 'validated_at', 'created_at', 'updated_at',
         ]
 
     def validate(self, attrs):
@@ -141,3 +155,50 @@ class LeaveSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'duration_days', 'approved_at', 'created_at', 'updated_at']
+
+
+
+class PayrollSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PayrollSettings
+        exclude = ['id']
+        read_only_fields = ['updated_at']
+
+    def validate_ipr_brackets(self, value):
+        if not isinstance(value, list) or not value:
+            raise serializers.ValidationError("Barème attendu : [[plafond, taux], …, [null, taux]].")
+        last = -1
+        for i, row in enumerate(value):
+            if not isinstance(row, (list, tuple)) or len(row) != 2:
+                raise serializers.ValidationError("Chaque tranche = [plafond, taux].")
+            upper, rate = row
+            if upper is None and i != len(value) - 1:
+                raise serializers.ValidationError("Seule la dernière tranche peut être sans plafond.")
+            if upper is not None and float(upper) <= last:
+                raise serializers.ValidationError("Les plafonds doivent être croissants.")
+            if not 0 <= float(rate) <= 100:
+                raise serializers.ValidationError("Taux entre 0 et 100.")
+            last = float(upper) if upper is not None else last
+        return value
+
+
+class StaffAttendanceSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(source='employee.user.get_full_name', read_only=True)
+    employee_code = serializers.CharField(source='employee.employee_id', read_only=True)
+    position_display = serializers.CharField(source='employee.get_position_display', read_only=True)
+    status_label = serializers.CharField(source='get_status_display', read_only=True)
+    recorded_by_name = serializers.CharField(source='recorded_by.name', read_only=True, default=None)
+
+    class Meta:
+        model = StaffAttendance
+        fields = ['id', 'employee', 'employee_name', 'employee_code', 'position_display', 'date', 'status',
+                  'status_label', 'check_in', 'check_out', 'hours_worked', 'overtime_hours', 'note',
+                  'self_declared', 'recorded_by_name', 'updated_at']
+        read_only_fields = ['hours_worked', 'overtime_hours', 'self_declared', 'updated_at']
+
+    def validate(self, attrs):
+        ci = attrs.get('check_in', getattr(self.instance, 'check_in', None))
+        co = attrs.get('check_out', getattr(self.instance, 'check_out', None))
+        if ci and co and co <= ci:
+            raise serializers.ValidationError({'check_out': "L'heure de sortie doit suivre l'heure d'arrivée."})
+        return attrs

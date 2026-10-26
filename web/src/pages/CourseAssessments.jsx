@@ -1,3 +1,4 @@
+import { gradeWorkflowAPI } from '../services/api'
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { Alert, Badge, Button, Col, Container, Form, Modal, Row, Spinner, Table } from "react-bootstrap"
@@ -32,7 +33,7 @@ const emptyBulkForm = {
 const CourseAssessments = () => {
   const { id } = useParams()
   const { user } = useSelector((state) => state.auth)
-  const canEdit = ['enseignant', 'assistant', 'chef_section', 'chef_departement', 'sga', 'iadmin', 'pdg', 'directeur_general'].includes(user?.role)
+  const canEdit = ['enseignant', 'assistant', 'chef_section', 'chef_departement', 'sga', 'pdg', 'directeur_general'].includes(user?.role)
 
   const [course, setCourse] = useState(null)
   const [categories, setCategories] = useState([])
@@ -109,6 +110,20 @@ const CourseAssessments = () => {
     }
   }
 
+  // Feuille soumise ou approuvée : la note ne se modifie plus, on dépose une demande tracée.
+  const requestCorrection = async (row) => {
+    const value = window.prompt(`Nouvelle note pour ${row.student_name} (sur ${row.max_value}) :`, row.value ?? '')
+    if (value === null || value === '') return
+    const reason = window.prompt('Motif de la correction (obligatoire) :')
+    if (!reason) return
+    try {
+      await gradeWorkflowAPI.requestCorrection({ grade: row.grade_id, new_value: value, reason })
+      window.alert('Demande de correction transmise au chef de filière / SGA.')
+    } catch (err) {
+      window.alert(err.response?.data?.detail || err.response?.data?.error || 'Demande impossible.')
+    }
+  }
+
   const openBulk = () => {
     const firstCategory = categories.find(category => category.category_type !== 'quiz')
     setBulkForm({
@@ -149,7 +164,7 @@ const CourseAssessments = () => {
       setShowBulk(false)
       await loadData()
     } catch (err) {
-      setBulkError(err.response?.data?.error || "Erreur lors de l'enregistrement.")
+      setBulkError(err.response?.data?.detail || err.response?.data?.error || "Erreur lors de l'enregistrement.")
     } finally {
       setSavingBulk(false)
     }
@@ -249,6 +264,7 @@ const CourseAssessments = () => {
                     <th>%</th>
                     <th>Statut</th>
                     <th>Commentaire</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -264,6 +280,11 @@ const CourseAssessments = () => {
                         </Badge>
                       </td>
                       <td>{row.comment || '-'}</td>
+                      <td className="text-end">
+                        {row.grade_id && row.status !== 'draft' && (
+                          <Button variant="outline-secondary" size="sm" onClick={() => requestCorrection(row)}>Corriger</Button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -279,6 +300,10 @@ const CourseAssessments = () => {
         </Modal.Header>
         <Modal.Body>
           {bulkError && <Alert variant="danger">{bulkError}</Alert>}
+          <Alert variant="info" className="py-2" style={{ fontSize: '0.88rem' }}>
+            Les notes restent en brouillon. Quand la feuille est complète, soumettez-la depuis{' '}
+            <Link to="/validation-notes">Validation des notes</Link> : elle sera publiée aux étudiants après approbation.
+          </Alert>
           <Row className="g-3 mb-4">
             <Col md={4}>
               <Form.Label>Type d'évaluation</Form.Label>
@@ -334,13 +359,9 @@ const CourseAssessments = () => {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowBulk(false)}>Annuler</Button>
-          <Button variant="outline-primary" onClick={() => saveBulk('draft')} disabled={savingBulk}>
+          <Button variant="primary" onClick={() => saveBulk('draft')} disabled={savingBulk}>
             {savingBulk && <Spinner size="sm" animation="border" className="me-2" />}
-            Brouillon
-          </Button>
-          <Button variant="primary" onClick={() => saveBulk('validated')} disabled={savingBulk}>
-            {savingBulk && <Spinner size="sm" animation="border" className="me-2" />}
-            Valider
+            Enregistrer (brouillon)
           </Button>
         </Modal.Footer>
       </Modal>

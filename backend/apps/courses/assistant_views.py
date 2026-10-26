@@ -127,7 +127,7 @@ class TeacherAssistantViewSet(viewsets.ModelViewSet):
         assignment = self.get_object()
 
         # Vérifier que l'utilisateur a le droit de détacher
-        if request.user.role not in ['iadmin', 'sga', 'sgad']:
+        if request.user.role not in ['pdg', 'sga', 'sgad']:
             if request.user != assignment.teacher:
                 return Response({
                     'error': 'Seul l\'enseignant ou un administrateur peut détacher un assistant.'
@@ -154,7 +154,7 @@ class TeacherAssistantViewSet(viewsets.ModelViewSet):
         assignment = self.get_object()
 
         # Vérifier que l'utilisateur a le droit de modifier
-        if request.user.role not in ['iadmin', 'sga', 'sgad']:
+        if request.user.role not in ['pdg', 'sga', 'sgad']:
             if request.user != assignment.teacher:
                 return Response({
                     'error': 'Seul l\'enseignant ou un administrateur peut modifier les permissions.'

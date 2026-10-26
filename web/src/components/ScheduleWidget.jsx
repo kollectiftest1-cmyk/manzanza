@@ -7,7 +7,19 @@
 import { motion } from "framer-motion"
 import { FiClock, FiMapPin, FiUsers, FiPlus } from "react-icons/fi"
 
-const ScheduleWidget = ({ schedule = [], date, onAddSchedule, delay = 0 }) => {
+import { useHome } from "./dashboards/homeData"
+
+// source="agenda" : prochains événements réels (calendrier académique, délibérations).
+const ScheduleWidget = ({ schedule: given = [], source, date, onAddSchedule, delay = 0 }) => {
+  const home = useHome()
+  const schedule = source === "agenda"
+    ? (home?.agenda || []).map((e) => ({
+        title: e.title, description: e.description, badge: e.badge,
+        time: new Date(e.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) +
+          (e.end && e.end !== e.date ? ` → ${new Date(e.end).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}` : ""),
+        color: e.kind === "deliberation" ? "var(--color-warning)" : "var(--color-primary)",
+      }))
+    : given
   const formatTime = (time) => {
     return new Date(time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   }
@@ -40,14 +52,14 @@ const ScheduleWidget = ({ schedule = [], date, onAddSchedule, delay = 0 }) => {
             color: 'var(--color-textPrimary)',
             marginBottom: '4px',
           }}>
-            Planning
+            {source === "agenda" ? "Agenda" : "Planning"}
           </h5>
           <p style={{
             margin: 0,
             fontSize: '0.85rem',
             color: 'var(--color-textSecondary)',
           }}>
-            {date ? new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : "Aujourd'hui"}
+            {source === "agenda" ? "Prochaines échéances" : date ? new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : "Aujourd'hui"}
           </p>
         </div>
 

@@ -5,6 +5,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db.models import Avg, Count, Sum
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.password_validation import validate_password
 from apps.auditoires.models import Auditoire, Section, Filiere
 from apps.quiz.models import QuizAttempt
 from apps.assignments.models import AssignmentSubmission
@@ -38,17 +39,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
     student_stats = serializers.SerializerMethodField()
     teacher_stats = serializers.SerializerMethodField()
     role_display = serializers.CharField(source='get_role_display', read_only=True)
+    effective_roles = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'name', 'phone', 'role', 'status', 
-            'role_display',
+            'role_display', 'effective_roles',
             'matricule', 'auditoire', 'auditoire_details', 
             'sections', 'filieres', 'section', 'filiere',
             'is_active', 'date_joined', 'courses',
             'student_stats', 'teacher_stats'
         ]
+
+    def get_effective_roles(self, obj):
+        # Rôle principal + affectations datées en cours (chef de filière, commission, jury…)
+        from .permissions import effective_roles
+        return sorted(effective_roles(obj))
 
     def get_auditoire_details(self, obj):
         if obj.auditoire:
@@ -189,8 +196,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
         avg_student_performance = AssignmentSubmission.objects.filter(assignment__course__in=courses_taught).aggregate(avg=Avg('score'))['avg'] or 0
 
+        from apps.assignments.models import Assignment
+        assignments = Assignment.objects.filter(course__in=courses_taught)
         return {
             'courses_taught_count': courses_taught_count,
+            'assignments_created': assignments.count(),
+            'submissions_to_grade': AssignmentSubmission.objects.filter(assignment__in=assignments,
+                                                                        status__in=['submitted', 'late']).count(),
             'total_students_managed': total_students,
             'average_student_performance': round(avg_student_performance, 2),
         }
@@ -230,6 +242,20 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'email', 'password', 'first_name', 'last_name', 'phone', 'role',
             'auditoire_id', 'section_id', 'filiere_id'
         ]
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def validate_role(self, value):
+        from .permissions import assignable_roles
+        request = self.context.get('request')
+        allowed = assignable_roles(getattr(request, 'user', None))
+        if allowed is not None and value not in allowed:
+            raise serializers.ValidationError(
+                "Vous n'êtes pas autorisé à créer un compte avec ce rôle."
+            )
+        return value
 
     def validate(self, data):
         role = data.get('role')
@@ -322,9 +348,23 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    Ce qu'un utilisateur peut modifier sur SON propre profil : ses coordonnées.
+    Identité, matricule, rôle, statut et affectations relèvent de l'administration.
+    """
+    class Meta:
+        model = User
+        fields = ['phone', 'adresse']
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)

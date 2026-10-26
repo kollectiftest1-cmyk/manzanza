@@ -259,7 +259,7 @@ const GestionFrais = () => {
     return '—'
   }
 
-  const canManage = ['iadmin', 'directeur_general'].includes(user?.role)
+  const canManage = ['pdg', 'directeur_general'].includes(user?.role)
 
   return (
     <Container fluid style={{ padding: '16px 20px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>

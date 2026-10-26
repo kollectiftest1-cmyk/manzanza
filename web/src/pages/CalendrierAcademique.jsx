@@ -23,7 +23,7 @@ import scheduleService from "../services/scheduleService"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const isAdminOrSGA = (role) =>
-  ['sga', 'iadmin', 'pdg', 'directeur_general', 'sgad'].includes(role)
+  ['sga', 'pdg', 'directeur_general', 'sgad'].includes(role)
 
 const formatDate = (d) => {
   if (!d) return '—'

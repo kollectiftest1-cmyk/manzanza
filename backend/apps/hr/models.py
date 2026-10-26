@@ -2,10 +2,12 @@
 HR (Human Resources) models
 """
 from django.db import models
+
+from apps.core.softdelete import SoftDeleteModel
 from django.conf import settings
 
 
-class Employee(models.Model):
+class Employee(SoftDeleteModel):
     """Employee Model (extends User)"""
 
     POSITION_CHOICES = [
@@ -19,6 +21,7 @@ class Employee(models.Model):
         ('secretaire', 'Secrétaire'),
         ('technicien_it', 'Technicien IT'),
         ('personnel_admin', 'Personnel Administratif'),
+        ('direction', 'Direction'),
     ]
 
     STATUS_CHOICES = [
@@ -56,6 +59,22 @@ class Employee(models.Model):
                                               verbose_name='Salaire journalier (permanent)')
     salaire_horaire = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True,
                                            verbose_name='Salaire horaire (charge horaire)')
+    # --- Paie (refonte v2) ---
+    base_monthly_salary = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=True, null=True, verbose_name='Salaire mensuel de base',
+        help_text="Permanents : salaire de base du mois complet (sinon salaire journalier × jours ouvrables)")
+    housing_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+                                            verbose_name='Indemnité de logement (non imposable)')
+    transport_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+                                              verbose_name='Indemnité de transport (non imposable)')
+    dependents = models.PositiveSmallIntegerField(default=0, verbose_name='Personnes à charge')
+    statutory_teaching_hours = models.DecimalField(
+        max_digits=6, decimal_places=2, default=0, verbose_name="Charge horaire statutaire (h/mois)",
+        help_text="Enseignant permanent : heures de cours dues par mois ; au-delà = heures complémentaires")
+    extra_hour_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+                                          verbose_name='Taux heure complémentaire / vacation')
+    payment_account = models.CharField(max_length=100, blank=True, default='',
+                                       verbose_name='Compte bancaire / Mobile Money')
     currency = models.CharField(max_length=10, default='USD', verbose_name='Devise')
 
     # Status
@@ -108,7 +127,7 @@ class Employee(models.Model):
         return f"{self.user.get_full_name()} - {self.get_position_display()}"
 
 
-class Contract(models.Model):
+class Contract(SoftDeleteModel):
     """Employment Contract Model"""
 
     CONTRACT_TYPES = [
@@ -156,11 +175,17 @@ class Contract(models.Model):
         return f"{self.employee.user.get_full_name()} - {self.get_contract_type_display()}"
 
 
-class Payroll(models.Model):
+class Payroll(SoftDeleteModel):
     """Payroll Model"""
 
+    def trash_guard(self):
+        from apps.core.trash import TrashProtectedError
+        if self.status == 'paye':
+            raise TrashProtectedError("Une fiche de paie payée ne peut pas être supprimée ; annulez-la.")
+
     STATUS_CHOICES = [
-        ('en_attente', 'En attente'),
+        ('en_attente', 'Brouillon (calculée)'),
+        ('valide', 'Validée (bon à payer)'),
         ('paye', 'Payé'),
         ('annule', 'Annulé'),
     ]
@@ -197,6 +222,33 @@ class Payroll(models.Model):
     deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Déductions')
     net_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Salaire net')
 
+    # --- Détail du calcul (bulletin de paie) ---
+    jours_ouvrables = models.PositiveSmallIntegerField(default=0)
+    jours_absence_injustifiee = models.DecimalField(max_digits=5, decimal_places=1, default=0)
+    retenue_absences = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    heures_cours = models.DecimalField(max_digits=8, decimal_places=2, default=0,
+                                       verbose_name='Heures de cours prestées')
+    heures_complementaires = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    montant_heures_complementaires = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    heures_supplementaires = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    montant_heures_supplementaires = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    indemnites = models.DecimalField(max_digits=12, decimal_places=2, default=0,
+                                     verbose_name='Indemnités non imposables')
+    brut_imposable = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    inss_salarie = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    ipr = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='IPR / IRPP')
+    inss_patronal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    inpp = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    onem = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cout_employeur = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    details = models.JSONField(default=dict, blank=True)
+    computed_at = models.DateTimeField(null=True, blank=True)
+    validated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                     blank=True, related_name='+')
+    validated_at = models.DateTimeField(null=True, blank=True)
+    paid_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name='+')
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='en_attente',
                             verbose_name='Statut')
 
@@ -230,20 +282,12 @@ class Payroll(models.Model):
         month_name = dict(self.MONTH_CHOICES).get(self.mois, self.mois)
         return f"{month_name} {self.annee}"
 
-    def save(self, *args, **kwargs):
-        """Auto-calculate base_salary and net_salary from employee rate × quantity."""
-        from decimal import Decimal
-        emp = self.employee
-        if emp.prestation_type == 'permanent' and self.jours_prestes and emp.salaire_journalier:
-            self.base_salary = Decimal(str(self.jours_prestes)) * emp.salaire_journalier
-        elif emp.prestation_type == 'charge_horaire' and self.heures_prestees and emp.salaire_horaire:
-            self.base_salary = self.heures_prestees * emp.salaire_horaire
-
-        self.net_salary = (self.base_salary or Decimal('0')) + (self.bonuses or Decimal('0')) - (self.deductions or Decimal('0'))
-        super().save(*args, **kwargs)
+    @property
+    def currency(self):
+        return self.employee.currency
 
 
-class Leave(models.Model):
+class Leave(SoftDeleteModel):
     """Employee leave/vacation model"""
 
     LEAVE_TYPES = [
@@ -293,3 +337,97 @@ class Leave(models.Model):
     def duration_days(self):
         """Calculate leave duration in days"""
         return (self.end_date - self.start_date).days + 1
+
+
+
+class PayrollSettings(models.Model):
+    """
+    Paramètres de paie (singleton). Valeurs par défaut indicatives pour la RDC :
+    À FAIRE VALIDER par le comptable / la DGI avant la première paie réelle.
+    """
+    working_days_per_month = models.PositiveSmallIntegerField(default=26, verbose_name='Jours ouvrables de référence / mois')
+    hours_per_day = models.DecimalField(max_digits=4, decimal_places=2, default=8)
+    inss_employee_rate = models.DecimalField(max_digits=5, decimal_places=2, default=5, verbose_name='INSS salarié (%)')
+    inss_employer_rate = models.DecimalField(max_digits=5, decimal_places=2, default=13, verbose_name='INSS patronal (%)')
+    inpp_rate = models.DecimalField(max_digits=5, decimal_places=2, default=2, verbose_name='INPP (%)')
+    onem_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.2, verbose_name='ONEM (%)')
+    ipr_brackets = models.JSONField(
+        default=list, blank=True,
+        help_text='Barème annuel en CDF : [[plafond_tranche, taux_%], …, [null, taux_%]]')
+    ipr_cap_rate = models.DecimalField(max_digits=5, decimal_places=2, default=30,
+                                       verbose_name="Plafond de l'impôt (% du revenu imposable)")
+    ipr_dependent_reduction = models.DecimalField(max_digits=5, decimal_places=2, default=2,
+                                                  verbose_name='Réduction par personne à charge (%)')
+    ipr_max_dependents = models.PositiveSmallIntegerField(default=9)
+    exchange_rate_cdf_per_usd = models.DecimalField(max_digits=10, decimal_places=2, default=2800,
+                                                    verbose_name='Taux de change (CDF pour 1 USD)')
+    overtime_multiplier = models.DecimalField(max_digits=4, decimal_places=2, default=1.3,
+                                              verbose_name="Majoration des heures supplémentaires")
+    late_tolerance_minutes = models.PositiveSmallIntegerField(default=15)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    DEFAULT_BRACKETS = [[524160, 3], [1428000, 15], [2700000, 30], [None, 40]]
+
+    class Meta:
+        verbose_name = 'Paramètres de paie'
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        if not obj.ipr_brackets:
+            obj.ipr_brackets = cls.DEFAULT_BRACKETS
+            obj.save(update_fields=['ipr_brackets'])
+        return obj
+
+
+class StaffAttendance(models.Model):
+    """Pointage journalier du personnel (présence, retard, absence, congé, mission)."""
+    STATUS_CHOICES = [
+        ('present', 'Présent'),
+        ('retard', 'En retard'),
+        ('absent_justifie', 'Absence justifiée'),
+        ('absent_injustifie', 'Absence non justifiée'),
+        ('conge', 'Congé'),
+        ('mission', 'Mission'),
+        ('ferie', 'Jour férié'),
+    ]
+    PAID_STATUSES = ('present', 'retard', 'absent_justifie', 'conge', 'mission', 'ferie')
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendances')
+    date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present')
+    check_in = models.TimeField(null=True, blank=True)
+    check_out = models.TimeField(null=True, blank=True)
+    hours_worked = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    overtime_hours = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    note = models.CharField(max_length=255, blank=True, default='')
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='+')
+    self_declared = models.BooleanField(default=False, help_text="Pointé par l'employé lui-même")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['employee', 'date']
+        ordering = ['-date', 'employee__user__last_name']
+        verbose_name = 'Pointage du personnel'
+        verbose_name_plural = 'Pointages du personnel'
+
+    def __str__(self):
+        return f"{self.employee} — {self.date} ({self.get_status_display()})"
+
+    def save(self, *args, **kwargs):
+        from datetime import datetime
+        from decimal import Decimal
+        if self.check_in and self.check_out:
+            start = datetime.combine(self.date, self.check_in)
+            end = datetime.combine(self.date, self.check_out)
+            hours = max((end - start).total_seconds() / 3600, 0)
+            self.hours_worked = Decimal(str(round(hours, 2)))
+            settings_obj = PayrollSettings.load()
+            # Heures supplémentaires : au-delà de la journée normale, par tranches entières
+            # de 30 minutes (quelques minutes de dépassement ne constituent pas des heures sup).
+            excess = self.hours_worked - Decimal(settings_obj.hours_per_day)
+            self.overtime_hours = (excess * 2).to_integral_value(rounding='ROUND_FLOOR') / 2 if excess >= Decimal('0.5') \
+                else Decimal(0)
+        super().save(*args, **kwargs)

@@ -86,7 +86,7 @@ const Courses = () => {
   ];
 
   const canCreateCourses = () => {
-    return ["chef_section", "sga", "iadmin"].includes(user?.role);
+    return ["chef_section", "sga", "pdg"].includes(user?.role);
   };
 
   // Load filters options
@@ -95,6 +95,8 @@ const Courses = () => {
       try {
         // Pour les enseignants et assistants, ne charger que les auditoires
         const isTeacher = ['enseignant', 'assistant'].includes(user?.role);
+        // L'étudiant ne voit que ses propres cours : pas de filtres de structure.
+        if (user?.role === 'etudiant') return;
 
         const promises = [getAuditoires()];
 
@@ -161,7 +163,7 @@ const Courses = () => {
 
       // Charger TOUS les enseignants et assistants pour le formulaire de cours
       // On ne filtre pas par rôle spécifique, le backend le fera
-      if (user?.role === 'chef_section' || user?.role === 'chef_departement' || user?.role === 'sga' || user?.role === 'iadmin') {
+      if (user?.role === 'chef_section' || user?.role === 'chef_departement' || user?.role === 'sga' || user?.role === 'pdg') {
         params.for_course_form = true;
         params.role__in = 'enseignant,assistant'; // Inclure les deux rôles
       }
@@ -188,7 +190,10 @@ const Courses = () => {
       description: "",
       titulaire: "",
       auditoire: "",
-      semester: ""
+      semester: "",
+      volume_cm: 0,
+      volume_td: 0,
+      volume_tp: 0
     });
 
     setShowCourseModal(true);
@@ -204,7 +209,10 @@ const Courses = () => {
       description: course.description,
       titulaire: course.titulaire,
       auditoire: course.auditoire_detail ? course.auditoire_detail.id : course.auditoire || "",
-      semester: course.semester || ""
+      semester: course.semester || "",
+      volume_cm: course.volume_cm || 0,
+      volume_td: course.volume_td || 0,
+      volume_tp: course.volume_tp || 0
     });
 
     setShowCourseModal(true);
@@ -369,7 +377,7 @@ const Courses = () => {
           </div>
 
           <Row>
-            {user?.role === "sga" && (
+            {["sga", "pdg", "directeur_general"].includes(user?.role) && (
               <Col md={2} className="mb-3">
                 <Form.Group>
                   <Form.Label style={{ fontWeight: '500', color: 'var(--color-textPrimary)', fontSize: '0.9rem' }}>
@@ -847,6 +855,26 @@ const Courses = () => {
                     }}
                   />
                 </Form.Group>
+              </Col>
+            </Row>
+
+            {/* Volume horaire LMD : CM / TD / TP (par défaut crédits × heures par crédit) */}
+            <Row className="mb-3">
+              {[["volume_cm", "Cours magistral (h)"], ["volume_td", "Travaux dirigés (h)"], ["volume_tp", "Travaux pratiques (h)"]].map(([k, label]) => (
+                <Col md={4} key={k}>
+                  <Form.Group>
+                    <Form.Label style={{ fontWeight: '600', color: 'var(--color-textPrimary)', marginBottom: '8px' }}>{label}</Form.Label>
+                    <Form.Control type="number" min="0" value={courseData[k] ?? 0}
+                      onChange={(e) => setCourseData({ ...courseData, [k]: parseInt(e.target.value) || 0 })} />
+                  </Form.Group>
+                </Col>
+              ))}
+              <Col xs={12}>
+                <Form.Text style={{ color: 'var(--color-textSecondary)' }}>
+                  Volume total : {(courseData.volume_cm || 0) + (courseData.volume_td || 0) + (courseData.volume_tp || 0)} h
+                  {((courseData.volume_cm || 0) + (courseData.volume_td || 0) + (courseData.volume_tp || 0)) === 0 && ` — à défaut : ${courseData.credits || 0} crédits × 15 h = ${(courseData.credits || 0) * 15} h`}
+                  . Sert au suivi de l'exécution du cours et aux heures prestées.
+                </Form.Text>
               </Col>
             </Row>
 

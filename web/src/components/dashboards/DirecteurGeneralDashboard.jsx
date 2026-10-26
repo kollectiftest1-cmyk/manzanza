@@ -68,9 +68,9 @@ const DirecteurGeneralDashboard = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{
               width: '56px', height: '56px', borderRadius: '16px',
-              background: 'linear-gradient(135deg, #1e3a5f, #0d6efd)',
+              background: 'linear-gradient(135deg, #0A6F7D, #0E8C9B)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 16px rgba(13,110,253,0.3)'
+              boxShadow: '0 8px 16px rgba(14,140,155,0.3)'
             }}>
               <FiBriefcase size={28} color="white" />
             </div>
@@ -129,10 +129,12 @@ const DirecteurGeneralDashboard = () => {
         </h5>
         <Row className="g-3 mb-4">
           {[
-            { label: 'Montant attendu', value: fmtMoney(d.total_expected || 0), icon: FiCreditCard, color: '#4facfe' },
-            { label: 'Montant collecté', value: fmtMoney(d.total_paid || 0), icon: FiTrendingUp, color: '#43e97b' },
-            { label: 'En attente', value: fmtMoney(d.total_pending || 0), icon: FiClock, color: '#ffc107' },
-            { label: 'Campagnes actives', value: fmt(d.active_campaigns || 0), icon: FiTarget, color: '#f093fb' },
+            { label: 'Montant attendu (USD)', value: fmtMoney(d.total_expected || 0), icon: FiCreditCard, color: '#4facfe' },
+            { label: 'Montant collecté (USD)', value: fmtMoney(d.total_paid || 0), icon: FiTrendingUp, color: '#43e97b' },
+            { label: 'Reste à percevoir (USD)', value: fmtMoney(d.total_pending || 0), icon: FiClock, color: '#ffc107' },
+            d.by_currency?.CDF
+              ? { label: 'Reste à percevoir (CDF)', value: `${fmt(Math.round(d.by_currency.CDF.expected - d.by_currency.CDF.paid))} FC`, icon: FiTarget, color: '#f093fb' }
+              : { label: 'Campagnes actives', value: fmt(d.active_campaigns || 0), icon: FiTarget, color: '#f093fb' },
           ].map((s, i) => (
             <Col xl={3} md={6} key={i}>
               <Card style={{ border: 'none', borderRadius: '14px', background: 'var(--color-cardBg)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
@@ -187,7 +189,7 @@ const DirecteurGeneralDashboard = () => {
                     <Row className="g-2">
                       {[
                         { label: "Validés aujourd'hui", value: cs.today_count || 0, sub: fmtMoney(cs.today_total || 0), color: '#43e97b' },
-                        { label: 'En attente', value: cs.pending_count || 0, sub: fmtMoney(cs.pending_total || 0), color: '#ffc107' },
+                        { label: 'Reste à percevoir (USD)', value: cs.pending_count || 0, sub: fmtMoney(cs.pending_total || 0), color: '#ffc107' },
                         { label: 'Total encaissé', value: cs.total_validated_count || 0, sub: fmtMoney(cs.total_collected || 0), color: '#4facfe' },
                       ].map(s => (
                         <Col xs={4} key={s.label} style={{ textAlign: 'center' }}>

@@ -219,7 +219,7 @@ const Navbar = () => {
                           Mon Profil
                         </Dropdown.Item>
                       </LinkContainer>
-                      {(user?.role === "admin" || user?.role === "iadmin" || user?.role === "sga") && (
+                      {(user?.role === "admin" || user?.role === "pdg" || user?.role === "sga") && (
                         <LinkContainer to="/administration">
                           <Dropdown.Item style={{ fontSize: '14px', padding: '10px 16px' }}>
                             <FiSettings size={16} style={{ marginRight: '8px' }} />

@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Row, Col, Card, Badge, Button, Dropdown } from "react-bootstrap"
 import { FiUser, FiKey, FiBell, FiFileText, FiMoreVertical, FiCamera, FiHash, FiMapPin, FiPhone, FiCalendar, FiBook } from "react-icons/fi"
 import { motion } from "framer-motion"
+import { useDispatch } from "react-redux"
+import { getCurrentUser } from "../../store/slices/authSlice"
 import UserAvatar from "../UserAvatar"
 import AvatarUpload from "./AvatarUpload"
 
@@ -17,8 +19,7 @@ const getRoleBadge = (role) => {
     chef_section: { color: "#fd7e14", text: "Chef de Section" },
     sga: { color: "#36b9cc", text: "SGA" },
     sgad: { color: "#36b9cc", text: "SGAD" },
-    iadmin: { color: "#e74a3b", text: "Super Admin" },
-    pdg: { color: "#5a5c69", text: "PDG" },
+    pdg: { color: "#e74a3b", text: "PDG — administrateur général" },
     directeur_general: { color: "#5a5c69", text: "Directeur Général" },
     bibliothecaire: { color: "#858796", text: "Bibliothécaire" },
     caisse: { color: "#858796", text: "Caisse" },
@@ -43,9 +44,10 @@ const ProfileHeader = ({ user, currentUser, onTabSelect }) => {
   const isOwnProfile = currentUser?.id === user?.id
   const [showAvatarUpload, setShowAvatarUpload] = useState(false)
 
-  const handleAvatarSave = (newAvatarUrl) => {
-    // TODO: Mettre à jour l'avatar dans le backend
-    console.log('Nouvel avatar:', newAvatarUrl)
+  const dispatch = useDispatch()
+  const handleAvatarSave = () => {
+    // L'image est déjà enregistrée par AvatarUpload : on recharge le profil pour l'afficher partout.
+    dispatch(getCurrentUser())
   }
 
   return (

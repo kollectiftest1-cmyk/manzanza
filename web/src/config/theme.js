@@ -2,166 +2,159 @@
  * 🎨 FICHIER DE CONFIGURATION DES THÈMES
  * =====================================
  * Modifiez les couleurs ici pour personnaliser tout le design de l'application
- * Design inspiré de Acadex Dashboard
+ * Palette « Turquoise » (maquette de référence, cahier des charges v2)
  */
 
 export const themes = {
+  // Palette « Turquoise » — maquette de référence (sidebar et en-tête turquoise,
+  // contenu blanc, badges de statut pastel). Toute l'interface lit ces jetons.
   light: {
-    // 🔵 Couleurs principales - Université MAZANZA (Primary Colors)
-    primary: '#001F54',           // Bleu Marine Université MAZANZA
-    primaryHover: '#00143A',      // Bleu Marine foncé hover
-    primaryLight: '#E6EAF2',      // Bleu très clair pour backgrounds
-    secondary: '#F4A900',         // Or/Doré Université MAZANZA
-    success: '#1CC88A',           // Vert success
-    danger: '#E74A3B',            // Rouge danger
-    warning: '#F4A900',           // Or/Doré (warning = secondary)
-    info: '#36B9CC',              // Cyan info
+    primary: '#0E8C9B',           // Turquoise principal
+    primaryHover: '#0A7281',      // Turquoise foncé (survol)
+    primaryLight: '#E2F3F5',      // Turquoise très clair (fonds, onglets)
+    secondary: '#F08C2E',         // Orange (accent « À faire »)
+    success: '#1F9D63',           // Vert (« Terminé »)
+    danger: '#D64545',            // Rouge
+    warning: '#F08C2E',           // Orange
+    info: '#4C5FD5',              // Indigo (« En cours »)
 
-    // 🎨 Couleurs de fond (Background Colors)
-    bodyBg: '#E9F0FF',            // Fond principal léger bleu
-    bgDark: '#F8FBFF',            // Fond secondaire pour en-têtes et zones claires
-    contentBg: '#F5F8FF',         // Fond des contenus
-    cardBg: '#E8F0FF',            // Fond des cartes
+    bodyBg: '#EEF4F5',            // Fond de l'application
+    bgDark: '#F6FAFA',            // En-têtes de tableaux, zones calmes
+    contentBg: '#FFFFFF',
+    cardBg: '#FFFFFF',
 
-    // 📱 Sidebar Colors
-    sidebarBg: '#001F54',         // Fond sidebar primaire
-    sidebarText: '#FFFFFF',       // Texte sidebar blanc
-    sidebarTextLight: '#DDE7FF',  // Texte secondaire sidebar clair
-    sidebarHover: 'rgba(255,255,255,0.10)',      // Hover item sidebar
-    sidebarActive: '#FFFFFF',     // Couleur texte item actif
-    sidebarActiveBg: 'rgba(255,255,255,0.18)',   // Fond item actif
-    sidebarBorder: 'rgba(255,255,255,0.16)',     // Bordure sidebar
-    sidebarLogo: '#FFFFFF',       // Couleur du logo blanc
+    sidebarBg: 'linear-gradient(180deg, #15A0B0 0%, #0E8C9B 45%, #0A6F7D 100%)',
+    sidebarText: '#FFFFFF',
+    sidebarTextLight: '#D4F0F3',
+    sidebarHover: 'rgba(255,255,255,0.12)',
+    sidebarActive: '#FFFFFF',
+    sidebarActiveBg: 'rgba(255,255,255,0.22)',
+    sidebarBorder: 'rgba(255,255,255,0.18)',
+    sidebarLogo: '#FFFFFF',
 
-    // 📊 Header/Navbar Colors
-    headerBg: '#001F54',          // Fond header primaire
-    headerText: '#FFFFFF',        // Texte header blanc
-    headerBorder: 'rgba(255,255,255,0.16)',      // Bordure header
-    headerSearchBg: 'rgba(255,255,255,0.12)',    // Fond search input
+    headerBg: '#0E8C9B',
+    headerText: '#FFFFFF',
+    headerBorder: 'rgba(255,255,255,0.18)',
+    headerSearchBg: 'rgba(255,255,255,0.20)',
 
-    // 📝 Card Colors
-    cardBorder: '#B8C7F4',        // Bordure des cartes
-    cardShadow: '0 0.15rem 1.75rem 0 rgba(0, 21, 63, 0.08)',
-    cardHoverShadow: '0 0.25rem 2rem 0 rgba(0, 21, 63, 0.18)',
+    cardBorder: '#E1EBED',
+    cardShadow: '0 1px 2px rgba(16, 60, 68, 0.06), 0 4px 16px rgba(16, 60, 68, 0.06)',
+    cardHoverShadow: '0 6px 24px rgba(16, 60, 68, 0.12)',
 
-    // ✍️ Text Colors
-    textPrimary: '#3C4858',       // Texte principal
-    textSecondary: '#858796',     // Texte secondaire
-    textMuted: '#B7B9CC',         // Texte atténué
-    textWhite: '#FFFFFF',         // Texte blanc
-    textDark: '#2C2E33',          // Texte très foncé
+    textPrimary: '#1F3A40',
+    textSecondary: '#5F7A80',
+    textMuted: '#9AB0B4',
+    textWhite: '#FFFFFF',
+    textDark: '#12282C',
 
-    // 🎯 Border & Dividers
-    border: '#E3E6F0',            // Bordures générales
-    divider: '#E3E6F0',           // Séparateurs
+    border: '#E1EBED',
+    divider: '#EDF3F4',
 
-    // 💎 Accent Colors (pour les statistiques)
-    accentBlue: '#001F54',        // Bleu accent (Bleu Marine MAZANZA)
-    accentGreen: '#1CC88A',       // Vert accent
-    accentOrange: '#F4A900',      // Orange accent (Or MAZANZA)
-    accentRed: '#E74A3B',         // Rouge accent
-    accentPurple: '#6F42C1',      // Violet accent
-    accentCyan: '#36B9CC',        // Cyan accent
+    accentBlue: '#4C5FD5',
+    accentGreen: '#1F9D63',
+    accentOrange: '#F08C2E',
+    accentRed: '#D64545',
+    accentPurple: '#7B61D9',
+    accentCyan: '#0E8C9B',
 
-    // 📈 Chart Colors
-    chartBlue: '#001F54',
-    chartGreen: '#1CC88A',
-    chartOrange: '#F4A900',
-    chartRed: '#E74A3B',
-    chartPurple: '#6F42C1',
-    chartCyan: '#36B9CC',
-    chartGray: '#858796',
+    // Badges de statut (fond pastel + texte soutenu), comme sur la maquette
+    pillInfoBg: '#E6E9FF',     pillInfoText: '#4C5FD5',     // En cours
+    pillWarningBg: '#FFEBD6',  pillWarningText: '#C76A12',  // À faire / en attente
+    pillSuccessBg: '#D9F4E7',  pillSuccessText: '#1A8754',  // Terminé / validé
+    pillDangerBg: '#FDE2E2',   pillDangerText: '#B83232',   // Rejeté / urgent
+    pillNeutralBg: '#EDF3F4',  pillNeutralText: '#5F7A80',
 
-    // 🌈 Gradients
-    gradientPrimary: 'linear-gradient(180deg, #001F54 10%, #00143A 100%)',
-    gradientSuccess: 'linear-gradient(180deg, #1CC88A 10%, #13855C 100%)',
-    gradientWarning: 'linear-gradient(180deg, #F4A900 10%, #D4A017 100%)',
-    gradientDanger: 'linear-gradient(180deg, #E74A3B 10%, #BE2617 100%)',
-    gradientInfo: 'linear-gradient(180deg, #36B9CC 10%, #258391 100%)',
+    chartBlue: '#4C5FD5',
+    chartGreen: '#1F9D63',
+    chartOrange: '#F08C2E',
+    chartRed: '#D64545',
+    chartPurple: '#7B61D9',
+    chartCyan: '#0E8C9B',
+    chartGray: '#9AB0B4',
 
-    // 🔘 Button Styles
-    btnPrimaryBg: '#001F54',
-    btnPrimaryHover: '#00143A',
+    gradientPrimary: 'linear-gradient(180deg, #15A0B0 0%, #0A7281 100%)',
+    gradientSuccess: 'linear-gradient(180deg, #2BB673 0%, #1A8754 100%)',
+    gradientWarning: 'linear-gradient(180deg, #F5A04D 0%, #D9771C 100%)',
+    gradientDanger: 'linear-gradient(180deg, #E06363 0%, #B83232 100%)',
+    gradientInfo: 'linear-gradient(180deg, #6A7BE3 0%, #4C5FD5 100%)',
+
+    btnPrimaryBg: '#0E8C9B',
+    btnPrimaryHover: '#0A7281',
     btnPrimaryText: '#FFFFFF',
   },
 
   dark: {
-    // 🔵 Couleurs principales - Université MAZANZA Dark Mode (Primary Colors)
-    primary: '#2B5FCC',           // Bleu principal dark mode (plus clair que light)
-    primaryHover: '#3D6FDE',      // Bleu hover
-    primaryLight: '#1A2F5F',      // Bleu très foncé pour backgrounds
-    secondary: '#F4A900',         // Or/Doré Université MAZANZA
-    success: '#1DD1A1',           // Vert success
-    danger: '#EE5A6F',            // Rouge danger
-    warning: '#F4A900',           // Or/Doré (warning = secondary)
-    info: '#48D1CC',              // Cyan info
+    primary: '#2BB8C8',
+    primaryHover: '#46C9D7',
+    primaryLight: '#123C42',
+    secondary: '#F5A04D',
+    success: '#3CCB8A',
+    danger: '#EF6B6B',
+    warning: '#F5A04D',
+    info: '#8C9BFF',
 
-    // 🎨 Couleurs de fond (Background Colors)
-    bodyBg: '#0F1419',            // Fond principal très foncé
-    bgDark: '#1A1F2E',            // Fond secondaire pour en-têtes et zones foncées
-    contentBg: '#1A1F2E',         // Fond des contenus
-    cardBg: '#1E2533',            // Fond des cartes
+    bodyBg: '#0D1A1C',
+    bgDark: '#132427',
+    contentBg: '#132427',
+    cardBg: '#16292C',
 
-    // 📱 Sidebar Colors
-    sidebarBg: '#1A1F2E',         // Fond sidebar foncé
-    sidebarText: '#E4E6EB',       // Texte sidebar clair
-    sidebarTextLight: '#95A5A6',  // Texte secondaire sidebar
-    sidebarHover: '#252B3B',      // Hover item sidebar
-    sidebarActive: '#F4A900',     // Couleur texte item actif (Or)
-    sidebarActiveBg: '#1A2F5F',   // Fond item actif
-    sidebarBorder: '#2D3548',     // Bordure sidebar
-    sidebarLogo: '#F4A900',       // Couleur du logo (Or)
+    sidebarBg: 'linear-gradient(180deg, #0F4B53 0%, #0B353B 100%)',
+    sidebarText: '#E6F4F5',
+    sidebarTextLight: '#9CC3C8',
+    sidebarHover: 'rgba(255,255,255,0.08)',
+    sidebarActive: '#FFFFFF',
+    sidebarActiveBg: 'rgba(43,184,200,0.25)',
+    sidebarBorder: 'rgba(255,255,255,0.10)',
+    sidebarLogo: '#2BB8C8',
 
-    // 📊 Header/Navbar Colors
-    headerBg: '#1A1F2E',          // Fond header
-    headerText: '#E4E6EB',        // Texte header
-    headerBorder: '#2D3548',      // Bordure header
-    headerSearchBg: '#252B3B',    // Fond search input
+    headerBg: '#0F4B53',
+    headerText: '#E6F4F5',
+    headerBorder: 'rgba(255,255,255,0.10)',
+    headerSearchBg: 'rgba(255,255,255,0.10)',
 
-    // 📝 Card Colors
-    cardBorder: '#2D3548',        // Bordure des cartes
-    cardShadow: '0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.3)',
-    cardHoverShadow: '0 0.25rem 2rem 0 rgba(0, 0, 0, 0.5)',
+    cardBorder: '#21393D',
+    cardShadow: '0 1px 2px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.25)',
+    cardHoverShadow: '0 6px 24px rgba(0,0,0,0.45)',
 
-    // ✍️ Text Colors
-    textPrimary: '#E4E6EB',       // Texte principal
-    textSecondary: '#95A5A6',     // Texte secondaire
-    textMuted: '#6C757D',         // Texte atténué
-    textWhite: '#FFFFFF',         // Texte blanc
-    textDark: '#0F1419',          // Texte très foncé
+    textPrimary: '#E6F4F5',
+    textSecondary: '#9CC3C8',
+    textMuted: '#6A8C91',
+    textWhite: '#FFFFFF',
+    textDark: '#0D1A1C',
 
-    // 🎯 Border & Dividers
-    border: '#2D3548',            // Bordures générales
-    divider: '#2D3548',           // Séparateurs
+    border: '#21393D',
+    divider: '#1B3034',
 
-    // 💎 Accent Colors (pour les statistiques)
-    accentBlue: '#2B5FCC',        // Bleu accent
-    accentGreen: '#1DD1A1',       // Vert accent
-    accentOrange: '#F4A900',      // Orange accent (Or MAZANZA)
-    accentRed: '#EE5A6F',         // Rouge accent
-    accentPurple: '#9D72FF',      // Violet accent
-    accentCyan: '#48D1CC',        // Cyan accent
+    accentBlue: '#8C9BFF',
+    accentGreen: '#3CCB8A',
+    accentOrange: '#F5A04D',
+    accentRed: '#EF6B6B',
+    accentPurple: '#A892FF',
+    accentCyan: '#2BB8C8',
 
-    // 📈 Chart Colors
-    chartBlue: '#2B5FCC',
-    chartGreen: '#1DD1A1',
-    chartOrange: '#F4A900',
-    chartRed: '#EE5A6F',
-    chartPurple: '#9D72FF',
-    chartCyan: '#48D1CC',
-    chartGray: '#95A5A6',
+    pillInfoBg: 'rgba(140,155,255,0.16)',  pillInfoText: '#AEB8FF',
+    pillWarningBg: 'rgba(245,160,77,0.16)', pillWarningText: '#F7B572',
+    pillSuccessBg: 'rgba(60,203,138,0.16)', pillSuccessText: '#6FDCAA',
+    pillDangerBg: 'rgba(239,107,107,0.16)', pillDangerText: '#F49A9A',
+    pillNeutralBg: 'rgba(156,195,200,0.12)', pillNeutralText: '#9CC3C8',
 
-    // 🌈 Gradients
-    gradientPrimary: 'linear-gradient(180deg, #2B5FCC 10%, #1A4BAA 100%)',
-    gradientSuccess: 'linear-gradient(180deg, #1DD1A1 10%, #17A589 100%)',
-    gradientWarning: 'linear-gradient(180deg, #F4A900 10%, #D4A017 100%)',
-    gradientDanger: 'linear-gradient(180deg, #EE5A6F 10%, #D63447 100%)',
-    gradientInfo: 'linear-gradient(180deg, #48D1CC 10%, #3AA6A3 100%)',
+    chartBlue: '#8C9BFF',
+    chartGreen: '#3CCB8A',
+    chartOrange: '#F5A04D',
+    chartRed: '#EF6B6B',
+    chartPurple: '#A892FF',
+    chartCyan: '#2BB8C8',
+    chartGray: '#6A8C91',
 
-    // 🔘 Button Styles
-    btnPrimaryBg: '#2B5FCC',
-    btnPrimaryHover: '#1A4BAA',
-    btnPrimaryText: '#FFFFFF',
+    gradientPrimary: 'linear-gradient(180deg, #2BB8C8 0%, #188F9D 100%)',
+    gradientSuccess: 'linear-gradient(180deg, #3CCB8A 0%, #24A268 100%)',
+    gradientWarning: 'linear-gradient(180deg, #F5A04D 0%, #D9771C 100%)',
+    gradientDanger: 'linear-gradient(180deg, #EF6B6B 0%, #C94545 100%)',
+    gradientInfo: 'linear-gradient(180deg, #8C9BFF 0%, #6A7BE3 100%)',
+
+    btnPrimaryBg: '#2BB8C8',
+    btnPrimaryHover: '#188F9D',
+    btnPrimaryText: '#0D1A1C',
   }
 };
 

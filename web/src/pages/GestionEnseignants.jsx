@@ -196,7 +196,7 @@ const GestionEnseignants = () => {
   }
 
   const handleDeleteTeacher = async (teacher) => {
-    if (!window.confirm(`Supprimer l'enseignant ${teacher.first_name} ${teacher.last_name} ? Cette action est irréversible.`)) return
+    if (!window.confirm(`Supprimer l'enseignant ${teacher.first_name} ${teacher.last_name} ? Il ira dans la corbeille (restaurable pendant la durée de conservation).`)) return
     try {
       await deleteUser(teacher.id)
       setSuccess(`Enseignant supprimé.`)
@@ -306,7 +306,7 @@ const GestionEnseignants = () => {
   })
 
   // ── Permission check ──────────────────────────────────────────────────
-  const canManage = ['sga', 'iadmin', 'pdg', 'directeur_general', 'chef_section', 'chef_departement'].includes(currentUser?.role)
+  const canManage = ['sga', 'pdg', 'directeur_general', 'chef_section', 'chef_departement'].includes(currentUser?.role)
 
   return (
     <Container fluid style={{ padding: '24px', background: 'var(--color-bodyBg)', minHeight: '100vh' }}>

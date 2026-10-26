@@ -12,7 +12,8 @@ class SGADashboardStats(APIView):
 
     def get(self, request):
         total_students = User.objects.filter(role='etudiant', is_active=True).count()
-        pending_inscriptions = User.objects.filter(status='inactif', role='etudiant').count()
+        from apps.inscriptions.models import PreInscription
+        pending_inscriptions = PreInscription.objects.filter(status='en_attente').count()
         total_sections = Section.objects.count()
         total_auditoires = Auditoire.objects.count()
         total_courses = Course.objects.filter(is_active=True).count()
@@ -22,20 +23,25 @@ class SGADashboardStats(APIView):
         payment_stats = {}
         try:
             from apps.payments.models import Fee, StudentFee, Payment
-            agg = StudentFee.objects.aggregate(
-                total_expected=Sum('total_amount'),
-                total_paid=Sum('amount_paid'),
-            )
-            total_expected = float(agg['total_expected'] or 0)
-            total_paid = float(agg['total_paid'] or 0)
+            # Jamais d'addition entre devises : les totaux historiques sont exprimés en USD,
+            # le détail par devise est fourni dans « by_currency ».
+            fees = StudentFee.objects.exclude(status='annule')
+            by_currency = {}
+            for row in fees.values('currency').annotate(due=Sum('total_amount'), paid=Sum('amount_paid')):
+                by_currency[row['currency'] or 'USD'] = {'expected': float(row['due'] or 0),
+                                                         'paid': float(row['paid'] or 0)}
+            usd = by_currency.get('USD', {'expected': 0, 'paid': 0})
+            total_expected = usd['expected']
+            total_paid = usd['paid']
             payment_stats = {
                 'total_fees_campaigns': Fee.objects.count(),
                 'active_campaigns': Fee.objects.filter(is_active=True).count(),
                 'total_expected': total_expected,
                 'total_paid': total_paid,
                 'total_pending': total_expected - total_paid,
-                'paid_students': StudentFee.objects.filter(status='paye').count(),
-                'unpaid_students': StudentFee.objects.filter(status='impaye').count(),
+                'by_currency': by_currency,
+                'paid_students': StudentFee.objects.filter(status='paye').values('student').distinct().count(),
+                'unpaid_students': StudentFee.objects.filter(status__in=['impaye', 'partiel']).values('student').distinct().count(),
                 'recent_payments': list(
                     Payment.objects.filter(status='confirme')
                     .order_by('-payment_date')[:5]
@@ -55,7 +61,7 @@ class SGADashboardStats(APIView):
             hr_stats = {
                 'total_employees': Employee.objects.filter(is_active=True).count(),
                 'total_payroll_paid': float(
-                    Payroll.objects.filter(statut='paye').aggregate(s=Sum('net_a_payer'))['s'] or 0
+                    Payroll.objects.filter(status='paye').aggregate(s=Sum('net_salary'))['s'] or 0
                 ),
             }
         except Exception:

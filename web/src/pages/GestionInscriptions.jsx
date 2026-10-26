@@ -27,7 +27,7 @@ const GestionInscriptions = () => {
   const fetchInscriptions = async () => {
     try {
       setLoading(true)
-      const res = await api.get("/inscriptions/")
+      const res = await api.get("/inscriptions/", { params: { page_size: 500 } })
       setInscriptions(res.data.results || res.data)
     } catch (err) {
       setError("Impossible de charger les demandes d'inscription.")
@@ -39,17 +39,6 @@ const GestionInscriptions = () => {
   useEffect(() => {
     fetchInscriptions()
   }, [])
-
-  const handleAction = async (id, action) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir ${action} cette inscription ?`)) return
-
-    try {
-      await api.post(`/inscriptions/${id}/${action}/`)
-      fetchInscriptions()
-    } catch (err) {
-      alert(`Erreur lors de l'action : ${err.response?.data?.error || 'Veuillez réessayer.'}`)
-    }
-  }
 
   const filteredInscriptions = inscriptions.filter(i => i.status === activeTab)
 
@@ -117,24 +106,15 @@ const GestionInscriptions = () => {
                       <FiEye size={14} /> Voir
                     </Button>
                     {activeTab === 'en_attente' && (
-                      <>
-                        <Button 
-                          variant="success" 
-                          size="sm" 
-                          onClick={() => handleAction(item.id, 'validate')}
-                          style={{ borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <FiCheck size={14} /> Valider
-                        </Button>
-                        <Button 
-                          variant="danger" 
-                          size="sm" 
-                          onClick={() => handleAction(item.id, 'reject')}
-                          style={{ borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <FiX size={14} /> Rejeter
-                        </Button>
-                      </>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span className={`mz-pill ${item.dossier_status === 'conforme' ? 'mz-pill--success' : 'mz-pill--warning'}`}>
+                          Pièces : {{ a_verifier: 'à vérifier', conforme: 'conformes', a_completer: 'à compléter' }[item.dossier_status] || '—'}
+                        </span>
+                        <span className={`mz-pill ${item.frais_dossier_paye ? 'mz-pill--success' : 'mz-pill--warning'}`}>
+                          Frais : {item.frais_dossier_paye ? 'payés' : 'non payés'}
+                        </span>
+                        {item.commission_decision === 'liste_attente' && <span className="mz-pill mz-pill--info">Liste d'attente</span>}
+                      </div>
                     )}
                   </div>
                 </td>

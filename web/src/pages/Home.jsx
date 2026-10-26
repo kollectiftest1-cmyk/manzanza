@@ -190,18 +190,6 @@ const Home = () => {
                           S'inscrire
                         </Button>
                       </Link>
-                      <Button
-                        size="lg"
-                        variant="outline-primary"
-                        style={{
-                          padding: '14px 32px',
-                          borderRadius: '12px',
-                          fontWeight: '600',
-                          borderWidth: '2px'
-                        }}
-                      >
-                        Demander une démo
-                      </Button>
                     </>
                   ) : (
                     <LinkContainer to="/dashboard">
@@ -232,16 +220,16 @@ const Home = () => {
                 >
                   <Row className="g-4">
                     <Col xs={4}>
-                      <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-primary)', marginBottom: '4px' }}>5000+</h3>
-                      <small style={{ color: 'var(--color-textSecondary)' }}>Étudiants actifs</small>
+                      <h3 style={{ fontSize: '1.6rem', fontWeight: '700', color: 'var(--color-primary)', marginBottom: '4px' }}>LMD</h3>
+                      <small style={{ color: 'var(--color-textSecondary)' }}>60 crédits par an, UE capitalisables</small>
                     </Col>
                     <Col xs={4}>
-                      <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-success)', marginBottom: '4px' }}>200+</h3>
-                      <small style={{ color: 'var(--color-textSecondary)' }}>Enseignants</small>
+                      <h3 style={{ fontSize: '1.6rem', fontWeight: '700', color: 'var(--color-success)', marginBottom: '4px' }}>En ligne</h3>
+                      <small style={{ color: 'var(--color-textSecondary)' }}>Pré-inscription et suivi du dossier</small>
                     </Col>
                     <Col xs={4}>
-                      <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-warning)', marginBottom: '4px' }}>98%</h3>
-                      <small style={{ color: 'var(--color-textSecondary)' }}>Satisfaction</small>
+                      <h3 style={{ fontSize: '1.6rem', fontWeight: '700', color: 'var(--color-warning)', marginBottom: '4px' }}>QR</h3>
+                      <small style={{ color: 'var(--color-textSecondary)' }}>Relevés et attestations vérifiables</small>
                     </Col>
                   </Row>
                 </motion.div>

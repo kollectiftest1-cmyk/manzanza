@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Spinner, Alert, Tabs, Tab } from 'react-bootstrap';
-import ContractList from '../../components/RH/ContractList';
+import ContractList from '../../components/rh/ContractList';
 import { getContracts } from '../../services/hrService';
 
 export default function HrContractsPage() {

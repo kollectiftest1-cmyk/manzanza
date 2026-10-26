@@ -30,9 +30,10 @@ export const paymentService = {
   getPayments: (params) => api.get('/payments/', { params }),
   createPayment: (data) => api.post('/payments/', data),
   confirmPayment: (id) => api.post(`/payments/${id}/confirm/`),
-  rejectPayment: (id) => api.post(`/payments/${id}/reject/`),
+  // Le motif est obligatoire (traçabilité) : demandé à la caisse si absent.
+  rejectPayment: (id, reason) => api.post(`/payments/${id}/reject/`, { reason: reason ?? window.prompt("Motif du rejet du paiement :") ?? "" }),
 
-  // Mobile Money (simulation — instant confirm)
+  // Mobile Money : la demande reste « en attente » jusqu’à vérification (jamais confirmée automatiquement)
   mobileMoneyPay: (data) => api.post('/payments/mobile-money/', data),
 
   // ─── Vouchers (Bons de paiement) ─────────────────────────────────────────

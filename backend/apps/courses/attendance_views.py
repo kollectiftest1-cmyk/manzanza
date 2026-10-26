@@ -19,7 +19,9 @@ from .attendance_serializers import (
 )
 from .models import Course
 from apps.users.models import User
-from apps.users.permissions import IsTeacherOrAdmin
+from apps.users.permissions import IsTeacherOrAdmin, IsTeachingStaff, manages_course, teaches_course
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from django.db.models import Q as _Q
 
 
 class AttendanceViewSet(viewsets.ModelViewSet):
@@ -34,9 +36,45 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     search_fields = ['student__first_name', 'student__last_name', 'student__matricule']
     ordering_fields = ['date', 'student__last_name']
 
+    def get_permissions(self):
+        if self.action in ['my_attendances', 'statistics']:
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsTeacherOrAdmin()]
+
+    def get_queryset(self):
+        """Uniquement les présences des cours que l'utilisateur gère."""
+        user = self.request.user
+        qs = Attendance.objects.select_related('student', 'course', 'recorded_by')
+        if user.is_superuser or user.role in ['pdg', 'sga', 'directeur_general']:
+            return qs
+        if user.role == 'chef_departement' and user.filiere_id:
+            return qs.filter(course__auditoire__filiere_id=user.filiere_id)
+        if user.role == 'chef_section' and user.section_id:
+            return qs.filter(course__auditoire__filiere__section_id=user.section_id)
+        return qs.filter(_Q(course__titulaire=user) | _Q(course__assistants=user)).distinct()
+
+    def _check(self, course, student=None):
+        if not manages_course(self.request.user, course):
+            raise PermissionDenied("Vous ne pouvez saisir les présences que de vos propres cours.")
+        if student is not None and student.auditoire_id != course.auditoire_id:
+            raise ValidationError({'student': "Cet étudiant n'appartient pas à l'auditoire du cours."})
+
     def perform_create(self, serializer):
         """Set recorded_by to current user"""
+        self._check(serializer.validated_data.get('course'), serializer.validated_data.get('student'))
         serializer.save(recorded_by=self.request.user)
+
+    def perform_update(self, serializer):
+        inst = serializer.instance
+        self._check(serializer.validated_data.get('course', inst.course),
+                    serializer.validated_data.get('student', inst.student))
+        if inst.session_id and inst.session.is_finalized:
+            raise ValidationError("Cette séance est clôturée.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        # Une présence ne disparaît jamais : on corrige son statut (présent, absent, excusé…).
+        raise ValidationError("Une présence ne se supprime pas : modifiez son statut.")
 
     @action(detail=False, methods=['get'], url_path='my_attendances')
     def my_attendances(self, request):
@@ -58,7 +96,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 Q(course__titulaire=user) | Q(course__assistants=user)
             )
         else:
-            attendances = Attendance.objects.all()
+            attendances = self.get_queryset()
 
         total = attendances.count()
         present = attendances.filter(status='present').count()
@@ -116,6 +154,11 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             course = Course.objects.get(id=course_id)
         except Course.DoesNotExist:
             return Response({'error': 'Cours non trouvé.'}, status=status.HTTP_404_NOT_FOUND)
+        if not manages_course(request.user, course):
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+        if not manages_course(request.user, course):
+            return Response({'error': 'Vous ne pouvez saisir les présences que de vos propres cours.'},
+                            status=status.HTTP_403_FORBIDDEN)
 
         # Resolve session if provided
         session_obj = None
@@ -197,7 +240,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         if end_date:
             query &= Q(date__lte=end_date)
 
-        attendances = Attendance.objects.filter(query)
+        attendances = self.get_queryset().filter(query)
 
         # Calculate statistics
         total = attendances.count()
@@ -237,6 +280,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             course = Course.objects.get(id=course_id)
         except Course.DoesNotExist:
             return Response({'error': 'Cours non trouvé.'}, status=status.HTTP_404_NOT_FOUND)
+        if not manages_course(request.user, course):
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
 
         # Get all students enrolled in the course
         enrolled_students = course.enrollments.filter(is_active=True).values_list('student_id', flat=True)
@@ -251,7 +296,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         if end_date:
             query &= Q(date__lte=end_date)
 
-        attendances = Attendance.objects.filter(query)
+        attendances = self.get_queryset().filter(query)
 
         # Get unique dates (sessions)
         total_sessions = attendances.values('date').distinct().count()
@@ -322,13 +367,42 @@ class AttendanceSessionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 Q(course__titulaire=user) | Q(course__assistants=user)
             )
-        # SGA/Admin/Chef see all
+        elif user.role == 'chef_departement' and user.filiere_id:
+            queryset = queryset.filter(course__auditoire__filiere_id=user.filiere_id)
+        elif user.role == 'chef_section' and user.section_id:
+            queryset = queryset.filter(course__auditoire__filiere__section_id=user.section_id)
+        elif not (user.is_superuser or user.role in ['pdg', 'sga', 'sgad', 'directeur_general']):
+            queryset = queryset.none()
 
         return queryset.distinct()
 
+    def get_permissions(self):
+        # Les séances alimentent la paie des enseignants : seuls les enseignants du cours
+        # (ou leurs chefs / le SGA) les créent, modifient et clôturent.
+        if self.action in ['list', 'retrieve', 'my_sessions']:
+            return [IsAuthenticated()]
+        return [IsTeachingStaff()]
+
+    def _check(self, course):
+        if not manages_course(self.request.user, course):
+            raise PermissionDenied("Vous ne pouvez gérer que les séances de vos propres cours.")
+
     def perform_create(self, serializer):
         """Set created_by to current user"""
+        self._check(serializer.validated_data.get('course'))
         serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        if serializer.instance.is_finalized:
+            raise ValidationError("Une séance clôturée ne peut plus être modifiée.")
+        self._check(serializer.validated_data.get('course', serializer.instance.course))
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check(instance.course)
+        if instance.is_finalized:
+            raise ValidationError("Une séance clôturée ne peut pas être supprimée.")
+        instance.delete(user=self.request.user)
 
     @action(detail=False, methods=['get'], url_path='my_sessions')
     def my_sessions(self, request):
@@ -341,6 +415,7 @@ class AttendanceSessionViewSet(viewsets.ModelViewSet):
     def finalize(self, request, pk=None):
         """Finalize an attendance session (make it read-only)"""
         session = self.get_object()
+        self._check(session.course)
 
         if session.is_finalized:
             return Response({'error': 'Cette séance est déjà finalisée.'}, status=status.HTTP_400_BAD_REQUEST)
